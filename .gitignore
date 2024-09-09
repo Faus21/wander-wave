@@ -3,6 +3,8 @@
 *.ipr
 *.iws
 /.idea
+*.idea
+
 
 # Compiled class file
 *.class
