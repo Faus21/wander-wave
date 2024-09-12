@@ -7,4 +7,6 @@ To get started with this project, follow these steps:
 2. Install Docker Containers:
    ```docker-compose up -d```
 
-3. Start the Application
+3. Create database ```wanderwave_db```
+
+4. Start the Application
