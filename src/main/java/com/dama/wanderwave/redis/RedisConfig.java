@@ -1,5 +1,6 @@
 package com.dama.wanderwave.redis;
 
+import com.dama.wanderwave.user.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +30,7 @@ public class RedisConfig {
 	@Bean
 	@Primary
 	public LettuceConnectionFactory redisUsersConnectionFactory() {
+		log.info("Creating Redis connection factory for users with host: {}, port: {}, database: 0", host, port);
 		RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
 		config.setHostName(host);
 		config.setPort(port);
@@ -38,6 +40,7 @@ public class RedisConfig {
 
 	@Bean
 	public LettuceConnectionFactory redisPostsConnectionFactory() {
+		log.info("Creating Redis connection factory for posts with host: {}, port: {}, database: 1", host, port);
 		RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
 		config.setHostName(host);
 		config.setPort(port);
@@ -47,6 +50,7 @@ public class RedisConfig {
 
 	@Bean
 	public LettuceConnectionFactory redisFlowConnectionFactory() {
+		log.info("Creating Redis connection factory for flow with host: {}, port: {}, database: 2", host, port);
 		RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
 		config.setHostName(host);
 		config.setPort(port);
@@ -55,25 +59,28 @@ public class RedisConfig {
 	}
 
 	@Bean(name = "redisUsersTemplate")
-	public RedisTemplate<String, Object> redisUsersTemplate() {
-		RedisTemplate<String, Object> template = new RedisTemplate<>();
+	public RedisTemplate<String, PostCache> redisUsersTemplate() {
+		log.info("Creating Redis template for users");
+		RedisTemplate<String, PostCache> template = new RedisTemplate<>();
 		template.setConnectionFactory(redisUsersConnectionFactory());
 		template.setKeySerializer(new StringRedisSerializer());
-		template.setValueSerializer(new Jackson2JsonRedisSerializer<>(Object.class));
+		template.setValueSerializer(new Jackson2JsonRedisSerializer<>(PostCache.class));
 		return template;
 	}
 
 	@Bean(name = "redisPostsTemplate")
-	public RedisTemplate<String, Object> redisPostsTemplate() {
-		RedisTemplate<String, Object> template = new RedisTemplate<>();
+	public RedisTemplate<String, UserCache> redisPostsTemplate() {
+		log.info("Creating Redis template for posts");
+		RedisTemplate<String, UserCache> template = new RedisTemplate<>();
 		template.setConnectionFactory(redisPostsConnectionFactory());
 		template.setKeySerializer(new StringRedisSerializer());
-		template.setValueSerializer(new Jackson2JsonRedisSerializer<>(Object.class));
+		template.setValueSerializer(new Jackson2JsonRedisSerializer<>(UserCache.class));
 		return template;
 	}
 
 	@Bean(name = "redisFlowTemplate")
 	public RedisTemplate<String, Long> redisFlowTemplate() {
+		log.info("Creating Redis template for flow");
 		RedisTemplate<String, Long> template = new RedisTemplate<>();
 		template.setConnectionFactory(redisFlowConnectionFactory());
 		template.setKeySerializer(new StringRedisSerializer());
