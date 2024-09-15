@@ -16,7 +16,7 @@ import java.util.Set;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-@Table(name = "hashtags", uniqueConstraints = {@UniqueConstraint(columnNames = {"hashtag_id"})})
+@Table(name = "hashtags")
 public class HashTag {
 
 	@Id

@@ -9,7 +9,7 @@ import org.hibernate.annotations.GenericGenerator;
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED, force = true)
-@Table(name = "roles", uniqueConstraints = {@UniqueConstraint(columnNames = {"role_id"})})
+@Table(name = "roles")
 @Builder
 public class Role {
 	@Id

@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-@Table(name = "reports", uniqueConstraints = {@UniqueConstraint(columnNames = {"report_id"}), @UniqueConstraint(columnNames = {"object_id"}), @UniqueConstraint(columnNames = {"user_sender_id"})})
+@Table(name = "reports")
 public class Report {
 
 	@Id

@@ -11,20 +11,20 @@ import java.time.LocalDateTime;
 
 @Data
 @Entity
-@Table(name = "user_viewed_posts", uniqueConstraints = {@UniqueConstraint(columnNames = {"user_id", "post_id"})})
+@Table(name = "user_viewed_posts")
 public class ViewedPost {
 
 	@EmbeddedId
 	private ViewedPostId id;
 
 	@MapsId("user_id")
-	@ManyToOne(fetch = FetchType.EAGER)
+	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "user_id", referencedColumnName = "user_id")
 	@NotNull(message = "User must not be null")
 	private User user;
 
 	@MapsId("post_id")
-	@ManyToOne(fetch = FetchType.EAGER)
+	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "post_id", referencedColumnName = "post_id")
 	@NotNull(message = "Post must not be null")
 	private Post post;
