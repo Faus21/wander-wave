@@ -1,45 +1,45 @@
 package com.dama.wanderwave.user;
 
 import com.dama.wanderwave.role.Role;
+import com.dama.wanderwave.token.Token;
 import com.dama.wanderwave.user.like.Like;
 import com.dama.wanderwave.user.saved_post.SavedPost;
 import com.dama.wanderwave.user.viewed_post.ViewedPost;
 import com.vladmihalcea.hibernate.type.json.JsonBinaryType;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.annotations.Type;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.security.Principal;
+import java.util.*;
 
 @Getter
 @Setter
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "users",
-		uniqueConstraints = {
-				@UniqueConstraint(columnNames = {"user_id"}),
-				@UniqueConstraint(columnNames = {"username"}),
-				@UniqueConstraint(columnNames = {"email"})
-		})
-public class User {
+@SuperBuilder
+@Table(name = "users")
+public class User implements UserDetails, Principal {
 
 	@Id
 	@GeneratedValue(generator = "hash_generator")
 	@GenericGenerator(name = "hash_generator", strategy = "com.dama.wanderwave.hash.HashUUIDGenerator")
-	@Column(name = "user_id", nullable = false, updatable = false)
+	@Column(name = "user_id", nullable = false)
 	private String id;
 
 	@Size(max = 50, message = "Username length must be less than or equal to 50 characters")
 	@NotBlank(message = "Username cannot be blank")
 	@Column(unique = true, nullable = false, length = 50)
-	private String username;
+	private String nickname;
 
 	@Email(message = "Invalid email format")
 	@NotBlank(message = "Email cannot be blank")
@@ -52,26 +52,15 @@ public class User {
 	private String password;
 
 	@Size(max = 255, message = "Profile description length must be less than or equal to 255 characters")
-	@NotBlank(message = "Profile description cannot be blank")
 	@Column(nullable = false)
 	private String description;
 
-	@Size(max = 300, message = "Access token length must be less than or equal to 300 characters")
-	@Column(name = "access_token")
-	private String accessToken;
-
-	@Size(max = 300, message = "Refresh token length must be less than or equal to 300 characters")
-	@Column(name = "refresh_token")
-	private String refreshToken;
-
 	@Type(JsonBinaryType.class)
 	@Column(name = "black_list", columnDefinition = "jsonb")
-	private BlackList blackList;
+	private BlackList blackList ;
 
 	@ManyToMany(fetch = FetchType.EAGER)
-	@JoinTable(name = "user_roles",
-			joinColumns = @JoinColumn(name = "user_id"),
-			inverseJoinColumns = @JoinColumn(name = "role_id"))
+	@JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
 	private Set<Role> roles = new HashSet<>();
 
 	@ElementCollection(fetch = FetchType.EAGER)
@@ -84,19 +73,61 @@ public class User {
 	@Column(name = "follower_id")
 	private Set<String> subscribers = new HashSet<>();
 
+	@OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+	private Set<Token> tokens = new HashSet<>();
+
+	@Column(name = "account_locked", nullable = false)
+	private boolean accountLocked;
+
+	@Column(nullable = false)
+	private boolean enabled;
 
 	@Column(name = "image_url", columnDefinition = "TEXT")
 	private String imageUrl;
 
+	@OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+	private List<ViewedPost> viewedPosts = new ArrayList<>();
 
 	@OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-	private Set<ViewedPost> viewedPosts = new HashSet<>();
-
-
-	@OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-	private Set<SavedPost> savedPosts = new HashSet<>();
-
+	private List<SavedPost> savedPosts = new ArrayList<>();
 
 	@OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-	private Set<Like> likes = new HashSet<>();
+	private List<Like> likes = new ArrayList<>();
+
+	@Override
+	public Collection<? extends GrantedAuthority> getAuthorities() {
+		return this.roles.stream().map(r -> new SimpleGrantedAuthority(r.getName())).toList();
+	}
+
+	@Override
+	public String getUsername() {
+		return email;
+	}
+
+
+	@Override
+	public boolean isAccountNonExpired() {
+		return true;
+	}
+
+	@Override
+	public boolean isAccountNonLocked() {
+		return !accountLocked;
+	}
+
+	@Override
+	public boolean isCredentialsNonExpired() {
+		return true;
+	}
+
+	@Override
+	public boolean isEnabled() {
+		return enabled;
+	}
+
+
+	@Override
+	public String getName() {
+		return email;
+	}
 }

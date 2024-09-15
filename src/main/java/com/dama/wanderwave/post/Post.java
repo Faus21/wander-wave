@@ -26,10 +26,7 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "posts", uniqueConstraints = {
-		@UniqueConstraint(columnNames = {"post_id"}),
-		@UniqueConstraint(columnNames = {"category_type_id"}),
-		@UniqueConstraint(columnNames = {"user_id"})} )
+@Table(name = "posts" )
 public class Post {
 
 	@Id

@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 
 @Data
 @Entity
-@Table(name = "user_saved_posts", uniqueConstraints = {@UniqueConstraint(columnNames = {"user_id", "post_id"})})
+@Table(name = "user_saved_posts")
 public class SavedPost {
 
 	@EmbeddedId
