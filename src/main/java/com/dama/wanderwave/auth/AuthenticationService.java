@@ -61,8 +61,7 @@ public class AuthenticationService {
         }
     }
     private void handleDataIntegrityViolation(DataIntegrityViolationException ex) {
-        if (ex.getCause() instanceof ConstraintViolationException) {
-            ConstraintViolationException cve = (ConstraintViolationException) ex.getCause();
+        if (ex.getCause() instanceof ConstraintViolationException cve) {
             String constraintName = cve.getConstraintName();
             String fieldName = CONSTRAINT_NAME_TO_FIELD_MAP.getOrDefault(constraintName, "unknown");
             throw new UniqueConstraintViolationException("Unique constraint violation: " + constraintName, fieldName);
