@@ -13,7 +13,7 @@ import lombok.Setter;
 @Builder
 public class RegistrationRequest {
 
-
+    @Size(max = 50, message = "Username length must be less than or equal to 50 characters")
     @NotEmpty(message = "Username is mandatory")
     @NotNull(message = "Username is mandatory")
     private String username;
@@ -21,6 +21,7 @@ public class RegistrationRequest {
     @NotEmpty(message = "Email is mandatory")
     @NotNull(message = "Email is mandatory")
     private String email;
+    @Size(max = 100, message = "Password length must be less than or equal to 100 characters")
     @NotEmpty(message = "Password is mandatory")
     @NotNull(message = "Password is mandatory")
     @Size(min = 8, message = "Password should be 8 characters long minimum")
