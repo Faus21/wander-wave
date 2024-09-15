@@ -2,6 +2,7 @@ package com.dama.wanderwave.auth;
 
 import com.dama.wanderwave.handler.RoleNotFoundException;
 import com.dama.wanderwave.handler.TokenExpiredException;
+import com.dama.wanderwave.handler.UniqueConstraintViolationException;
 import com.dama.wanderwave.role.RoleRepository;
 import com.dama.wanderwave.security.JwtService;
 import com.dama.wanderwave.token.Token;
@@ -10,7 +11,9 @@ import com.dama.wanderwave.user.User;
 import com.dama.wanderwave.user.UserRepository;
 import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -40,13 +43,38 @@ public class AuthenticationService {
     private final SecureRandom secureRandom = new SecureRandom();
     private static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
+    private static final Map<String, String> CONSTRAINT_NAME_TO_FIELD_MAP = new HashMap<>();
+
+    static {
+        CONSTRAINT_NAME_TO_FIELD_MAP.put("users_nickname_key", "nickname");
+        CONSTRAINT_NAME_TO_FIELD_MAP.put("users_email_key", "email");
+    }
+
     @Transactional
-    public void register( RegistrationRequest request) {
+    public void register(RegistrationRequest request) {
+        try {
+            checkForExistingUser(request.getUsername(), request.getEmail());
+            User user = createUser(request);
+            userRepository.save(user);
+            //sendValidationEmail(user); // Uncomment and implement this method as needed
+        } catch (DataIntegrityViolationException ex) {
+            if (ex.getCause() instanceof ConstraintViolationException) {
+                ConstraintViolationException cve = (ConstraintViolationException) ex.getCause();
+                String constraintName = cve.getConstraintName();
+                String fieldName = CONSTRAINT_NAME_TO_FIELD_MAP.getOrDefault(constraintName, "unknown");
+                throw new UniqueConstraintViolationException("Unique constraint violation: " + constraintName, "UNIQUE_CONSTRAINT_VIOLATION", fieldName, ex);
+            }
+            throw ex;
+        }
+    }
 
-        User user = createUser(request);
-        userRepository.save(user);
-
-//        sendValidationEmail(user);
+    private void checkForExistingUser(String username, String email) {
+        if (userRepository.existsByNickname(username)) {
+            throw new UniqueConstraintViolationException("Username already exists", "USERNAME_EXISTS", "nickname");
+        }
+        if (userRepository.existsByEmail(email)) {
+            throw new UniqueConstraintViolationException("Email already exists", "EMAIL_EXISTS", "email");
+        }
     }
 
     private User createUser(RegistrationRequest request) {
@@ -89,7 +117,7 @@ public class AuthenticationService {
         if (LocalDateTime.now().isAfter(savedToken.getExpiresAt())) {
             sendValidationEmail(savedToken.getUser());
             throw new TokenExpiredException("Activation token has expired. A new token has been sent to the same " +
-                                 "email address.");
+                                                    "email address.");
         }
 
         activateUser(savedToken.getUser());
@@ -125,10 +153,9 @@ public class AuthenticationService {
         return tokenContent;
     }
 
-    private void sendValidationEmail(User user)  {
+    private void sendValidationEmail(User user) {
         String newToken = generateAndSaveActivationToken(user);
         // TODO: Implement email sending logic using newToken and activationUrl
-
     }
 
     public String generateActivationCode(int length) {

@@ -28,15 +28,20 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(ex.getMessage(), 400, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(UniqueConstraintViolationException.class)
+    public ResponseEntity<ErrorResponse> handleUniqueConstraintViolationException(UniqueConstraintViolationException ex) {
+        return buildErrorResponse(ex.getMessage(), 409, HttpStatus.CONFLICT);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
         return buildErrorResponse(ex.getMessage(), 500, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     private ResponseEntity<ErrorResponse> buildErrorResponse(String message, int errorCode, HttpStatus status) {
-        ErrorResponse errorResponse = new ErrorResponse( errorCode, message);
+        ErrorResponse errorResponse = new ErrorResponse(errorCode, message);
         return new ResponseEntity<>(errorResponse, status);
     }
 
-    public record ErrorResponse( int errorCode, String message) { }
+    public record ErrorResponse(int errorCode, String message) { }
 }
