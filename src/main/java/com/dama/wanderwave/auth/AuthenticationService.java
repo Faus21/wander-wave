@@ -43,12 +43,11 @@ public class AuthenticationService {
     private final SecureRandom secureRandom = new SecureRandom();
     private static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
-    private static final Map<String, String> CONSTRAINT_NAME_TO_FIELD_MAP = new HashMap<>();
+    private static final Map<String, String> CONSTRAINT_NAME_TO_FIELD_MAP = Map.of(
+            "uc_users_email", "email",
+            "uc_users_nickname", "nickname"
+    );
 
-    static {
-        CONSTRAINT_NAME_TO_FIELD_MAP.put("users_nickname_key", "nickname");
-        CONSTRAINT_NAME_TO_FIELD_MAP.put("users_email_key", "email");
-    }
 
     @Transactional
     public void register(RegistrationRequest request) {
@@ -58,22 +57,25 @@ public class AuthenticationService {
             userRepository.save(user);
             //sendValidationEmail(user); // Uncomment and implement this method as needed
         } catch (DataIntegrityViolationException ex) {
-            if (ex.getCause() instanceof ConstraintViolationException) {
-                ConstraintViolationException cve = (ConstraintViolationException) ex.getCause();
-                String constraintName = cve.getConstraintName();
-                String fieldName = CONSTRAINT_NAME_TO_FIELD_MAP.getOrDefault(constraintName, "unknown");
-                throw new UniqueConstraintViolationException("Unique constraint violation: " + constraintName, "UNIQUE_CONSTRAINT_VIOLATION", fieldName, ex);
-            }
-            throw ex;
+            handleDataIntegrityViolation(ex);
         }
+    }
+    private void handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        if (ex.getCause() instanceof ConstraintViolationException) {
+            ConstraintViolationException cve = (ConstraintViolationException) ex.getCause();
+            String constraintName = cve.getConstraintName();
+            String fieldName = CONSTRAINT_NAME_TO_FIELD_MAP.getOrDefault(constraintName, "unknown");
+            throw new UniqueConstraintViolationException("Unique constraint violation: " + constraintName, fieldName);
+        }
+        throw ex;
     }
 
     private void checkForExistingUser(String username, String email) {
         if (userRepository.existsByNickname(username)) {
-            throw new UniqueConstraintViolationException("Username already exists", "USERNAME_EXISTS", "nickname");
+            throw new UniqueConstraintViolationException("Username already exists", "nickname");
         }
         if (userRepository.existsByEmail(email)) {
-            throw new UniqueConstraintViolationException("Email already exists", "EMAIL_EXISTS", "email");
+            throw new UniqueConstraintViolationException("Email already exists", "email");
         }
     }
 
