@@ -1,6 +1,9 @@
 package com.dama.wanderwave.user;
 
 import com.dama.wanderwave.role.Role;
+import com.dama.wanderwave.user.like.Like;
+import com.dama.wanderwave.user.saved_post.SavedPost;
+import com.dama.wanderwave.user.viewed_post.ViewedPost;
 import com.vladmihalcea.hibernate.type.json.JsonBinaryType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
@@ -84,4 +87,16 @@ public class User {
 
 	@Column(name = "image_url", columnDefinition = "TEXT")
 	private String imageUrl;
+
+
+	@OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+	private Set<ViewedPost> viewedPosts = new HashSet<>();
+
+
+	@OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+	private Set<SavedPost> savedPosts = new HashSet<>();
+
+
+	@OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+	private Set<Like> likes = new HashSet<>();
 }

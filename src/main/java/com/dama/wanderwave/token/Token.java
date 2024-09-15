@@ -1,9 +1,7 @@
-package com.dama.wanderwave.comment;
+package com.dama.wanderwave.token;
 
-import com.dama.wanderwave.post.Post;
 import com.dama.wanderwave.user.User;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,16 +16,15 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "comments")
-public class Comment {
-
+@Table(name = "tokens", uniqueConstraints = {@UniqueConstraint(columnNames = {"token_id"})})
+public class Token {
 	@Id
 	@GeneratedValue(generator = "hash_generator")
 	@GenericGenerator(name = "hash_generator", strategy = "com.dama.wanderwave.hash.HashUUIDGenerator")
-	@Column(name = "comment_id", nullable = false, updatable = false, unique = true)
+	@Column(name = "token_id", nullable = false, updatable = false)
 	private String id;
 
-	@Size(max = 255, message = "Content length must be less than or equal to 255 characters")
+
 	@Column(nullable = false)
 	private String content;
 
@@ -35,11 +32,15 @@ public class Comment {
 	@Column(name = "created_at", updatable = false, nullable = false)
 	private LocalDateTime createdAt;
 
-	@ManyToOne(fetch = FetchType.EAGER)
-	@JoinColumn(name = "user_id", referencedColumnName = "user_id", nullable = false, foreignKey = @ForeignKey(name = "fk_comment_user"))
+	@Column(name = "viewed_at", updatable = false, nullable = false)
+	private LocalDateTime viewedAt;
+
+	@Column(name = "validated_at", updatable = false, nullable = false)
+	private LocalDateTime validatedAt;
+
+
+	@ManyToOne
+	@JoinColumn(name = "user_id", referencedColumnName = "user_id", nullable = false, foreignKey = @ForeignKey(name = "fk_token_user"))
 	private User user;
 
-	@ManyToOne(fetch = FetchType.EAGER)
-	@JoinColumn(name = "post_id", referencedColumnName = "post_id", nullable = false, foreignKey = @ForeignKey(name = "fk_comment_post"))
-	private Post post;
 }

@@ -10,6 +10,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.GenericGenerator;
+import org.springframework.data.annotation.CreatedDate;
+
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -45,4 +48,8 @@ public class Report {
 	@Size(max = 8)
 	@Column(nullable = false, name = "object_id")
 	private String objectId;
+
+	@CreatedDate
+	@Column(name = "created_at", updatable = false, nullable = false)
+	private LocalDateTime createdAt;
 }

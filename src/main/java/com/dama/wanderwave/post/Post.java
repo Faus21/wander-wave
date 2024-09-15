@@ -2,6 +2,9 @@ package com.dama.wanderwave.post;
 
 import com.dama.wanderwave.user.User;
 import com.dama.wanderwave.hashtag.HashTag;
+import com.dama.wanderwave.user.like.Like;
+import com.dama.wanderwave.user.saved_post.SavedPost;
+import com.dama.wanderwave.user.viewed_post.ViewedPost;
 import com.vladmihalcea.hibernate.type.array.StringArrayType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
@@ -10,11 +13,12 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.annotations.Type;
+import org.springframework.data.annotation.CreatedDate;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.Set;
 
 @Getter
@@ -22,7 +26,10 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "posts")
+@Table(name = "posts", uniqueConstraints = {
+		@UniqueConstraint(columnNames = {"post_id"}),
+		@UniqueConstraint(columnNames = {"category_type_id"}),
+		@UniqueConstraint(columnNames = {"user_id"})} )
 public class Post {
 
 	@Id
@@ -36,8 +43,8 @@ public class Post {
 	@Column(nullable = false, length = 100)
 	private String title;
 
-	@CreationTimestamp
-	@Column(name = "created_at", nullable = false, updatable = false)
+	@CreatedDate
+	@Column(name = "created_at", updatable = false, nullable = false)
 	private LocalDateTime createdAt;
 
 	@ManyToOne(fetch = FetchType.EAGER)
@@ -67,4 +74,13 @@ public class Post {
 			inverseJoinColumns = @JoinColumn(name = "hashtag_id")
 	)
 	private Set<HashTag> hashtags;
+
+	@OneToMany(mappedBy = "post", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+	private Set<ViewedPost> viewedPosts = new HashSet<>();
+
+	@OneToMany(mappedBy = "post", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+	private Set<SavedPost> savedPosts = new HashSet<>();
+
+	@OneToMany(mappedBy = "post", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+	private Set<Like> likes = new HashSet<>();
 }

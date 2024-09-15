@@ -9,8 +9,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.GenericGenerator;
+import org.springframework.data.annotation.CreatedDate;
 
 import java.time.LocalDateTime;
 
@@ -42,7 +42,7 @@ public class Message {
 	@Column(length = 1024, nullable = false)
 	private String content;
 
-	@CreationTimestamp
+	@CreatedDate
 	@Column(name = "created_at", updatable = false, nullable = false)
 	private LocalDateTime createdAt;
 }

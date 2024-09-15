@@ -1,7 +1,7 @@
 CREATE TABLE category_types
 (
-    category_type_id BIGINT      NOT NULL,
-    name             VARCHAR(50) NOT NULL,
+    category_type_id VARCHAR(255) NOT NULL,
+    name             VARCHAR(50)  NOT NULL,
     CONSTRAINT pk_category_types PRIMARY KEY (category_type_id)
 );
 
@@ -45,7 +45,7 @@ CREATE TABLE messages
 CREATE TABLE notifications
 (
     notification_id VARCHAR(255)                NOT NULL,
-    content         TEXT                        NOT NULL,
+    content         VARCHAR(255)                NOT NULL,
     recipient_id    VARCHAR(255)                NOT NULL,
     is_read         BOOLEAN                     NOT NULL,
     created_at      TIMESTAMP WITHOUT TIME ZONE NOT NULL,
@@ -81,7 +81,7 @@ CREATE TABLE posts
     created_at       TIMESTAMP WITHOUT TIME ZONE NOT NULL,
     user_id          VARCHAR(255)                NOT NULL,
     description      TEXT,
-    category_type_id BIGINT                      NOT NULL,
+    category_type_id VARCHAR(255)                NOT NULL,
     pros             TEXT[],
     cons             TEXT[],
     CONSTRAINT pk_posts PRIMARY KEY (post_id)
@@ -89,19 +89,20 @@ CREATE TABLE posts
 
 CREATE TABLE report_types
 (
-    report_type_id BIGINT      NOT NULL,
-    name           VARCHAR(50) NOT NULL,
+    report_type_id VARCHAR(255) NOT NULL,
+    name           VARCHAR(50)  NOT NULL,
     CONSTRAINT pk_report_types PRIMARY KEY (report_type_id)
 );
 
 CREATE TABLE reports
 (
-    report_id      VARCHAR(255)  NOT NULL,
-    description    VARCHAR(1024) NOT NULL,
-    user_sender_id VARCHAR(255)  NOT NULL,
+    report_id      VARCHAR(255)                NOT NULL,
+    description    VARCHAR(1024)               NOT NULL,
+    user_sender_id VARCHAR(255)                NOT NULL,
     user_id        VARCHAR(255),
-    report_type_id BIGINT        NOT NULL,
-    object_id      VARCHAR(8)    NOT NULL,
+    report_type_id VARCHAR(255)                NOT NULL,
+    object_id      VARCHAR(8)                  NOT NULL,
+    created_at     TIMESTAMP WITHOUT TIME ZONE NOT NULL,
     CONSTRAINT pk_reports PRIMARY KEY (report_id)
 );
 
@@ -116,6 +117,17 @@ CREATE TABLE subscribers
 (
     follower_id VARCHAR(255) NOT NULL,
     followed_id VARCHAR(255)
+);
+
+CREATE TABLE tokens
+(
+    token_id     VARCHAR(255)                NOT NULL,
+    content      VARCHAR(255)                NOT NULL,
+    created_at   TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    viewed_at    TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    validated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    user_id      VARCHAR(255)                NOT NULL,
+    CONSTRAINT pk_tokens PRIMARY KEY (token_id)
 );
 
 CREATE TABLE user_likes
@@ -175,11 +187,23 @@ ALTER TABLE users
 ALTER TABLE users
     ADD CONSTRAINT uc_77584fbe74cc86922be2a3560 UNIQUE (username);
 
+ALTER TABLE user_saved_posts
+    ADD CONSTRAINT uc_78ecc157d922e363f21b0f532 UNIQUE (user_id, post_id);
+
 ALTER TABLE roles
     ADD CONSTRAINT uc_81193087dbf8b34e6cad2f958 UNIQUE (role_id);
 
+ALTER TABLE tokens
+    ADD CONSTRAINT uc_8b8428a0fdb7caaae46415ea3 UNIQUE (token_id);
+
+ALTER TABLE user_viewed_posts
+    ADD CONSTRAINT uc_8ecafbf85a03624043ce5f160 UNIQUE (user_id, post_id);
+
 ALTER TABLE reports
     ADD CONSTRAINT uc_9019fdd54e97208edf9a1c549 UNIQUE (object_id);
+
+ALTER TABLE user_likes
+    ADD CONSTRAINT uc_904c17d57053bf339d9904628 UNIQUE (user_id, post_id);
 
 ALTER TABLE hashtags
     ADD CONSTRAINT uc_9e463b4954335056defc66a9f UNIQUE (hashtag_id);
@@ -195,6 +219,15 @@ ALTER TABLE users
 
 ALTER TABLE reports
     ADD CONSTRAINT uc_dc04d5e2cd404fa93593ac6dd UNIQUE (user_sender_id);
+
+ALTER TABLE posts
+    ADD CONSTRAINT uc_e4792c3938a630a6ce4329071 UNIQUE (category_type_id);
+
+ALTER TABLE posts
+    ADD CONSTRAINT uc_ea8ca4e4145c1c8b6d832cbec UNIQUE (post_id);
+
+ALTER TABLE posts
+    ADD CONSTRAINT uc_fa40c54e1697e473b09bec0bc UNIQUE (user_id);
 
 ALTER TABLE hashtags
     ADD CONSTRAINT uc_hashtags_title UNIQUE (title);
@@ -240,6 +273,9 @@ ALTER TABLE reports
 
 ALTER TABLE reports
     ADD CONSTRAINT FK_REPORT_TYPE_REPORT FOREIGN KEY (report_type_id) REFERENCES report_types (report_type_id);
+
+ALTER TABLE tokens
+    ADD CONSTRAINT FK_TOKEN_USER FOREIGN KEY (user_id) REFERENCES users (user_id);
 
 ALTER TABLE user_likes
     ADD CONSTRAINT FK_USER_LIKES_ON_POST FOREIGN KEY (post_id) REFERENCES posts (post_id);

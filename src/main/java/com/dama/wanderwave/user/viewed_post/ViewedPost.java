@@ -5,13 +5,13 @@ import com.dama.wanderwave.user.User;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
-import org.hibernate.annotations.CreationTimestamp;
+import org.springframework.data.annotation.CreatedDate;
 
 import java.time.LocalDateTime;
 
 @Data
 @Entity
-@Table(name = "user_viewed_posts")
+@Table(name = "user_viewed_posts", uniqueConstraints = {@UniqueConstraint(columnNames = {"user_id", "post_id"})})
 public class ViewedPost {
 
 	@EmbeddedId
@@ -29,7 +29,7 @@ public class ViewedPost {
 	@NotNull(message = "Post must not be null")
 	private Post post;
 
-	@CreationTimestamp
+	@CreatedDate
 	@Column(name = "created_at", updatable = false, nullable = false)
 	private LocalDateTime createdAt;
 }
