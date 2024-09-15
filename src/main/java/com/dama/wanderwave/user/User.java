@@ -52,13 +52,12 @@ public class User implements UserDetails, Principal {
 	private String password;
 
 	@Size(max = 255, message = "Profile description length must be less than or equal to 255 characters")
-	@NotBlank(message = "Profile description cannot be blank")
 	@Column(nullable = false)
 	private String description;
 
 	@Type(JsonBinaryType.class)
 	@Column(name = "black_list", columnDefinition = "jsonb")
-	private BlackList blackList;
+	private BlackList blackList ;
 
 	@ManyToMany(fetch = FetchType.EAGER)
 	@JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
@@ -86,16 +85,12 @@ public class User implements UserDetails, Principal {
 	@Column(name = "image_url", columnDefinition = "TEXT")
 	private String imageUrl;
 
-
-	@Builder.Default
 	@OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
 	private List<ViewedPost> viewedPosts = new ArrayList<>();
 
-	@Builder.Default
 	@OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
 	private List<SavedPost> savedPosts = new ArrayList<>();
 
-	@Builder.Default
 	@OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
 	private List<Like> likes = new ArrayList<>();
 

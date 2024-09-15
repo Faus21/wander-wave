@@ -125,7 +125,7 @@ CREATE TABLE tokens
     content      VARCHAR(255)                NOT NULL,
     created_at   TIMESTAMP WITHOUT TIME ZONE NOT NULL,
     expires_at   TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-    validated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    validated_at TIMESTAMP WITHOUT TIME ZONE,
     user_id      VARCHAR(255)                NOT NULL,
     CONSTRAINT pk_tokens PRIMARY KEY (token_id)
 );

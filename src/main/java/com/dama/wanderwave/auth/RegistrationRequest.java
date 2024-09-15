@@ -17,10 +17,12 @@ public class RegistrationRequest {
     @NotEmpty(message = "Username is mandatory")
     @NotNull(message = "Username is mandatory")
     private String username;
+
     @Email(message = "Email is not well formatted")
     @NotEmpty(message = "Email is mandatory")
     @NotNull(message = "Email is mandatory")
     private String email;
+
     @Size(max = 100, message = "Password length must be less than or equal to 100 characters")
     @NotEmpty(message = "Password is mandatory")
     @NotNull(message = "Password is mandatory")
