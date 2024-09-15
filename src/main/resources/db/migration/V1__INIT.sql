@@ -124,7 +124,7 @@ CREATE TABLE tokens
     token_id     VARCHAR(255)                NOT NULL,
     content      VARCHAR(255)                NOT NULL,
     created_at   TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-    viewed_at    TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    expires_at   TIMESTAMP WITHOUT TIME ZONE NOT NULL,
     validated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
     user_id      VARCHAR(255)                NOT NULL,
     CONSTRAINT pk_tokens PRIMARY KEY (token_id)
@@ -163,50 +163,20 @@ CREATE TABLE user_viewed_posts
 
 CREATE TABLE users
 (
-    user_id       VARCHAR(255) NOT NULL,
-    username      VARCHAR(50)  NOT NULL,
-    email         VARCHAR(255) NOT NULL,
-    password      VARCHAR(100) NOT NULL,
-    description   VARCHAR(255) NOT NULL,
-    access_token  VARCHAR(300),
-    refresh_token VARCHAR(300),
-    black_list    JSONB,
-    image_url     TEXT,
+    user_id        VARCHAR(255) NOT NULL,
+    nickname       VARCHAR(50)  NOT NULL,
+    email          VARCHAR(255) NOT NULL,
+    password       VARCHAR(100) NOT NULL,
+    description    VARCHAR(255) NOT NULL,
+    black_list     JSONB,
+    account_locked BOOLEAN      NOT NULL,
+    enabled        BOOLEAN      NOT NULL,
+    image_url      TEXT,
     CONSTRAINT pk_users PRIMARY KEY (user_id)
 );
 
 ALTER TABLE category_types
     ADD CONSTRAINT uc_262a074e684c09bb357b586ab UNIQUE (category_type_id);
-
-ALTER TABLE reports
-    ADD CONSTRAINT uc_6b16a63096b25c971350ca845 UNIQUE (report_id);
-
-ALTER TABLE users
-    ADD CONSTRAINT uc_74165e195b2f7b25de690d14a UNIQUE (email);
-
-ALTER TABLE users
-    ADD CONSTRAINT uc_77584fbe74cc86922be2a3560 UNIQUE (username);
-
-ALTER TABLE user_saved_posts
-    ADD CONSTRAINT uc_78ecc157d922e363f21b0f532 UNIQUE (user_id, post_id);
-
-ALTER TABLE roles
-    ADD CONSTRAINT uc_81193087dbf8b34e6cad2f958 UNIQUE (role_id);
-
-ALTER TABLE tokens
-    ADD CONSTRAINT uc_8b8428a0fdb7caaae46415ea3 UNIQUE (token_id);
-
-ALTER TABLE user_viewed_posts
-    ADD CONSTRAINT uc_8ecafbf85a03624043ce5f160 UNIQUE (user_id, post_id);
-
-ALTER TABLE reports
-    ADD CONSTRAINT uc_9019fdd54e97208edf9a1c549 UNIQUE (object_id);
-
-ALTER TABLE user_likes
-    ADD CONSTRAINT uc_904c17d57053bf339d9904628 UNIQUE (user_id, post_id);
-
-ALTER TABLE hashtags
-    ADD CONSTRAINT uc_9e463b4954335056defc66a9f UNIQUE (hashtag_id);
 
 ALTER TABLE report_types
     ADD CONSTRAINT uc_c35b8d09c6c4611ee01f237ba UNIQUE (report_type_id);
@@ -214,26 +184,17 @@ ALTER TABLE report_types
 ALTER TABLE category_types
     ADD CONSTRAINT uc_category_types_name UNIQUE (name);
 
-ALTER TABLE users
-    ADD CONSTRAINT uc_d0b7980d2354b7d22c2bbf9f9 UNIQUE (user_id);
-
-ALTER TABLE reports
-    ADD CONSTRAINT uc_dc04d5e2cd404fa93593ac6dd UNIQUE (user_sender_id);
-
-ALTER TABLE posts
-    ADD CONSTRAINT uc_e4792c3938a630a6ce4329071 UNIQUE (category_type_id);
-
-ALTER TABLE posts
-    ADD CONSTRAINT uc_ea8ca4e4145c1c8b6d832cbec UNIQUE (post_id);
-
-ALTER TABLE posts
-    ADD CONSTRAINT uc_fa40c54e1697e473b09bec0bc UNIQUE (user_id);
-
 ALTER TABLE hashtags
     ADD CONSTRAINT uc_hashtags_title UNIQUE (title);
 
 ALTER TABLE report_types
     ADD CONSTRAINT uc_report_types_name UNIQUE (name);
+
+ALTER TABLE users
+    ADD CONSTRAINT uc_users_email UNIQUE (email);
+
+ALTER TABLE users
+    ADD CONSTRAINT uc_users_nickname UNIQUE (nickname);
 
 ALTER TABLE chats
     ADD CONSTRAINT FK_CHATS_ON_USER1 FOREIGN KEY (user1_id) REFERENCES users (user_id);

@@ -23,8 +23,25 @@
         <testcontainers-junit-jupiter.version>1.18.1</testcontainers-junit-jupiter.version>
         <dotenv-java.version>3.0.0</dotenv-java.version>
         <flyway.version>10.17.3</flyway.version>
+        <jjwt.version>0.11.5</jjwt.version>
+        <hibernate-types-60.version>2.21.1</hibernate-types-60.version>
     </properties>
     <dependencies>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>${jjwt.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>${jjwt.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>${jjwt.version}</version>
+        </dependency>
         <dependency>
             <groupId>io.github.cdimascio</groupId>
             <artifactId>dotenv-java</artifactId>
@@ -133,7 +150,7 @@
         <dependency>
             <groupId>com.vladmihalcea</groupId>
             <artifactId>hibernate-types-60</artifactId>
-            <version>2.21.1</version>
+            <version>${hibernate-types-60.version}</version>
         </dependency>
 
     </dependencies>
