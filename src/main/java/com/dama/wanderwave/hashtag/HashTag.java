@@ -1,3 +1,34 @@
 package com.dama.wanderwave.hashtag;
 
-public class HashTag { }
+import com.dama.wanderwave.post.Post;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.hibernate.annotations.GenericGenerator;
+
+import java.util.Set;
+
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
+@Entity
+@Table(name = "hashtags", uniqueConstraints = {@UniqueConstraint(columnNames = {"hashtag_id"})})
+public class HashTag {
+
+	@Id
+	@GeneratedValue(generator = "hash_generator")
+	@GenericGenerator(name = "hash_generator", strategy = "com.dama.wanderwave.hash.HashUUIDGenerator")
+	@Column(name = "hashtag_id", nullable = false, updatable = false)
+	private String id;
+
+	@Size(max = 50, message = "Title length must be less than or equal to 50 characters")
+	@Column(nullable = false, unique = true, length = 50)
+	private String title;
+
+	@ManyToMany(mappedBy = "hashtags")
+	private Set<Post> posts;
+}

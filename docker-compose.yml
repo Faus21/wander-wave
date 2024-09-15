@@ -17,6 +17,7 @@ services:
     environment:
       POSTGRES_USER: dama_team
       POSTGRES_PASSWORD: dama_team
+      POSTGRES_DB: wanderwave_db
       PGDATA:  /var/lib/postgresql/data
     volumes:
       - postgres:/var/lib/postgresql/data
