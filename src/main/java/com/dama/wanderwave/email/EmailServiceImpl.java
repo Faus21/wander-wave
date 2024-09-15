@@ -1,6 +1,8 @@
 package com.dama.wanderwave.email;
 
 import jakarta.mail.internet.MimeMessage;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -10,17 +12,17 @@ import org.springframework.stereotype.Service;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class EmailServiceImpl implements IEmailService {
 
     @Value("${spring.mail.sender}")
     private String email_sender;
+    @Value("${spring.mail.recovery-title}")
+    private String recovery_title;
 
     private final JavaMailSender javaMailSender;
-
-    public EmailServiceImpl(JavaMailSender javaMailSender) {
-        this.javaMailSender = javaMailSender;
-    }
 
     @Override
     @Async
@@ -36,12 +38,13 @@ public class EmailServiceImpl implements IEmailService {
 
             helper.setFrom(email_sender);
             helper.setTo(to);
-            helper.setSubject("WanderWave account recovery");
+            helper.setSubject(recovery_title);
             helper.setText(htmlBody, true);
 
             javaMailSender.send(mimeMessage);
+            log.info("Recovery email sent to {}", to);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error(e.getMessage());
         }
     }
 }
