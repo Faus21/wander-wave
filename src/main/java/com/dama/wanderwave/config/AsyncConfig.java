@@ -1,4 +1,4 @@
-package com.dama.wanderwave.async;
+package com.dama.wanderwave.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.AsyncConfigurer;

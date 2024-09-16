@@ -28,11 +28,10 @@ public class EmailService {
     private final JavaMailSender javaMailSender;
 
     @Async
-    public void sendRecoveryEmail(String to) {
+    public void sendRecoveryEmail(String token, String to) {
         try {
             String template = new String(Files.readAllBytes(Paths.get("src/main/resources/templates/recovery-mail.html")));
-            String resetLink = "test";
-            String htmlBody = template.replace("${resetToken}", resetLink);
+            String htmlBody = template.replace("${resetToken}", token);
             sendEmail(to, htmlBody, recovery_title);
             log.info("Recovery email sent to {}", to);
         } catch (Exception e) {

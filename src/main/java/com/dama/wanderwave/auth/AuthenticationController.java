@@ -63,7 +63,33 @@ public class AuthenticationController {
     })
     public void confirm(
             @RequestParam String token
-    ) throws MessagingException {
+    ) {
         service.activateAccount(token);
+    }
+
+    @GetMapping("/recover-account")
+    @Operation(summary = "Recover user account", description = "Sends a token for password recovery.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "202", description = "Account recovered successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid or expired token"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public void recover(
+            @RequestParam String email
+    ) {
+        service.recoverAccount(email);
+    }
+
+    @PostMapping("/change-password")
+    @Operation(summary = "Change user password", description = "Changes user password using the provided token.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Password changed successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid or expired token"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public void recover(
+            @RequestBody @Valid RecoveryRequest request
+    ) {
+        service.changeUserPassword(request.getToken(), request.getPassword());
     }
 }

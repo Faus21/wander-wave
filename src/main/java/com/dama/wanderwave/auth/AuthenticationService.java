@@ -1,5 +1,6 @@
 package com.dama.wanderwave.auth;
 
+import com.dama.wanderwave.email.EmailService;
 import com.dama.wanderwave.handler.RoleNotFoundException;
 import com.dama.wanderwave.handler.TokenExpiredException;
 import com.dama.wanderwave.handler.UniqueConstraintViolationException;
@@ -33,12 +34,16 @@ import java.util.stream.IntStream;
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
 public class AuthenticationService {
 
+    private static final Integer RECOVERY_TOKEN_LENGTH = 9;
+    private static final Integer ACTIVATION_TOKEN_LENGTH = 6;
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final RoleRepository roleRepository;
     private final TokenRepository tokenRepository;
+    private final EmailService emailService;
 
     private final SecureRandom secureRandom = new SecureRandom();
     private static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -55,11 +60,12 @@ public class AuthenticationService {
             checkForExistingUser(request.getUsername(), request.getEmail());
             User user = createUser(request);
             userRepository.save(user);
-            //sendValidationEmail(user); // Uncomment and implement this method as needed
+            sendValidationEmail(user);
         } catch (DataIntegrityViolationException ex) {
             handleDataIntegrityViolation(ex);
         }
     }
+
     private void handleDataIntegrityViolation(DataIntegrityViolationException ex) {
         if (ex.getCause() instanceof ConstraintViolationException cve) {
             String constraintName = cve.getConstraintName();
@@ -112,7 +118,7 @@ public class AuthenticationService {
     }
 
     @Transactional
-    public void activateAccount(String token) throws MessagingException {
+    public void activateAccount(String token) {
         Token savedToken = findTokenOrThrow(token);
 
         if (LocalDateTime.now().isAfter(savedToken.getExpiresAt())) {
@@ -123,6 +129,11 @@ public class AuthenticationService {
 
         activateUser(savedToken.getUser());
         markTokenAsValidated(savedToken);
+    }
+
+    public void recoverAccount(String email) {
+        var userToRecover = userRepository.findByEmail(email);
+        userToRecover.ifPresent(this::sendRecoveryEmail);
     }
 
     private Token findTokenOrThrow(String token) {
@@ -137,13 +148,46 @@ public class AuthenticationService {
         userRepository.save(userToUpdate);
     }
 
+    @Transactional
+    public void changeUserPassword(String token, String password) {
+        Token savedToken = findTokenOrThrow(token);
+
+        if (LocalDateTime.now().isAfter(savedToken.getExpiresAt())) {
+            sendRecoveryEmail(savedToken.getUser());
+            throw new TokenExpiredException("Recovery token has expired. A new token has been sent to the same " +
+                    "email address.");
+        }
+
+        changeUserPassword(savedToken.getUser(), password);
+        markTokenAsValidated(savedToken);
+    }
+
+    private void changeUserPassword(User user, String password) {
+        var userToUpdate = userRepository.findById(user.getId())
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        userToUpdate.setPassword(passwordEncoder.encode(password));
+        userRepository.save(userToUpdate);
+    }
+
     private void markTokenAsValidated(Token token) {
         token.setValidatedAt(LocalDateTime.now());
         tokenRepository.save(token);
     }
 
     private String generateAndSaveActivationToken(User user) {
-        String tokenContent = generateActivationCode(6);
+        String tokenContent = generateTokenCode(ACTIVATION_TOKEN_LENGTH);
+        Token token = Token.builder()
+                              .content(tokenContent)
+                              .createdAt(LocalDateTime.now())
+                              .expiresAt(LocalDateTime.now().plusMinutes(15))
+                              .user(user)
+                              .build();
+        tokenRepository.save(token);
+        return tokenContent;
+    }
+
+    private String generateAndSaveRecoveryToken(User user) {
+        String tokenContent = generateTokenCode(RECOVERY_TOKEN_LENGTH);
         Token token = Token.builder()
                               .content(tokenContent)
                               .createdAt(LocalDateTime.now())
@@ -155,11 +199,13 @@ public class AuthenticationService {
     }
 
     private void sendValidationEmail(User user) {
-        String newToken = generateAndSaveActivationToken(user);
-        // TODO: Implement email sending logic using newToken and activationUrl
+        emailService.sendValidationEmail(generateAndSaveActivationToken(user), user.getEmail());
+    }
+    private void sendRecoveryEmail(User user) {
+        emailService.sendRecoveryEmail(generateAndSaveRecoveryToken(user), user.getEmail());
     }
 
-    public String generateActivationCode(int length) {
+    public String generateTokenCode(int length) {
         if (length < 1) {
             throw new IllegalArgumentException("Length must be greater than 0");
         }
