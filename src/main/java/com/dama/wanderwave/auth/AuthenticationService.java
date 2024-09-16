@@ -10,7 +10,6 @@ import com.dama.wanderwave.token.Token;
 import com.dama.wanderwave.token.TokenRepository;
 import com.dama.wanderwave.user.User;
 import com.dama.wanderwave.user.UserRepository;
-import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.beans.factory.annotation.Autowired;
