@@ -70,8 +70,7 @@ public class AuthenticationController {
     @GetMapping("/recover-account")
     @Operation(summary = "Recover user account", description = "Sends a token for password recovery.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "202", description = "Account recovered successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid or expired token"),
+            @ApiResponse(responseCode = "200", description = "Token for recovery sent"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     public void recover(
