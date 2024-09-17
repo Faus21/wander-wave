@@ -58,21 +58,21 @@ public class User implements UserDetails, Principal {
 	@Type(JsonBinaryType.class)
 	@Column(name = "black_list", columnDefinition = "jsonb")
 	private BlackList blackList ;
-
+	@Builder.Default
 	@ManyToMany(fetch = FetchType.EAGER)
 	@JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
 	private Set<Role> roles = new HashSet<>();
-
+	@Builder.Default
 	@ElementCollection(fetch = FetchType.EAGER)
 	@CollectionTable(name = "subscribers", joinColumns = @JoinColumn(name = "follower_id"))
 	@Column(name = "followed_id")
 	private Set<String> subscriptions = new HashSet<>();
-
+	@Builder.Default
 	@ElementCollection(fetch = FetchType.EAGER)
 	@CollectionTable(name = "subscribers", joinColumns = @JoinColumn(name = "followed_id"))
 	@Column(name = "follower_id")
 	private Set<String> subscribers = new HashSet<>();
-
+	@Builder.Default
 	@OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
 	private Set<Token> tokens = new HashSet<>();
 
@@ -84,13 +84,13 @@ public class User implements UserDetails, Principal {
 
 	@Column(name = "image_url", columnDefinition = "TEXT")
 	private String imageUrl;
-
+	@Builder.Default
 	@OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
 	private List<ViewedPost> viewedPosts = new ArrayList<>();
-
+	@Builder.Default
 	@OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
 	private List<SavedPost> savedPosts = new ArrayList<>();
-
+	@Builder.Default
 	@OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
 	private List<Like> likes = new ArrayList<>();
 

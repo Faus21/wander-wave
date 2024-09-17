@@ -1,9 +1,7 @@
 package com.dama.wanderwave.auth;
 
 import com.dama.wanderwave.email.EmailService;
-import com.dama.wanderwave.handler.RoleNotFoundException;
-import com.dama.wanderwave.handler.TokenExpiredException;
-import com.dama.wanderwave.handler.UniqueConstraintViolationException;
+import com.dama.wanderwave.handler.*;
 import com.dama.wanderwave.role.RoleRepository;
 import com.dama.wanderwave.security.JwtService;
 import com.dama.wanderwave.token.Token;
@@ -47,61 +45,36 @@ public class AuthenticationService {
     private final SecureRandom secureRandom = new SecureRandom();
     private static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
-    private static final Map<String, String> CONSTRAINT_NAME_TO_FIELD_MAP = Map.of(
-            "uc_users_email", "email",
-            "uc_users_nickname", "nickname"
-    );
-
-
     @Transactional
-    public void register(RegistrationRequest request) {
-        try {
-            checkForExistingUser(request.getUsername(), request.getEmail());
-            User user = createUser(request);
-            userRepository.save(user);
-            sendValidationEmail(user);
-        } catch (DataIntegrityViolationException ex) {
-            handleDataIntegrityViolation(ex);
+    public String register( RegistrationRequest request ) {
+
+        checkForExistingUser(request.getUsername(), request.getEmail());
+        User user = createUser(request);
+        User newUser = userRepository.save(user);
+        sendValidationEmail(user);
+        return "Added new User::" + newUser.getId();
+    }
+
+
+    private void checkForExistingUser( String username, String email ) {
+        if ( userRepository.existsByNickname(username) ) {
+            throw new UniqueConstraintViolationException("Unique constraint violation: username", "nickname");
+        }
+        if ( userRepository.existsByEmail(email) ) {
+            throw new UniqueConstraintViolationException("Unique constraint violation: email",
+                    "email");
         }
     }
 
-    private void handleDataIntegrityViolation(DataIntegrityViolationException ex) {
-        if (ex.getCause() instanceof ConstraintViolationException cve) {
-            String constraintName = cve.getConstraintName();
-            String fieldName = CONSTRAINT_NAME_TO_FIELD_MAP.getOrDefault(constraintName, "unknown");
-            throw new UniqueConstraintViolationException("Unique constraint violation: " + constraintName, fieldName);
-        }
-        throw ex;
+    private User createUser( RegistrationRequest request ) {
+        var userRole = roleRepository.findByName("USER").orElseThrow(() -> new RoleNotFoundException("ROLE USER was not initiated"));
+
+        return User.builder().nickname(request.getUsername()).email(request.getEmail()).description("").password(passwordEncoder.encode(request.getPassword())).accountLocked(false).enabled(false).roles(Set.of(userRole)).build();
     }
 
-    private void checkForExistingUser(String username, String email) {
-        if (userRepository.existsByNickname(username)) {
-            throw new UniqueConstraintViolationException("Username already exists", "nickname");
-        }
-        if (userRepository.existsByEmail(email)) {
-            throw new UniqueConstraintViolationException("Email already exists", "email");
-        }
-    }
+    public AuthenticationResponse authenticate( AuthenticationRequest request ) {
 
-    private User createUser(RegistrationRequest request) {
-        var userRole = roleRepository.findByName("USER")
-                               .orElseThrow(() -> new RoleNotFoundException("ROLE USER was not initiated"));
-
-        return User.builder()
-                       .nickname(request.getUsername())
-                       .email(request.getEmail())
-                       .description("")
-                       .password(passwordEncoder.encode(request.getPassword()))
-                       .accountLocked(false)
-                       .enabled(false)
-                       .roles(Set.of(userRole))
-                       .build();
-    }
-
-    public AuthenticationResponse authenticate(AuthenticationRequest request) {
-        var auth = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
-        );
+        var auth = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
 
         var user = (User) auth.getPrincipal();
         var claims = createClaims(user);
@@ -117,7 +90,7 @@ public class AuthenticationService {
     }
 
     @Transactional
-    public void activateAccount(String token) {
+    public String activateAccount(String token) {
         Token savedToken = findTokenOrThrow(token);
 
         if (LocalDateTime.now().isAfter(savedToken.getExpiresAt())) {
@@ -128,16 +101,19 @@ public class AuthenticationService {
 
         activateUser(savedToken.getUser());
         markTokenAsValidated(savedToken);
+
+        return savedToken.getContent();
     }
 
-    public void recoverAccount(String email) {
+    public String  recoverAccount(String email) {
         var userToRecover = userRepository.findByEmail(email);
         userToRecover.ifPresent(this::sendRecoveryEmail);
+        return "Message have sent!";
     }
 
     private Token findTokenOrThrow(String token) {
         return tokenRepository.findByContent(token)
-                       .orElseThrow(() -> new RuntimeException("Invalid token"));
+                       .orElseThrow(() -> new TokenNotFoundException("Invalid token"));
     }
 
     private void activateUser(User user) {
@@ -148,7 +124,7 @@ public class AuthenticationService {
     }
 
     @Transactional
-    public void changeUserPassword(String token, String password) {
+    public ResponseRecord changeUserPassword(String token, String password) {
         Token savedToken = findTokenOrThrow(token);
 
         if (LocalDateTime.now().isAfter(savedToken.getExpiresAt())) {
@@ -159,6 +135,8 @@ public class AuthenticationService {
 
         changeUserPassword(savedToken.getUser(), password);
         markTokenAsValidated(savedToken);
+
+        return new ResponseRecord(202, "Password changed successfully");
     }
 
     private void changeUserPassword(User user, String password) {

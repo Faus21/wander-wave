@@ -1,5 +1,6 @@
 package com.dama.wanderwave.auth;
 
+
 import com.dama.wanderwave.email.EmailService;
 import com.dama.wanderwave.handler.TokenExpiredException;
 import com.dama.wanderwave.role.RoleRepository;
@@ -18,9 +19,9 @@ import org.springframework.security.authentication.AuthenticationManager;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
+import static org.hibernate.validator.internal.util.Contracts.assertNotNull;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-
 
 @ExtendWith(MockitoExtension.class)
 class AuthenticationServiceTest {
@@ -30,16 +31,10 @@ class AuthenticationServiceTest {
 
     @Mock
     private UserRepository userRepository;
-    @Mock
-    private JwtService jwtService;
-    @Mock
-    private AuthenticationManager authenticationManager;
-    @Mock
-    private RoleRepository roleRepository;
+
     @Mock
     private TokenRepository tokenRepository;
-    @Mock
-    private EmailService emailService;
+
 
     @Test
     void findUserByEmailShouldReturnNullWithNonExistentEmail() {
