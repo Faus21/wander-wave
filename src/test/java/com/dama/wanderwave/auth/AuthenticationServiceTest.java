@@ -1,6 +1,5 @@
 package com.dama.wanderwave.auth;
 
-
 import com.dama.wanderwave.email.EmailService;
 import com.dama.wanderwave.handler.TokenExpiredException;
 import com.dama.wanderwave.handler.TokenNotFoundException;
@@ -54,6 +53,7 @@ class AuthenticationServiceTest {
 
 	@Mock
 	private RoleRepository roleRepository;
+
 
 	@Mock
 	private JwtService jwtService;
@@ -185,7 +185,7 @@ class AuthenticationServiceTest {
 	// generateTokenCode method
 	// ----------------------------------------------------------
 	@Test
-	void testGenerateTokenCodeNormalCase() {
+	void generateTokenCodeNormalCase() {
 		int length = 6;
 		String token = authenticationService.generateTokenCode(length);
 
@@ -194,7 +194,7 @@ class AuthenticationServiceTest {
 	}
 
 	@Test
-	void testGenerateTokenCodeEdgeCaseLengthOne() {
+	void generateTokenCodeEdgeCaseLengthOne() {
 		int length = 1;
 		String token = authenticationService.generateTokenCode(length);
 
@@ -203,7 +203,7 @@ class AuthenticationServiceTest {
 	}
 
 	@Test
-	void testGenerateTokenCodeInvalidCaseLengthZero() {
+	void generateTokenCodeInvalidCaseLengthZero() {
 		int length = 0;
 
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> authenticationService.generateTokenCode(length));
@@ -212,7 +212,7 @@ class AuthenticationServiceTest {
 	}
 
 	@Test
-	void testGenerateTokenCodeInvalidCaseLengthNegative() {
+	void generateTokenCodeInvalidCaseLengthNegative() {
 		int length = -5;
 
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> authenticationService.generateTokenCode(length));
@@ -221,7 +221,7 @@ class AuthenticationServiceTest {
 	}
 
 	@Test
-	void testGenerateTokenCodeDifferentLengths() {
+	void generateTokenCodeDifferentLengths() {
 		int[] lengths = {2, 4, 8, 10};
 
 		for ( int length : lengths ) {
@@ -238,15 +238,19 @@ class AuthenticationServiceTest {
 
 	@Test
 	void generateAndSaveTokenShouldGenerateTokenAndSaveIt() {
+
 		User user = new User();
 		user.setEmail("test@example.com");
+
 		int tokenLength = 10;
 		String generatedToken = "mockedTokenContent";
 
 		AuthenticationService spyService = spy(authenticationService);
 		doReturn(generatedToken).when(spyService).generateTokenCode(tokenLength);
 
+
 		String result = spyService.generateAndSaveToken(user, tokenLength);
+
 
 		assertEquals(generatedToken, result);
 
@@ -259,12 +263,12 @@ class AuthenticationServiceTest {
 		assertNotNull(savedToken.getCreatedAt());
 		assertNotNull(savedToken.getExpiresAt());
 		assertTrue(savedToken.getExpiresAt().isAfter(savedToken.getCreatedAt()));
+
 	}
 
-	// generateTokenCode method
-	// ----------------------------------------------------------
 	@Test
 	void generateTokenCodeShouldThrowExceptionWhenLengthIsInvalid() {
+
 		int invalidLength = 0;
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> authenticationService.generateTokenCode(invalidLength));
 		assertEquals("Length must be greater than 0", exception.getMessage());
@@ -278,9 +282,11 @@ class AuthenticationServiceTest {
 
 		assertNotNull(token);
 		assertEquals(validLength, token.length());
+
 	}
 	// markTokenAsValidated method
 	// ----------------------------------------------------------
+
 	@Test
 	void markTokenAsValidatedShouldSetValidatedAtAndSaveToken() {
 		Token token = new Token();
@@ -301,8 +307,10 @@ class AuthenticationServiceTest {
 		verify(tokenRepository, never()).save(any());
 	}
 
-	// findTokenOrThrow method
+
+	// 	findTokenOrThrow method
 	// ----------------------------------------------------------
+
 	@Test
 	void findTokenOrThrowShouldReturnTokenWhenTokenExists() {
 		String tokenContent = "validToken";
@@ -324,8 +332,10 @@ class AuthenticationServiceTest {
 
 		assertEquals("Invalid token", exception.getMessage());
 	}
-	// activateUser method
+
+	// 	activateUser method
 	// ----------------------------------------------------------
+
 	@Test
 	void activateUserShouldEnableUserAndSave() {
 		User user = new User();
@@ -339,19 +349,9 @@ class AuthenticationServiceTest {
 	}
 
 
-	// changeUserPassword method
+	// 	changeUserPassword method
 	// ----------------------------------------------------------
-	@Test
-	void changeUserPasswordShouldChangePasswordAndSaveUser() {
-		User user = new User();
-		user.setEmail("test@example.com");
-		String newPassword = "newPassword";
 
-		authenticationService.changeUserPassword(user, newPassword);
-
-		verify(passwordEncoder, times(1)).encode(newPassword);
-		verify(userRepository, times(1)).save(user);
-	}
 	@Test
 	void changePasswordWithWrongTokenShouldFail() {
 		String mockToken = "mockToken";
@@ -385,8 +385,9 @@ class AuthenticationServiceTest {
 		assertDoesNotThrow(() -> authenticationService.changeUserPassword(mockContent, mockPassword));
 	}
 
-	// register method
+	// 	register method
 	// ----------------------------------------------------------
+
 	@Test
 	void registerShouldCreateNewUserAndSendValidationEmail() throws Exception {
 		RegistrationRequest registrationRequest = new RegistrationRequest("testUser", "text@example.com", "password");
@@ -456,7 +457,6 @@ class AuthenticationServiceTest {
 		verify(emailService, never()).sendValidationEmail(anyString(), anyString());
 	}
 
-
 	// 	authenticate method
 	// ----------------------------------------------------------
 
@@ -489,8 +489,7 @@ class AuthenticationServiceTest {
 	@Test
 	void authenticateShouldThrowExceptionWhenCredentialsAreIncorrect() {
 		AuthenticationRequest request = new AuthenticationRequest("test@example.com", "wrongPassword");
-		when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-				.thenThrow(new BadCredentialsException("Invalid credentials"));
+		when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenThrow(new BadCredentialsException("Invalid credentials"));
 
 		BadCredentialsException exception = assertThrows(BadCredentialsException.class, () -> authenticationService.authenticate(request));
 
@@ -502,8 +501,7 @@ class AuthenticationServiceTest {
 	@Test
 	void authenticateShouldThrowExceptionWhenAuthenticationManagerThrowsException() {
 		AuthenticationRequest request = new AuthenticationRequest("test@example.com", "password");
-		when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-				.thenThrow(new RuntimeException("Authentication failed"));
+		when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenThrow(new RuntimeException("Authentication failed"));
 
 
 		RuntimeException exception = assertThrows(RuntimeException.class, () -> authenticationService.authenticate(request));
@@ -524,12 +522,7 @@ class AuthenticationServiceTest {
 		user.setId("userId");
 		user.setEmail("test@example.com");
 		user.setEnabled(false);
-		Token token = Token.builder()
-				              .content(tokenContent)
-				              .createdAt(LocalDateTime.now())
-				              .expiresAt(LocalDateTime.now().plusMinutes(15))
-				              .user(user)
-				              .build();
+		Token token = Token.builder().content(tokenContent).createdAt(LocalDateTime.now()).expiresAt(LocalDateTime.now().plusMinutes(15)).user(user).build();
 
 		when(tokenRepository.findByContent(tokenContent)).thenReturn(Optional.of(token));
 
@@ -564,12 +557,7 @@ class AuthenticationServiceTest {
 		user.setId("userId");
 		user.setEmail("test@example.com");
 		user.setEnabled(false);
-		Token token = Token.builder()
-				              .content(tokenContent)
-				              .createdAt(LocalDateTime.now().minusMinutes(20))
-				              .expiresAt(LocalDateTime.now().minusMinutes(5))
-				              .user(user)
-				              .build();
+		Token token = Token.builder().content(tokenContent).createdAt(LocalDateTime.now().minusMinutes(20)).expiresAt(LocalDateTime.now().minusMinutes(5)).user(user).build();
 
 		when(tokenRepository.findByContent(tokenContent)).thenReturn(Optional.of(token));
 
@@ -579,18 +567,21 @@ class AuthenticationServiceTest {
 		assertEquals("Token has expired. A new token has been sent to the same email address.", exception.getMessage());
 		verify(userRepository, never()).save(any(User.class));
 	}
-	// sendValidationEmail method
+
+	// sendEmail method
 	// ----------------------------------------------------------
 	@Test
-	void sendValidationEmailShouldSendEmail() throws   Exception{
+	void sendEmailShouldSendEmail() throws Exception {
 		User user = new User();
 		user.setEmail("test@example.com");
+		int tokenLength = 6;
+		AuthenticationService.EmailSender emailSender = mock(AuthenticationService.EmailSender.class);
 
-		doNothing().when(emailService).sendValidationEmail(anyString(), eq(user.getEmail()));
+		doNothing().when(emailSender).sendEmail(anyString(), eq(user.getEmail()));
 
-		authenticationService.sendValidationEmail(user);
+		authenticationService.sendEmail(user, tokenLength, emailSender);
 
-		verify(emailService, times(1)).sendValidationEmail(anyString(), eq(user.getEmail()));
+		verify(emailSender, times(1)).sendEmail(anyString(), eq(user.getEmail()));
 	}
 
 	// checkTokenExpiration method
@@ -599,35 +590,24 @@ class AuthenticationServiceTest {
 	void checkTokenExpirationShouldNotThrowExceptionWhenTokenIsNotExpired() {
 		User user = new User();
 		user.setEmail("test@example.com");
-		Token token = Token.builder()
-				              .content("validToken")
-				              .createdAt(LocalDateTime.now())
-				              .expiresAt(LocalDateTime.now().plusMinutes(15))
-				              .user(user)
-				              .build();
+		Token token = Token.builder().content("validToken").createdAt(LocalDateTime.now()).expiresAt(LocalDateTime.now().plusMinutes(15)).user(user).build();
 
-		assertDoesNotThrow(() -> authenticationService.checkTokenExpiration(token, user1 -> {}));
+		assertDoesNotThrow(() -> authenticationService.checkTokenExpiration(token, user1 -> { }));
 	}
 
 	@Test
 	void checkTokenExpirationShouldThrowExceptionWhenTokenIsExpired() {
 		User user = new User();
 		user.setEmail("test@example.com");
-		Token token = Token.builder()
-				              .content("expiredToken")
-				              .createdAt(LocalDateTime.now().minusMinutes(20))
-				              .expiresAt(LocalDateTime.now().minusMinutes(5))
-				              .user(user)
-				              .build();
+		Token token = Token.builder().content("expiredToken").createdAt(LocalDateTime.now().minusMinutes(20)).expiresAt(LocalDateTime.now().minusMinutes(5)).user(user).build();
 
-		TokenExpiredException exception = assertThrows(TokenExpiredException.class, () -> authenticationService.checkTokenExpiration(token, user1 -> {}));
+		TokenExpiredException exception = assertThrows(TokenExpiredException.class, () -> authenticationService.checkTokenExpiration(token, user1 -> { }));
 
 		assertEquals("Token has expired. A new token has been sent to the same email address.", exception.getMessage());
 	}
 
 	// createClaims method
 	// ----------------------------------------------------------
-
 	@Test
 	void createClaimsShouldReturnCorrectClaims() {
 		User user = new User();
@@ -639,4 +619,5 @@ class AuthenticationServiceTest {
 		assertNotNull(claims);
 		assertEquals("testUser", claims.get("username"));
 	}
+
 }

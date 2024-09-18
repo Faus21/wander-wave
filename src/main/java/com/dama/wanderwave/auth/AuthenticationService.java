@@ -170,7 +170,7 @@ public class AuthenticationService {
 		sendEmail(user, RECOVERY_TOKEN_LENGTH, emailService::sendRecoveryEmail);
 	}
 
-	private void sendEmail(User user, int tokenLength, EmailSender emailSender) {
+	void sendEmail( User user, int tokenLength, EmailSender emailSender ) {
 		try {
 			String token = generateAndSaveToken(user, tokenLength);
 			emailSender.sendEmail(token, user.getEmail());
@@ -239,7 +239,7 @@ public class AuthenticationService {
 	}
 
 	@FunctionalInterface
-	private interface EmailSender {
+	protected interface EmailSender {
 		void sendEmail(String token, String email) throws IOException, MessagingException;
 	}
 }

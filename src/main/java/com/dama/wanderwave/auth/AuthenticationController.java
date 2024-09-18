@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.mail.MessagingException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +17,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.io.IOException;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -33,7 +36,7 @@ public class AuthenticationController {
             @ApiResponse(responseCode = "400", description = "Invalid request parameters"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public ResponseEntity<ResponseRecord> register( @RequestBody @Valid RegistrationRequest request )  {
+    public ResponseEntity<ResponseRecord> register( @RequestBody @Valid RegistrationRequest request ) throws MessagingException, IOException {
         String message = service.register(request);
         return ResponseEntity.accepted().body(new ResponseRecord(202, message));
     }
@@ -63,7 +66,7 @@ public class AuthenticationController {
             @ApiResponse(responseCode = "404", description = "Invalid token"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public ResponseEntity<ResponseRecord> activateAccount( @RequestParam String token ) {
+    public ResponseEntity<ResponseRecord> activateAccount( @RequestParam String token ) throws MessagingException, IOException {
         String jwtToken = service.activateAccount(token);
         return ResponseEntity.accepted().body(new ResponseRecord(202, jwtToken));
     }
@@ -74,7 +77,7 @@ public class AuthenticationController {
             @ApiResponse(responseCode = "202", description = "Account recovered successfully"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public ResponseEntity<ResponseRecord> recoverByEmail( @RequestParam String email ) {
+    public ResponseEntity<ResponseRecord> recoverByEmail( @RequestParam String email ) throws MessagingException, IOException {
         String responseMessage = service.recoverAccount(email);
         return ResponseEntity.accepted().body(new ResponseRecord(202, responseMessage));
     }
@@ -86,7 +89,7 @@ public class AuthenticationController {
             @ApiResponse(responseCode = "400", description = "Invalid or expired token"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public ResponseEntity<ResponseRecord> changePassword( @RequestBody @Valid RecoveryRequest request ) {
+    public ResponseEntity<ResponseRecord> changePassword( @RequestBody @Valid RecoveryRequest request ) throws MessagingException, IOException {
         ResponseRecord responseRecord = service.changeUserPassword(request.getToken(), request.getPassword());
         return ResponseEntity.ok().body(responseRecord);
     }
