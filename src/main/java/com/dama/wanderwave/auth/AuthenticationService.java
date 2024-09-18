@@ -10,7 +10,9 @@ import com.dama.wanderwave.token.Token;
 import com.dama.wanderwave.token.TokenRepository;
 import com.dama.wanderwave.user.User;
 import com.dama.wanderwave.user.UserRepository;
+import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -21,6 +23,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -54,7 +57,7 @@ public class AuthenticationService {
 
 
     @Transactional
-    public void register(RegistrationRequest request) {
+    public void register(RegistrationRequest request) throws MessagingException, IOException {
         try {
             checkForExistingUser(request.getUsername(), request.getEmail());
             User user = createUser(request);
@@ -117,7 +120,7 @@ public class AuthenticationService {
     }
 
     @Transactional
-    public void activateAccount(String token) {
+    public void activateAccount(String token) throws MessagingException, IOException {
         Token savedToken = findTokenOrThrow(token);
 
         if (LocalDateTime.now().isAfter(savedToken.getExpiresAt())) {
@@ -130,9 +133,11 @@ public class AuthenticationService {
         markTokenAsValidated(savedToken);
     }
 
-    public void recoverAccount(String email) {
+    public void recoverAccount(String email) throws MessagingException, IOException {
         var userToRecover = userRepository.findByEmail(email);
-        userToRecover.ifPresent(this::sendRecoveryEmail);
+        if (userToRecover.isPresent()) {
+            sendValidationEmail(userToRecover.get());
+        }
     }
 
     private Token findTokenOrThrow(String token) {
@@ -148,7 +153,7 @@ public class AuthenticationService {
     }
 
     @Transactional
-    public void changeUserPassword(String token, String password) {
+    public void changeUserPassword(String token, String password) throws MessagingException, IOException {
         Token savedToken = findTokenOrThrow(token);
 
         if (LocalDateTime.now().isAfter(savedToken.getExpiresAt())) {
@@ -197,10 +202,10 @@ public class AuthenticationService {
         return tokenContent;
     }
 
-    private void sendValidationEmail(User user) {
+    private void sendValidationEmail(User user) throws MessagingException, IOException {
         emailService.sendValidationEmail(generateAndSaveActivationToken(user), user.getEmail());
     }
-    private void sendRecoveryEmail(User user) {
+    private void sendRecoveryEmail(User user) throws MessagingException, IOException {
         emailService.sendRecoveryEmail(generateAndSaveRecoveryToken(user), user.getEmail());
     }
 

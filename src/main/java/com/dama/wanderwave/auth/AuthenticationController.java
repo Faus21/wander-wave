@@ -18,6 +18,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.IOException;
+
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
@@ -36,7 +38,7 @@ public class AuthenticationController {
     })
     public ResponseEntity<?> register(
             @RequestBody @Valid RegistrationRequest request
-    ) throws MessagingException {
+    ) throws MessagingException, IOException {
         service.register(request);
         return ResponseEntity.accepted().build();
     }
@@ -63,7 +65,7 @@ public class AuthenticationController {
     })
     public void confirm(
             @RequestParam String token
-    ) {
+    ) throws MessagingException, IOException {
         service.activateAccount(token);
     }
 
@@ -75,7 +77,7 @@ public class AuthenticationController {
     })
     public void recover(
             @RequestParam String email
-    ) {
+    ) throws MessagingException, IOException {
         service.recoverAccount(email);
     }
 
@@ -88,7 +90,7 @@ public class AuthenticationController {
     })
     public void recover(
             @RequestBody @Valid RecoveryRequest request
-    ) {
+    ) throws MessagingException, IOException {
         service.changeUserPassword(request.getToken(), request.getPassword());
     }
 }
