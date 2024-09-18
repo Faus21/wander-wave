@@ -1,12 +1,15 @@
 package com.dama.wanderwave.email;
 
-import com.dama.wanderwave.handler.EmailSendingException;
-import com.dama.wanderwave.handler.EmailTemplateException;
+import jakarta.annotation.PostConstruct;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import lombok.Data;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
@@ -15,6 +18,23 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.EnumMap;
+import java.util.Map;
+
+import static com.dama.wanderwave.email.TemplatePath.ACTIVATION;
+import static com.dama.wanderwave.email.TemplatePath.RECOVERY;
+
+
+@Getter
+@RequiredArgsConstructor
+enum TemplatePath {
+
+	RECOVERY("src/main/resources/templates/recovery-mail.html", "${resetToken}"),
+	ACTIVATION("src/main/resources/templates/activation-mail.html", "${activationToken}");
+
+	private final String path;
+	private final String placeHolder;
+}
 
 @Slf4j
 @Service
@@ -23,52 +43,58 @@ public class EmailService {
 
 	private final JavaMailSender javaMailSender;
 	@Value("${spring.mail.sender}")
-	private String email_sender;
+	private String emailSender;
 	@Value("${spring.mail.recovery-title}")
-	private String recovery_title;
+	private String recoveryTitle;
 	@Value("${spring.mail.validation-title}")
-	private String validation_title;
+	private String validationTitle;
 
 	@Async
-	public void sendRecoveryEmail( String token, String to ) {
-		try {
-			String template = new String(Files.readAllBytes(Paths.get("src/main/resources/templates/recovery-mail.html")));
-			String htmlBody = template.replace("${resetToken}", token);
-			sendEmail(to, htmlBody, recovery_title);
-			log.info("Recovery email sent to {}", to);
-		} catch ( IOException e ) {
-			log.error("Error reading recovery email template: {}", e.getMessage());
-			throw new EmailTemplateException("Error reading recovery email template");
-		}
+	public void sendRecoveryEmail( String token, String to ) throws IOException, MessagingException {
+		log.info("Preparing to send recovery email to: {}", to);
+
+		String htmlBody = prepareEmailBody(RECOVERY.getPath(), token, RECOVERY.getPlaceHolder());
+		sendEmail(to, htmlBody, recoveryTitle);
+
+		log.info("Recovery email successfully sent to: {}", to);
 	}
 
 	@Async
-	public void sendValidationEmail( String token, String to ) {
-		try {
-			String template = new String(Files.readAllBytes(Paths.get("src/main/resources/templates/activation-mail.html")));
-			String htmlBody = template.replace("${activationToken}", token);
-			sendEmail(to, htmlBody, validation_title);
-			log.info("Validation email sent to {}", to);
-		} catch ( IOException e ) {
-			log.error("Error reading validation email template: {}", e.getMessage());
-			throw new EmailTemplateException("Error reading validation email template");
-		}
+	public void sendValidationEmail( String token, String to ) throws IOException, MessagingException {
+		log.info("Preparing to send validation email to: {}", to);
+
+		String htmlBody = prepareEmailBody(ACTIVATION.getPath(), token, ACTIVATION.getPlaceHolder());
+		sendEmail(to, htmlBody, validationTitle);
+
+		log.info("Validation email successfully sent to: {}", to);
+
 	}
 
-	private void sendEmail( String to, String htmlBody, String subject ) {
-		try {
-			MimeMessage mimeMessage = javaMailSender.createMimeMessage();
-			MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+	private String prepareEmailBody( String templatePath, String token, String tokenPlaceholder ) throws IOException {
+		log.debug("Preparing email body using template: {}", templatePath);
 
-			helper.setFrom(email_sender);
-			helper.setTo(to);
-			helper.setSubject(subject);
-			helper.setText(htmlBody, true);
+		String template = new String(Files.readAllBytes(Paths.get(templatePath)));
+		String preparedBody = template.replace(tokenPlaceholder, token);
 
-			javaMailSender.send(mimeMessage);
-		} catch ( MessagingException e ) {
-			log.error("Error sending email: {}", e.getMessage());
-			throw new EmailSendingException("Error sending email");
-		}
+		log.debug("Email body prepared successfully");
+
+		return preparedBody;
+
+	}
+
+	private void sendEmail( String to, String htmlBody, String subject ) throws MessagingException {
+		log.debug("Preparing to send email. To: {}, Subject: {}", to, subject);
+		MimeMessage mimeMessage = javaMailSender.createMimeMessage();
+		MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+
+		helper.setFrom(emailSender);
+		helper.setTo(to);
+		helper.setSubject(subject);
+		helper.setText(htmlBody, true);
+
+		javaMailSender.send(mimeMessage);
+
+		log.debug("Email sent successfully. To: {}, Subject: {}", to, subject);
+
 	}
 }
