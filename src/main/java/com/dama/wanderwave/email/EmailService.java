@@ -18,6 +18,7 @@ import java.nio.file.Paths;
 
 import static com.dama.wanderwave.email.TemplatePath.ACTIVATION;
 import static com.dama.wanderwave.email.TemplatePath.RECOVERY;
+import static java.nio.file.Paths.*;
 
 @Getter
 @RequiredArgsConstructor
@@ -66,7 +67,7 @@ public class EmailService {
     private String prepareEmailBody( String templatePath, String token, String tokenPlaceholder ) throws IOException {
         log.debug("Preparing email body using template: {}", templatePath);
 
-        String template = new String(Files.readAllBytes(Paths.get(templatePath)));
+        String template = new String(Files.readAllBytes(get(templatePath)));
         String preparedBody = template.replace(tokenPlaceholder, token);
 
         log.debug("Email body prepared successfully");
@@ -88,5 +89,6 @@ public class EmailService {
         javaMailSender.send(mimeMessage);
 
         log.debug("Email sent successfully. To: {}, Subject: {}", to, subject);
+
     }
 }
