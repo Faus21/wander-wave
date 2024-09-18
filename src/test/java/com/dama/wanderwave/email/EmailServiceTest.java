@@ -58,7 +58,7 @@ public class EmailServiceTest {
 
     @Test
     void sendValidationShouldBeOk() {
-        assertDoesNotThrow(() -> emailService.sendRecoveryEmail(anyString(), anyString()));
+        assertDoesNotThrow(() -> emailService.sendValidationEmail(anyString(), anyString()));
     }
 
 
