@@ -2,6 +2,11 @@ package com.dama.wanderwave.auth;
 
 
 import com.dama.wanderwave.handler.*;
+import com.dama.wanderwave.refresh_token.RefreshToken;
+import com.dama.wanderwave.refresh_token.RefreshTokenService;
+import com.dama.wanderwave.refresh_token.TokenRefreshRequest;
+import com.dama.wanderwave.security.JwtService;
+import com.dama.wanderwave.user.User;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +25,8 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import static com.dama.wanderwave.auth.ApiUrls.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -27,6 +34,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import lombok.Getter;
+
+import java.util.Objects;
+import java.util.Optional;
 
 @Getter
 @RequiredArgsConstructor
@@ -50,7 +60,10 @@ class AuthenticationControllerTest {
     private AuthenticationController authenticationController;
     @Mock
     private AuthenticationService authenticationService;
-
+    @Mock
+    private RefreshTokenService refreshTokenService;
+    @Mock
+    private JwtService jwtService;
 
     public record ErrorResponse(int errorCode, String message) { }
 
@@ -223,7 +236,7 @@ class AuthenticationControllerTest {
 		when(authenticationService.activateAccount(testActivationToken)).thenReturn(response.message);
 
 		mockMvc.perform(get(ACTIVE_ACCOUNT.getUrl())
-				                .param("token", testActivationToken)
+				                .param("emailToken", testActivationToken)
 				                .accept(ACCEPT_TYPE)
 				                .content(CONTENT_TYPE))
 				.andExpect(status().isAccepted())
@@ -243,7 +256,7 @@ class AuthenticationControllerTest {
         mockMvc.perform(get(ACTIVE_ACCOUNT.getUrl())
                                 .contentType(CONTENT_TYPE)
                                 .accept(ACCEPT_TYPE)
-                                .param("token", testActivationToken))
+                                .param("emailToken", testActivationToken))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.errorCode").value(response.errorCode))
                 .andExpect(jsonPath("$.message").value(response.message));
@@ -262,7 +275,7 @@ class AuthenticationControllerTest {
         mockMvc.perform(get(ACTIVE_ACCOUNT.getUrl())
                                 .accept(ACCEPT_TYPE)
                                 .contentType(CONTENT_TYPE)
-                                .param("token", testActivationToken))
+                                .param("emailToken", testActivationToken))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errorCode").value(response.errorCode))
                 .andExpect(jsonPath("$.message").value(response.message));
@@ -280,7 +293,7 @@ class AuthenticationControllerTest {
         mockMvc.perform(get(ACTIVE_ACCOUNT.getUrl())
                                 .accept(ACCEPT_TYPE)
                                 .contentType(CONTENT_TYPE)
-                                .param("token", testActivationToken))
+                                .param("emailToken", testActivationToken))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.errorCode").value(response.errorCode))
                 .andExpect(jsonPath("$.message").value(response.message));
@@ -298,7 +311,7 @@ class AuthenticationControllerTest {
 		mockMvc.perform(get(ACTIVE_ACCOUNT.getUrl())
 				                .accept(ACCEPT_TYPE)
 				                .contentType(CONTENT_TYPE)
-				                .param("token", testActivationToken))
+				                .param("emailToken", testActivationToken))
 				.andExpect(status().isInternalServerError())
 				.andExpect(jsonPath("$.errorCode").value(response.errorCode))
 				.andExpect(jsonPath("$.message").value("Handler dispatch failed: java.lang" +
@@ -432,6 +445,95 @@ class AuthenticationControllerTest {
         verify(authenticationService, times(1)).changeUserPassword(anyString(), anyString());
     }
 
+    @Test
+    void refreshTokenShouldReturnNewAccessToken() throws Exception {
+        String refreshToken = "validRefreshToken";
+        String newAccessToken = "newAccessToken";
+        TokenRefreshRequest request = new TokenRefreshRequest(refreshToken);
+        RefreshToken refreshTokenEntity = new RefreshToken();
+        User user = new User();
+        user.setNickname("testUser");
+        refreshTokenEntity.setUser(user);
+        ResponseRecord response = new ResponseRecord(200, newAccessToken);
+
+        when(refreshTokenService.findByToken(refreshToken)).thenReturn(Optional.of(refreshTokenEntity));
+        when(refreshTokenService.verifyExpiration(refreshTokenEntity)).thenReturn(refreshTokenEntity);
+        when(jwtService.generateToken(anyMap(), eq(user))).thenReturn(newAccessToken);
+
+        mockMvc.perform(post("/api/auth/refresh-token")
+                                .contentType(CONTENT_TYPE)
+                                .accept(ACCEPT_TYPE)
+                                .content(mapToJson(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(response.code))
+                .andExpect(jsonPath("$.message").value(response.message));
+
+        verify(refreshTokenService, times(1)).findByToken(refreshToken);
+        verify(refreshTokenService, times(1)).verifyExpiration(refreshTokenEntity);
+        verify(jwtService, times(1)).generateToken(anyMap(), eq(user));
+    }
+
+    @Test
+    void refreshTokenShouldReturnBadRequestForInvalidRefreshToken() throws Exception {
+        String refreshToken = "invalidRefreshToken";
+        TokenRefreshRequest request = new TokenRefreshRequest(refreshToken);
+
+        when(refreshTokenService.findByToken(refreshToken)).thenReturn(Optional.empty());
+
+        mockMvc.perform(post("/api/auth/refresh-token")
+                                .contentType(CONTENT_TYPE)
+                                .accept(ACCEPT_TYPE)
+                                .content(mapToJson(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof TokenRefreshException))
+                .andExpect(result -> assertEquals("Refresh token is invalid!", Objects.requireNonNull(result.getResolvedException()).getMessage()));
+
+        verify(refreshTokenService, times(1)).findByToken(refreshToken);
+        verify(refreshTokenService, never()).verifyExpiration(any());
+        verify(jwtService, never()).generateToken(anyMap(), any());
+    }
+
+    @Test
+    void refreshTokenShouldReturnBadRequestForExpiredRefreshToken() throws Exception {
+        String refreshToken = "expiredRefreshToken";
+        TokenRefreshRequest request = new TokenRefreshRequest(refreshToken);
+        RefreshToken refreshTokenEntity = new RefreshToken();
+
+        when(refreshTokenService.findByToken(refreshToken)).thenReturn(Optional.of(refreshTokenEntity));
+        when(refreshTokenService.verifyExpiration(refreshTokenEntity)).thenThrow(new TokenRefreshException("Refresh token is expired!"));
+
+        mockMvc.perform(post("/api/auth/refresh-token")
+                                .contentType(CONTENT_TYPE)
+                                .accept(ACCEPT_TYPE)
+                                .content(mapToJson(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof TokenRefreshException))
+                .andExpect(result -> assertEquals("Refresh token is expired!", result.getResolvedException().getMessage()));
+
+        verify(refreshTokenService, times(1)).findByToken(refreshToken);
+        verify(refreshTokenService, times(1)).verifyExpiration(refreshTokenEntity);
+        verify(jwtService, never()).generateToken(anyMap(), any());
+    }
+
+    @Test
+    void refreshTokenShouldReturnInternalServerError() throws Exception {
+        String refreshToken = "validRefreshToken";
+        TokenRefreshRequest request = new TokenRefreshRequest(refreshToken);
+        RefreshToken refreshTokenEntity = new RefreshToken();
+
+        when(refreshTokenService.findByToken(refreshToken)).thenReturn(Optional.of(refreshTokenEntity));
+        when(refreshTokenService.verifyExpiration(refreshTokenEntity)).thenThrow(new RuntimeException("Internal server error"));
+
+        mockMvc.perform(post("/api/auth/refresh-token")
+                                .contentType(CONTENT_TYPE)
+                                .accept(ACCEPT_TYPE)
+                                .content(mapToJson(request)))
+                .andExpect(status().isInternalServerError());
+
+        verify(refreshTokenService, times(1)).findByToken(refreshToken);
+        verify(refreshTokenService, times(1)).verifyExpiration(refreshTokenEntity);
+        verify(jwtService, never()).generateToken(anyMap(), any());
+    }
 
 }
 

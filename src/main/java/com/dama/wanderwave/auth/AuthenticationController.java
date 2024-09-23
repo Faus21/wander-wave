@@ -102,9 +102,7 @@ public class AuthenticationController {
 				       .map(user -> {
 
 					       Map<String, Object> claims = Map.of("username", user.getNickname());
-
-					       String newAccessToken =
-							       jwtService.generateToken(claims, user);
+					       String newAccessToken = jwtService.generateToken(claims, user);
 
 					       return ResponseEntity.ok()
 							              .body(ResponseRecord.builder()
