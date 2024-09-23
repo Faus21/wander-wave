@@ -50,31 +50,31 @@ public class EmailService {
 	private String validationTitle;
 
 	@Async
-	public void sendRecoveryEmail( String token, String to ) throws IOException, MessagingException {
+	public void sendRecoveryEmail( String emailToken, String to ) throws IOException, MessagingException {
 		log.info("Preparing to send recovery email to: {}", to);
 
-		String htmlBody = prepareEmailBody(RECOVERY.getPath(), token, RECOVERY.getPlaceHolder());
+		String htmlBody = prepareEmailBody(RECOVERY.getPath(), emailToken, RECOVERY.getPlaceHolder());
 		sendEmail(to, htmlBody, recoveryTitle);
 
 		log.info("Recovery email successfully sent to: {}", to);
 	}
 
 	@Async
-	public void sendValidationEmail( String token, String to ) throws IOException, MessagingException {
+	public void sendValidationEmail( String emailToken, String to ) throws IOException, MessagingException {
 		log.info("Preparing to send validation email to: {}", to);
 
-		String htmlBody = prepareEmailBody(ACTIVATION.getPath(), token, ACTIVATION.getPlaceHolder());
+		String htmlBody = prepareEmailBody(ACTIVATION.getPath(), emailToken, ACTIVATION.getPlaceHolder());
 		sendEmail(to, htmlBody, validationTitle);
 
 		log.info("Validation email successfully sent to: {}", to);
 
 	}
 
-	private String prepareEmailBody( String templatePath, String token, String tokenPlaceholder ) throws IOException {
+	private String prepareEmailBody( String templatePath, String emailToken, String tokenPlaceholder ) throws IOException {
 		log.debug("Preparing email body using template: {}", templatePath);
 
 		String template = new String(Files.readAllBytes(Paths.get(templatePath)));
-		String preparedBody = template.replace(tokenPlaceholder, token);
+		String preparedBody = template.replace(tokenPlaceholder, emailToken);
 
 		log.debug("Email body prepared successfully");
 

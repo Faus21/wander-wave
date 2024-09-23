@@ -51,6 +51,11 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(ex.getMessage(), 400, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(TokenRefreshException.class)
+    public ResponseEntity<ErrorResponse> handleTokenRefreshException(TokenRefreshException ex) {
+        return buildErrorResponse(ex.getMessage(), 400, HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler(TokenExpiredException.class)
     public ResponseEntity<ErrorResponse> handleTokenExpiredException(TokenExpiredException ex) {
         return buildErrorResponse(ex.getMessage(), 400, HttpStatus.BAD_REQUEST);

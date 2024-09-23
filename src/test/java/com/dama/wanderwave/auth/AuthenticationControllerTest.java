@@ -138,7 +138,7 @@ class AuthenticationControllerTest {
     @Test
     void authenticateShouldReturnOkWithToken() throws Exception {
         AuthenticationRequest request = new AuthenticationRequest("tahiheb432@sigmazon.com", "password");
-        AuthenticationResponse response = new AuthenticationResponse("jwt-token-123");
+        AuthenticationResponse response = new AuthenticationResponse("access", "refresh");
 
         when(authenticationService.authenticate(any(AuthenticationRequest.class))).thenReturn(response);
 
@@ -147,7 +147,8 @@ class AuthenticationControllerTest {
                                 .accept(ACCEPT_TYPE)
                                 .content(mapToJson(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").value(response.getToken()));
+                .andExpect(jsonPath("$.accessToken").value(response.getAccessToken()))
+                .andExpect(jsonPath("$.refreshToken").value(response.getRefreshToken()));
 
         verify(authenticationService, times(1)).authenticate(any(AuthenticationRequest.class));
     }

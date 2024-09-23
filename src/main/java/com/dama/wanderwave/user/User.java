@@ -1,7 +1,7 @@
 package com.dama.wanderwave.user;
 
 import com.dama.wanderwave.role.Role;
-import com.dama.wanderwave.token.Token;
+import com.dama.wanderwave.token.EmailToken;
 import com.dama.wanderwave.user.like.Like;
 import com.dama.wanderwave.user.saved_post.SavedPost;
 import com.dama.wanderwave.user.viewed_post.ViewedPost;
@@ -74,7 +74,7 @@ public class User implements UserDetails, Principal {
 	private Set<String> subscribers = new HashSet<>();
 	@Builder.Default
 	@OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-	private Set<Token> tokens = new HashSet<>();
+	private Set<EmailToken> emailTokens = new HashSet<>();
 
 	@Column(name = "account_locked", nullable = false)
 	private boolean accountLocked;
