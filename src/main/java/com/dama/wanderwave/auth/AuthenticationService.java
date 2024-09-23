@@ -1,5 +1,6 @@
 package com.dama.wanderwave.auth;
 
+import com.dama.wanderwave.utils.ResponseRecord;
 import com.dama.wanderwave.email.EmailService;
 import com.dama.wanderwave.handler.*;
 import com.dama.wanderwave.role.RoleRepository;
@@ -25,6 +26,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -35,6 +37,7 @@ public class AuthenticationService {
 	private static final Integer RECOVERY_TOKEN_LENGTH = 9;
 	private static final Integer ACTIVATION_TOKEN_LENGTH = 6;
 	private static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
 	private final UserRepository userRepository;
 	private final PasswordEncoder passwordEncoder;
 	private final JwtService jwtService;
@@ -133,7 +136,7 @@ public class AuthenticationService {
 	}
 
 	@Transactional
-	public ResponseRecord changeUserPassword(String token, String password) {
+	public ResponseRecord changeUserPassword( String token, String password) {
 		log.info("Attempting to change password using token: {}", token);
 		Token savedToken = findTokenOrThrow(token);
 		checkTokenExpiration(savedToken, this::sendRecoveryEmail);
@@ -145,7 +148,7 @@ public class AuthenticationService {
 		return new ResponseRecord(202, "Password changed successfully");
 	}
 
-	protected void checkTokenExpiration( Token token, java.util.function.Consumer<User> resendAction ) {
+	protected void checkTokenExpiration( Token token, Consumer<User> resendAction ) {
 		if (LocalDateTime.now().isAfter(token.getExpiresAt())) {
 			log.warn("Token expired for user: {}. Resending new token.", token.getUser().getEmail());
 			resendAction.accept(token.getUser());

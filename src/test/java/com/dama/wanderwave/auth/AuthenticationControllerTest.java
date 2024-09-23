@@ -373,7 +373,7 @@ class AuthenticationControllerTest {
         ResponseRecord response = new ResponseRecord(200, "Password changed successfully");
         RecoveryRequest request = new RecoveryRequest("validToken", "newPassword");
 
-        when(authenticationService.changeUserPassword(anyString(), anyString())).thenReturn(new com.dama.wanderwave.auth.ResponseRecord(200, "Password changed successfully"));
+        when(authenticationService.changeUserPassword(anyString(), anyString())).thenReturn(new com.dama.wanderwave.utils.ResponseRecord(200, "Password changed successfully"));
 
 
         mockMvc.perform(MockMvcRequestBuilders.post(CHANGE_PASSWORD.getUrl())

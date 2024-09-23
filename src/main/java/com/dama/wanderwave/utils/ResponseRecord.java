@@ -1,4 +1,4 @@
-package com.dama.wanderwave.auth;
+package com.dama.wanderwave.utils;
 
 import lombok.Builder;
 
