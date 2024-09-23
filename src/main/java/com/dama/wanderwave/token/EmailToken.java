@@ -14,8 +14,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Entity
 @Builder
-@Table(name = "tokens")
-public class Token {
+@Table(name = "email_tokens")
+public class EmailToken {
 
 	@Id
 	@GeneratedValue(generator = "hash_generator")

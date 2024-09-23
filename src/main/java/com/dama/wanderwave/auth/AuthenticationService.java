@@ -1,14 +1,15 @@
 package com.dama.wanderwave.auth;
 
-import com.dama.wanderwave.utils.ResponseRecord;
 import com.dama.wanderwave.email.EmailService;
 import com.dama.wanderwave.handler.*;
+import com.dama.wanderwave.refresh_token.RefreshTokenService;
 import com.dama.wanderwave.role.RoleRepository;
 import com.dama.wanderwave.security.JwtService;
-import com.dama.wanderwave.token.Token;
+import com.dama.wanderwave.token.EmailToken;
 import com.dama.wanderwave.token.TokenRepository;
 import com.dama.wanderwave.user.User;
 import com.dama.wanderwave.user.UserRepository;
+import com.dama.wanderwave.utils.ResponseRecord;
 import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,7 +47,7 @@ public class AuthenticationService {
 	private final TokenRepository tokenRepository;
 	private final EmailService emailService;
 	private final SecureRandom secureRandom = new SecureRandom();
-
+	private final RefreshTokenService refreshTokenService;
 	@Transactional
 	public String register(RegistrationRequest request) {
 		log.info("Starting registration process for user with username: {} and email: {}", request.getUsername(), request.getEmail());
@@ -107,24 +108,31 @@ public class AuthenticationService {
 		log.info("User authenticated successfully: {}", user.getEmail());
 
 		var claims = createClaims(user);
-		var jwtToken = jwtService.generateToken(claims, user);
-		log.debug("JWT token generated for user: {}", user.getEmail());
 
-		return AuthenticationResponse.builder().token(jwtToken).build();
+		var accessToken = jwtService.generateToken(claims, user);
+
+		var refreshToken = refreshTokenService.createRefreshToken(user);
+
+		log.debug("JWT tokens generated for user: {}", user.getEmail());
+
+		return AuthenticationResponse.builder()
+				       .accessToken(accessToken)
+				       .refreshToken(refreshToken.getToken()).build();
 	}
 
 	@Transactional
 	public String activateAccount(String token) {
 		log.info("Attempting to activate account with token: {}", token);
-		Token savedToken = findTokenOrThrow(token);
-		checkTokenExpiration(savedToken, this::sendValidationEmail);
+		EmailToken savedEmailToken = findTokenOrThrow(token);
+		checkTokenExpiration(savedEmailToken, this::sendValidationEmail);
 
-		activateUser(savedToken.getUser());
-		markTokenAsValidated(savedToken);
+		activateUser(savedEmailToken.getUser());
+		markTokenAsValidated(savedEmailToken);
 
-		log.info("Account activated successfully for user: {}", savedToken.getUser().getEmail());
-		return savedToken.getContent();
+		log.info("Account activated successfully for user: {}", savedEmailToken.getUser().getEmail());
+		return savedEmailToken.getContent();
 	}
+
 
 	public String recoverAccount(String email) {
 		log.info("Initiating account recovery for email: {}", email);
@@ -138,30 +146,29 @@ public class AuthenticationService {
 	@Transactional
 	public ResponseRecord changeUserPassword( String token, String password) {
 		log.info("Attempting to change password using token: {}", token);
-		Token savedToken = findTokenOrThrow(token);
-		checkTokenExpiration(savedToken, this::sendRecoveryEmail);
+		EmailToken savedEmailToken = findTokenOrThrow(token);
+		checkTokenExpiration(savedEmailToken, this::sendRecoveryEmail);
 
-		changeUserPassword(savedToken.getUser(), password);
-		markTokenAsValidated(savedToken);
+		changeUserPassword(savedEmailToken.getUser(), password);
+		markTokenAsValidated(savedEmailToken);
 
-		log.info("Password changed successfully for user: {}", savedToken.getUser().getEmail());
+		log.info("Password changed successfully for user: {}", savedEmailToken.getUser().getEmail());
 		return new ResponseRecord(202, "Password changed successfully");
 	}
 
-	protected void checkTokenExpiration( Token token, Consumer<User> resendAction ) {
-		if (LocalDateTime.now().isAfter(token.getExpiresAt())) {
-			log.warn("Token expired for user: {}. Resending new token.", token.getUser().getEmail());
-			resendAction.accept(token.getUser());
+	protected void checkTokenExpiration( EmailToken emailToken, java.util.function.Consumer<User> resendAction ) {
+		if (LocalDateTime.now().isAfter(emailToken.getExpiresAt())) {
+			log.warn("Token expired for user: {}. Resending new token.", emailToken.getUser().getEmail());
+			resendAction.accept(emailToken.getUser());
 			throw new TokenExpiredException("Token has expired. A new token has been sent to the same email address.");
 		}
 	}
 
-	protected Map<String, Object> createClaims( User user ) {
-		var claims = new HashMap<String, Object>();
-		claims.put("username", user.getNickname());
+	protected Map<String, Object> createClaims(User user) {
 		log.debug("Created claims for user: {}", user.getEmail());
-		return claims;
+		return Map.of("username", user.getNickname());
 	}
+
 
 	protected void sendValidationEmail( User user ) {
 		log.info("Sending validation email to user: {}", user.getEmail());
@@ -187,7 +194,7 @@ public class AuthenticationService {
 		}
 	}
 
-	protected Token findTokenOrThrow(String token) {
+	protected EmailToken findTokenOrThrow( String token) {
 		log.debug("Searching for token: {}", token);
 		return tokenRepository.findByContent(token)
 				       .orElseThrow(() -> {
@@ -208,21 +215,22 @@ public class AuthenticationService {
 		log.info("Password changed for user: {}", user.getEmail());
 	}
 
-	protected void markTokenAsValidated(Token token) {
-		token.setValidatedAt(LocalDateTime.now());
-		tokenRepository.save(token);
-		log.debug("Token marked as validated: {}", token.getContent());
+	protected void markTokenAsValidated( EmailToken emailToken ) {
+		emailToken.setValidatedAt(LocalDateTime.now());
+		tokenRepository.save(emailToken);
+		log.debug("Token marked as validated: {}", emailToken.getContent());
 	}
 
 	protected String generateAndSaveToken(User user, int length) {
 		String tokenContent = generateTokenCode(length);
-		Token token = Token.builder()
-				              .content(tokenContent)
-				              .createdAt(LocalDateTime.now())
-				              .expiresAt(LocalDateTime.now().plusMinutes(15))
-				              .user(user)
-				              .build();
-		tokenRepository.save(token);
+		EmailToken emailToken = EmailToken.builder()
+				                        .content(tokenContent)
+				                        .createdAt(LocalDateTime.now())
+				                        .expiresAt(LocalDateTime.now().plusMinutes(15))
+				                        .user(user)
+				                        .build();
+
+		tokenRepository.save(emailToken);
 		log.debug("Generated and saved new token for user: {}", user.getEmail());
 		return tokenContent;
 	}
