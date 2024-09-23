@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
-
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
@@ -26,9 +25,7 @@ import java.util.Map;
 public class AuthenticationController {
 
 	private final AuthenticationService service;
-
 	private final RefreshTokenService refreshTokenService;
-
 	private final JwtService jwtService;
 
 	@PostMapping("/register")
@@ -37,8 +34,9 @@ public class AuthenticationController {
 	@ApiResponses(value = {
 			@ApiResponse(responseCode = "202", description = "User registered successfully"),
 			@ApiResponse(responseCode = "400", description = "Invalid request parameters"),
-			@ApiResponse(responseCode = "500", description = "Internal server error")})
-	public ResponseEntity<ResponseRecord> register( @RequestBody @Valid RegistrationRequest request ) {
+			@ApiResponse(responseCode = "500", description = "Internal server error")
+	})
+	public ResponseEntity<ResponseRecord> register(@RequestBody @Valid RegistrationRequest request) {
 		String message = service.register(request);
 		return ResponseEntity.accepted().body(new ResponseRecord(202, message));
 	}
@@ -50,12 +48,12 @@ public class AuthenticationController {
 			@ApiResponse(responseCode = "200", description = "Authentication successful"),
 			@ApiResponse(responseCode = "401", description = "Invalid credentials"),
 			@ApiResponse(responseCode = "404", description = "User not found"),
-			@ApiResponse(responseCode = "500", description = "Internal server error")})
-	public ResponseEntity<AuthenticationResponse> authenticate( @Valid @RequestBody AuthenticationRequest request ) {
+			@ApiResponse(responseCode = "500", description = "Internal server error")
+	})
+	public ResponseEntity<AuthenticationResponse> authenticate(@Valid @RequestBody AuthenticationRequest request) {
 		AuthenticationResponse response = service.authenticate(request);
 		return ResponseEntity.ok(response);
 	}
-
 
 	@GetMapping("/activate-account")
 	@Operation(summary = "Activate user account", description = "Activates a user account using the provided token.")
@@ -63,8 +61,9 @@ public class AuthenticationController {
 			@ApiResponse(responseCode = "200", description = "Account activated successfully"),
 			@ApiResponse(responseCode = "400", description = "Expired token"),
 			@ApiResponse(responseCode = "404", description = "Invalid token"),
-			@ApiResponse(responseCode = "500", description = "Internal server error")})
-	public ResponseEntity<ResponseRecord> activateAccount( @RequestParam String emailToken ) {
+			@ApiResponse(responseCode = "500", description = "Internal server error")
+	})
+	public ResponseEntity<ResponseRecord> activateAccount(@RequestParam String emailToken) {
 		String jwtToken = service.activateAccount(emailToken);
 		return ResponseEntity.accepted().body(new ResponseRecord(202, jwtToken));
 	}
@@ -75,7 +74,7 @@ public class AuthenticationController {
 			@ApiResponse(responseCode = "202", description = "Account recovered successfully"),
 			@ApiResponse(responseCode = "500", description = "Internal server error")
 	})
-	public ResponseEntity<ResponseRecord> recoverByEmail( @RequestParam String email ) {
+	public ResponseEntity<ResponseRecord> recoverByEmail(@RequestParam String email) {
 		String responseMessage = service.recoverAccount(email);
 		return ResponseEntity.accepted().body(new ResponseRecord(202, responseMessage));
 	}
@@ -85,14 +84,20 @@ public class AuthenticationController {
 	@ApiResponses(value = {
 			@ApiResponse(responseCode = "200", description = "Password changed successfully"),
 			@ApiResponse(responseCode = "400", description = "Invalid or expired token"),
-			@ApiResponse(responseCode = "500", description = "Internal server error")})
-	public ResponseEntity<ResponseRecord> changePassword( @RequestBody @Valid RecoveryRequest request ) {
+			@ApiResponse(responseCode = "500", description = "Internal server error")
+	})
+	public ResponseEntity<ResponseRecord> changePassword(@RequestBody @Valid RecoveryRequest request) {
 		ResponseRecord responseRecord = service.changeUserPassword(request.getToken(), request.getPassword());
 		return ResponseEntity.ok().body(responseRecord);
 	}
 
-
 	@PostMapping("/refresh-token")
+	@Operation(summary = "Refresh access token", description = "Refreshes the access token using a valid refresh token.")
+	@ApiResponses(value = {
+			@ApiResponse(responseCode = "200", description = "Token refreshed successfully"),
+			@ApiResponse(responseCode = "400", description = "Invalid or expired refresh token"),
+			@ApiResponse(responseCode = "500", description = "Internal server error")
+	})
 	public ResponseEntity<ResponseRecord> refreshToken(@RequestBody TokenRefreshRequest request) {
 		String requestRefreshToken = request.getRefreshToken();
 
@@ -100,10 +105,8 @@ public class AuthenticationController {
 				       .map(refreshTokenService::verifyExpiration)
 				       .map(RefreshToken::getUser)
 				       .map(user -> {
-
 					       Map<String, Object> claims = Map.of("username", user.getNickname());
 					       String newAccessToken = jwtService.generateToken(claims, user);
-
 					       return ResponseEntity.ok()
 							              .body(ResponseRecord.builder()
 									                    .code(200)
