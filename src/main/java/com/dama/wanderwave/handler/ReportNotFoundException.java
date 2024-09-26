@@ -5,6 +5,6 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
-public class ReportTypeNotFoundException extends RuntimeException {
+public class ReportNotFoundException extends RuntimeException {
     private final String message;
 }

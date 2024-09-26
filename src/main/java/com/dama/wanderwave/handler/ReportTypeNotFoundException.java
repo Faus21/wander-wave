@@ -1,7 +1,10 @@
 package com.dama.wanderwave.handler;
 
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+
+@Data
+@EqualsAndHashCode(callSuper = false)
 public class ReportTypeNotFoundException extends RuntimeException {
-  public ReportTypeNotFoundException(String message) {
-    super(message);
-  }
+    private final String message;
 }

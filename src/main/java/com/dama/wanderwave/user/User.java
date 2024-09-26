@@ -32,7 +32,7 @@ public class User implements UserDetails, Principal {
 
 	@Id
 	@GeneratedValue(generator = "hash_generator")
-	@GenericGenerator(name = "hash_generator", strategy = "com.dama.wanderwave.hash.HashUUIDGenerator")
+	@GenericGenerator(name = "hash_generator", type = com.dama.wanderwave.hash.HashUUIDGenerator.class)
 	@Column(name = "user_id", nullable = false)
 	private String id;
 
@@ -124,7 +124,6 @@ public class User implements UserDetails, Principal {
 	public boolean isEnabled() {
 		return enabled;
 	}
-
 
 	@Override
 	public String getName() {

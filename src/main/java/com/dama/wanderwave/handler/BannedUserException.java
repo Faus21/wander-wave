@@ -1,7 +1,10 @@
 package com.dama.wanderwave.handler;
 
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+
+@Data
+@EqualsAndHashCode(callSuper = false)
 public class BannedUserException extends RuntimeException {
-  public BannedUserException(String message) {
-    super(message);
-  }
+    private final String message;
 }

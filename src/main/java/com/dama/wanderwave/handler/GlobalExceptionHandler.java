@@ -1,5 +1,6 @@
 package com.dama.wanderwave.handler;
 
+import com.fasterxml.jackson.core.JsonParseException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
@@ -94,6 +95,21 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InternalError.class)
     public ResponseEntity<ErrorResponse> handleInternalError(InternalError ex) {
         return buildErrorResponse(ex.getMessage(), 500, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(ReportTypeNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleReportTypeNotFoundException(ReportTypeNotFoundException ex) {
+        return buildErrorResponse(ex.getMessage(), 404, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(ReportNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleReportNotFoundException(ReportNotFoundException ex) {
+        return buildErrorResponse(ex.getMessage(), 404, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(UnauthorizedActionException.class)
+    public ResponseEntity<ErrorResponse> handleUnauthorizedActionException(UnauthorizedActionException ex) {
+        return buildErrorResponse(ex.getMessage(), 403, HttpStatus.FORBIDDEN);
     }
 
     private ResponseEntity<ErrorResponse> buildErrorResponse(String message, int errorCode, HttpStatus status) {

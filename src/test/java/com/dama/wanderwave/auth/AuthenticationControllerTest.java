@@ -69,8 +69,6 @@ class AuthenticationControllerTest {
 
 	public record ResponseRecord (int code, String message) { }
 
-
-
     private static final String CONTENT_TYPE = MediaType.APPLICATION_JSON_VALUE;
     private static final MediaType ACCEPT_TYPE = MediaType.APPLICATION_JSON;
 

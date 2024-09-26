@@ -2,10 +2,7 @@ package com.dama.wanderwave.report;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.GenericGenerator;
 
 @Getter
@@ -13,6 +10,7 @@ import org.hibernate.annotations.GenericGenerator;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
+@Builder
 @Table(name = "report_types", uniqueConstraints = {@UniqueConstraint(columnNames = {"report_type_id"})})
 public class ReportType {
 

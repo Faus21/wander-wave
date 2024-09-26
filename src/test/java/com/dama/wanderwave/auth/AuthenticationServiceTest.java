@@ -58,7 +58,6 @@ class AuthenticationServiceTest {
 	@Mock
 	private RoleRepository roleRepository;
 
-
 	@Mock
 	private JwtService jwtService;
 
