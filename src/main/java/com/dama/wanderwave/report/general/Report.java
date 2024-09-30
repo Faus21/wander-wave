@@ -42,6 +42,10 @@ public abstract class Report {
 	@JoinColumn(name = "report_type_id", nullable = false, referencedColumnName = "report_type_id", foreignKey = @ForeignKey(name = "fk_report_type_report"))
 	private ReportType type;
 
+	@ManyToOne(fetch = FetchType.EAGER)
+	@JoinColumn(name = "report_status_id", nullable = false, referencedColumnName = "report_status_id", foreignKey = @ForeignKey(name = "fk_report_status_report"))
+	private ReportStatus status;
+
 	@CreatedDate
 	@Column(name = "created_at", updatable = false, nullable = false)
 	private LocalDateTime createdAt;
