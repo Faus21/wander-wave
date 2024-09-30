@@ -13,6 +13,7 @@ import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -102,6 +103,11 @@ public class AuthenticationService {
         }
 
         var user = (User) auth.getPrincipal();
+        if (user.isAccountLocked()) {
+            log.error("Account is locked for user id {} ({})", user.getId(), user.getNickname());
+            throw new BannedUserException("User is banned!");
+        }
+
         log.info("User authenticated successfully: {}", user.getEmail());
 
         var claims = createClaims(user);
@@ -149,7 +155,7 @@ public class AuthenticationService {
         markTokenAsValidated(savedEmailToken);
 
         log.info("Password changed successfully for user: {}", savedEmailToken.getUser().getEmail());
-        return new ResponseRecord(202, "Password changed successfully");
+        return new ResponseRecord(HttpStatus.ACCEPTED, "Password changed successfully");
     }
 
     protected void checkTokenExpiration(EmailToken emailToken, java.util.function.Consumer<User> resendAction) {

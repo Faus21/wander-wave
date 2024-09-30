@@ -1,10 +1,11 @@
-package com.dama.wanderwave.report;
+package com.dama.wanderwave.report.entity;
 
 import com.dama.wanderwave.user.User;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.GenericGenerator;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -15,11 +16,12 @@ import java.time.LocalDateTime;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
+@SuperBuilder
 @Entity
 @EntityListeners(AuditingEntityListener.class)
+@Inheritance(strategy = InheritanceType.JOINED)
 @Table(name = "reports")
-public class Report {
+public abstract class Report {
 
 	@Id
 	@GeneratedValue(generator = "hash_generator")
@@ -37,16 +39,8 @@ public class Report {
 	private User sender;
 
 	@ManyToOne(fetch = FetchType.EAGER)
-	@JoinColumn(name = "user_id", referencedColumnName = "user_id", foreignKey = @ForeignKey(name = "fk_reported_user_report"))
-	private User reportedUser;
-
-	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name = "report_type_id", nullable = false, referencedColumnName = "report_type_id", foreignKey = @ForeignKey(name = "fk_report_type_report"))
 	private ReportType type;
-
-	@Size(max = 8, message = "Object id should be less or equals 8 characters")
-	@Column(nullable = false, name = "object_id")
-	private String objectId;
 
 	@CreatedDate
 	@Column(name = "created_at", updatable = false, nullable = false)
@@ -60,6 +54,6 @@ public class Report {
 	private User reviewedBy;
 
 	@Size(max = 255, message = "Comment length should be less or equal 255")
-	@Column(name = "comment")
-	private String comment;
+	@Column(name = "report_comment")
+	private String reportComment;
 }

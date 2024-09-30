@@ -1,4 +1,4 @@
-package com.dama.wanderwave.report;
+package com.dama.wanderwave.report.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;

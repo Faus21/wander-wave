@@ -24,7 +24,7 @@ public class Message {
 
 	@Id
 	@GeneratedValue(generator = "hash_generator")
-	@GenericGenerator(name = "hash_generator", strategy = "com.dama.wanderwave.hash.HashUUIDGenerator")
+	@GenericGenerator(name = "hash_generator", type = com.dama.wanderwave.hash.HashUUIDGenerator.class)
 	@Column(name = "message_id", nullable = false, updatable = false, unique = true)
 	private String id;
 

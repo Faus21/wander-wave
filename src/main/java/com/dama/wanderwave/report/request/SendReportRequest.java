@@ -1,4 +1,4 @@
-package com.dama.wanderwave.report;
+package com.dama.wanderwave.report.request;
 
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
@@ -26,6 +26,10 @@ public class SendReportRequest {
     @Size(max = 255, message = "Report type length must be less than or equal to 255 characters")
     @NotEmpty(message = "Report type is mandatory")
     private String reportType;
+
+    @Size(max = 32, message = "Object type should be less or equal to 32 characters")
+    @NotEmpty(message = "Object type is mandatory")
+    private String objectType;
 
     @Size(max = 8, message = "Object ID length must be less than or equal to 8 characters")
     @NotEmpty(message = "Object ID is mandatory")

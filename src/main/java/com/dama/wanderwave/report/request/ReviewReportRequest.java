@@ -1,4 +1,4 @@
-package com.dama.wanderwave.report;
+package com.dama.wanderwave.report.request;
 
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;

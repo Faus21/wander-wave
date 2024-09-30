@@ -1,6 +1,5 @@
 package com.dama.wanderwave.handler;
 
-import com.fasterxml.jackson.core.JsonParseException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
@@ -62,6 +61,11 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(ex.getMessage(), 400, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(WrongReportObjectException.class)
+    public ResponseEntity<ErrorResponse> handleWrongReportObjectException(WrongReportObjectException ex) {
+        return buildErrorResponse(ex.getMessage(), 400, HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler(TokenNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleTokenNotFoundException(TokenNotFoundException ex) {
         return buildErrorResponse(ex.getMessage(), 404, HttpStatus.NOT_FOUND);
@@ -104,6 +108,16 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ReportNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleReportNotFoundException(ReportNotFoundException ex) {
+        return buildErrorResponse(ex.getMessage(), 404, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(PostNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handlePostNotFoundException(PostNotFoundException ex) {
+        return buildErrorResponse(ex.getMessage(), 404, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(CommentNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleCommentNotFoundException(CommentNotFoundException ex) {
         return buildErrorResponse(ex.getMessage(), 404, HttpStatus.NOT_FOUND);
     }
 

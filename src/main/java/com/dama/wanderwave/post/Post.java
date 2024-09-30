@@ -1,5 +1,7 @@
 package com.dama.wanderwave.post;
 
+import com.dama.wanderwave.report.entity.PostReport;
+import com.dama.wanderwave.report.entity.Report;
 import com.dama.wanderwave.user.User;
 import com.dama.wanderwave.hashtag.HashTag;
 import com.dama.wanderwave.user.like.Like;
@@ -31,7 +33,7 @@ public class Post {
 
 	@Id
 	@GeneratedValue(generator = "hash_generator")
-	@GenericGenerator(name = "hash_generator", strategy = "com.dama.wanderwave.hash.HashUUIDGenerator")
+	@GenericGenerator(name = "hash_generator", type = com.dama.wanderwave.hash.HashUUIDGenerator.class)
 	@Column(name = "post_id", nullable = false, updatable = false, unique = true)
 	private String id;
 
@@ -80,4 +82,7 @@ public class Post {
 
 	@OneToMany(mappedBy = "post", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
 	private Set<Like> likes = new HashSet<>();
+
+	@OneToMany(mappedBy = "post", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+	private Set<PostReport> reports;
 }

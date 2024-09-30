@@ -38,7 +38,6 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class AuthenticationServiceTest {
 
-
 	@InjectMocks
 	private AuthenticationService authenticationService;
 	@Mock

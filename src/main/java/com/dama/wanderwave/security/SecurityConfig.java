@@ -12,7 +12,15 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import static com.dama.wanderwave.security.Roles.ADMIN;
+import static com.dama.wanderwave.security.Roles.USER;
 import static org.springframework.security.config.http.SessionCreationPolicy.STATELESS;
+
+enum Roles {
+    ADMIN("ADMIN"), USER("USER");
+
+    Roles(String name) {}
+}
 
 @Configuration
 @EnableWebSecurity
@@ -48,9 +56,9 @@ public class SecurityConfig {
                                     "/swagger-ui.html").permitAll()
                             .requestMatchers(
                                     "/api/reports/find-by-dates",
-                                    "/api/reports/review").hasRole("ADMIN")
+                                    "/api/reports/review").hasRole(ADMIN.name())
                             .requestMatchers(
-                                    "api/reports/send").hasRole("USER")
+                                    "api/reports/send").hasRole(USER.name())
                             .anyRequest().authenticated();
                 })
                 .sessionManagement(session -> session.sessionCreationPolicy(STATELESS))

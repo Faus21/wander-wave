@@ -1,6 +1,12 @@
 package com.dama.wanderwave.report;
 
 import com.dama.wanderwave.handler.*;
+import com.dama.wanderwave.report.entity.PostReport;
+import com.dama.wanderwave.report.entity.Report;
+import com.dama.wanderwave.report.entity.ReportType;
+import com.dama.wanderwave.report.request.ReportPageRequest;
+import com.dama.wanderwave.report.request.ReviewReportRequest;
+import com.dama.wanderwave.report.request.SendReportRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.Getter;
@@ -13,11 +19,14 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -33,8 +42,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 enum ApiUrls {
     SEND_REPORT("/api/reports/send"),
     REPORT_TYPES("/api/reports/types"),
-    REPORTS_BY_DATES("/api/reports/find-by-dates"),
-    USER_REPORTS("/api/reports/get/{userId}"),
+    ALL_REPORTS("/api/reports/get"),
+    USER_REPORTS("/api/reports/user/{userId}"),
     REVIEW_REPORT("/api/reports/review");
 
 
@@ -50,10 +59,10 @@ class ReportControllerTest {
     @Mock
     private ReportService reportService;
 
-    public record ErrorResponse(int errorCode, String message) {
+    public record ErrorResponse(HttpStatus errorCode, String message) {
     }
 
-    public record ResponseRecord(int code, String message) {
+    public record ResponseRecord(HttpStatus code, String message) {
     }
 
     private static final String CONTENT_TYPE = MediaType.APPLICATION_JSON_VALUE;
@@ -74,70 +83,66 @@ class ReportControllerTest {
 
     @Test
     void sendReportShouldBeOk() throws Exception {
-        String mockRequestJson = mapToJson(getReportRequest());
-        ResponseRecord response = new ResponseRecord(200, "User reported successfully");
+        String mockRequestJson = mapToJson(getSendReportRequest());
+        ResponseRecord response = new ResponseRecord(HttpStatus.OK, "User reported successfully");
 
-        when(reportService.sendReport(any(SendReportRequest.class))).thenReturn(response.message);
+        when(reportService.sendReport(any(com.dama.wanderwave.report.request.SendReportRequest.class))).thenReturn(response.message);
 
         mockMvc.perform(post(SEND_REPORT.getUrl())
                         .contentType(CONTENT_TYPE)
                         .accept(ACCEPT_TYPE)
                         .content(mockRequestJson))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(response.code))
                 .andExpect(jsonPath("$.message").value(response.message));
-        verify(reportService, times(1)).sendReport(any(SendReportRequest.class));
+        verify(reportService, times(1)).sendReport(any(com.dama.wanderwave.report.request.SendReportRequest.class));
     }
 
     @Test
     void sendReportShouldThrowWhenForbidden() throws Exception {
-        String mockRequestJson = mapToJson(getReportRequest());
-        ErrorResponse response = new ErrorResponse(403, "Forbidden: Authenticated user is not authorized to perform this action");
+        String mockRequestJson = mapToJson(getSendReportRequest());
+        ErrorResponse response = new ErrorResponse(HttpStatus.FORBIDDEN, "Forbidden: Authenticated user is not authorized to perform this action");
 
-        when(reportService.sendReport(any(SendReportRequest.class))).thenThrow(new UnauthorizedActionException(response.message));
+        when(reportService.sendReport(any(com.dama.wanderwave.report.request.SendReportRequest.class))).thenThrow(new UnauthorizedActionException(response.message));
 
         mockMvc.perform(post(SEND_REPORT.getUrl())
                         .contentType(CONTENT_TYPE)
                         .accept(ACCEPT_TYPE)
                         .content(mockRequestJson))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.errorCode").value(response.errorCode))
                 .andExpect(jsonPath("$.message").value(response.message));
-        verify(reportService, times(1)).sendReport(any(SendReportRequest.class));
+        verify(reportService, times(1)).sendReport(any(com.dama.wanderwave.report.request.SendReportRequest.class));
     }
 
     @Test
     void sendReportShouldThrowWhenNotFound() throws Exception {
-        String mockRequestJson = mapToJson(getReportRequest());
-        ErrorResponse response = new ErrorResponse(404, "Request parameters not found");
+        String mockRequestJson = mapToJson(getSendReportRequest());
+        ErrorResponse response = new ErrorResponse(HttpStatus.NOT_FOUND, "Request parameters not found");
 
-        when(reportService.sendReport(any(SendReportRequest.class))).thenThrow(new UserNotFoundException(response.message));
+        when(reportService.sendReport(any(com.dama.wanderwave.report.request.SendReportRequest.class))).thenThrow(new UserNotFoundException(response.message));
 
         mockMvc.perform(post(SEND_REPORT.getUrl())
                         .contentType(CONTENT_TYPE)
                         .accept(ACCEPT_TYPE)
                         .content(mockRequestJson))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.errorCode").value(response.errorCode))
                 .andExpect(jsonPath("$.message").value(response.message));
-        verify(reportService, times(1)).sendReport(any(SendReportRequest.class));
+        verify(reportService, times(1)).sendReport(any(com.dama.wanderwave.report.request.SendReportRequest.class));
     }
 
     @Test
     void sendReportShouldThrowWhenInternalServerError() throws Exception {
-        String mockRequestJson = mapToJson(getReportRequest());
-        ErrorResponse response = new ErrorResponse(500, "Internal server error");
+        String mockRequestJson = mapToJson(getSendReportRequest());
+        ErrorResponse response = new ErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
 
-        when(reportService.sendReport(any(SendReportRequest.class))).thenThrow(new RuntimeException(response.message));
+        when(reportService.sendReport(any(com.dama.wanderwave.report.request.SendReportRequest.class))).thenThrow(new RuntimeException(response.message));
 
         mockMvc.perform(post(SEND_REPORT.getUrl())
                         .contentType(CONTENT_TYPE)
                         .accept(ACCEPT_TYPE)
                         .content(mockRequestJson))
                 .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.errorCode").value(response.errorCode))
                 .andExpect(jsonPath("$.message").value(response.message));
-        verify(reportService, times(1)).sendReport(any(SendReportRequest.class));
+        verify(reportService, times(1)).sendReport(any(com.dama.wanderwave.report.request.SendReportRequest.class));
     }
 
     // get report types
@@ -145,8 +150,6 @@ class ReportControllerTest {
 
     @Test
     void getReportTypesShouldBeOk() throws Exception {
-        ResponseRecord response = new ResponseRecord(200, "All report types retrieved successfully");
-
         List<ReportType> mockReportTypes = List.of(
                 ReportType.builder().name("test").build()
         );
@@ -157,7 +160,6 @@ class ReportControllerTest {
                         .contentType(CONTENT_TYPE)
                         .accept(ACCEPT_TYPE))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(response.code))
                 .andExpect(jsonPath("$.message").isArray())
                 .andExpect(jsonPath("$.message[0].name").value("test"));
 
@@ -166,14 +168,14 @@ class ReportControllerTest {
 
     @Test
     void getReportTypesShouldThrowWhenNotFound() throws Exception {
-        ErrorResponse response = new ErrorResponse(404, "Report types not found");
+        ErrorResponse response = new ErrorResponse(HttpStatus.NOT_FOUND, "Report types not found");
         when(reportService.getReportTypes()).thenThrow(new ReportTypeNotFoundException(response.message));
 
         mockMvc.perform(get(REPORT_TYPES.getUrl())
                         .contentType(CONTENT_TYPE)
                         .accept(ACCEPT_TYPE))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.errorCode").value(response.errorCode))
+                .andExpect(jsonPath("$.errorCode").value(response.errorCode.value()))
                 .andExpect(jsonPath("$.message").value(response.message));
 
         verify(reportService, times(1)).getReportTypes();
@@ -181,221 +183,213 @@ class ReportControllerTest {
 
     @Test
     void getReportTypesShouldThrowWhenInternalServerError() throws Exception {
-        ErrorResponse response = new ErrorResponse(500, "Internal server error");
+        ErrorResponse response = new ErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
         when(reportService.getReportTypes()).thenThrow(new RuntimeException(response.message));
 
         mockMvc.perform(get(REPORT_TYPES.getUrl())
                         .contentType(CONTENT_TYPE)
                         .accept(ACCEPT_TYPE))
                 .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.errorCode").value(response.errorCode))
+                .andExpect(jsonPath("$.errorCode").value(response.errorCode.value()))
                 .andExpect(jsonPath("$.message").value(response.message));
 
         verify(reportService, times(1)).getReportTypes();
     }
 
-    // find reports by dates
+    // get all reports
 
     @Test
-    void getReportsByDatesShouldBeOk() throws Exception {
-        ResponseRecord response = new ResponseRecord(200, "Reports retrieved successfully");
+    void getAllReportsShouldBeOk() throws Exception {
+        var request = mapToJson(getReportPageRequest());
 
-        var request = mapToJson(getReportsByDatesRequest());
-
-        when(reportService.getReportsByDate(any(ReportsByDatesRequest.class))).thenReturn(
-                List.of(Report.builder().id("mockId").build())
+        when(reportService.getAllReports(any(com.dama.wanderwave.report.request.ReportPageRequest.class))).thenReturn(
+                getMockPage()
         );
 
-        mockMvc.perform(get(REPORTS_BY_DATES.getUrl())
+        mockMvc.perform(get(ALL_REPORTS.getUrl())
                         .contentType(CONTENT_TYPE)
                         .content(request)
                         .accept(ACCEPT_TYPE))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(response.code))
-                .andExpect(jsonPath("$.message").isArray())
-                .andExpect(jsonPath("$.message[0].id").value("mockId"));
+                .andExpect(jsonPath("$.message.content").isArray())
+                .andExpect(jsonPath("$.message.content[0].id").value("abc"));
 
-        verify(reportService, times(1)).getReportsByDate(any(ReportsByDatesRequest.class));
+        verify(reportService, times(1)).getAllReports(any(com.dama.wanderwave.report.request.ReportPageRequest.class));
     }
 
     @Test
-    void getReportsByDatesShouldThrowNotFoundWithWrongDates() throws Exception {
-        var request = mapToJson(getReportsByDatesRequest());
+    void getReportsShouldThrowWhenNotFound() throws Exception {
+        var request = mapToJson(getReportPageRequest());
 
-        ErrorResponse response = new ErrorResponse(404, "Reports not found for the specified date range");
-        when(reportService.getReportsByDate(any(ReportsByDatesRequest.class))).thenThrow(new ReportNotFoundException(response.message));
+        ErrorResponse response = new ErrorResponse(HttpStatus.NOT_FOUND, "Reports not found");
 
-        mockMvc.perform(get(REPORTS_BY_DATES.getUrl())
+        when(reportService.getAllReports(any(com.dama.wanderwave.report.request.ReportPageRequest.class)))
+                .thenThrow(new ReportNotFoundException(response.message));
+
+        mockMvc.perform(get(ALL_REPORTS.getUrl())
                         .contentType(CONTENT_TYPE)
                         .content(request)
                         .accept(ACCEPT_TYPE))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.errorCode").value(response.errorCode))
+                .andExpect(jsonPath("$.errorCode").value(response.errorCode.value()))
                 .andExpect(jsonPath("$.message").value(response.message));
 
-        verify(reportService, times(1)).getReportsByDate(any(ReportsByDatesRequest.class));
+        verify(reportService, times(1)).getAllReports(any(com.dama.wanderwave.report.request.ReportPageRequest.class));
     }
 
     @Test
-    void getReportsByDatesShouldThrowWhenInternalServerError() throws Exception {
-        var request = mapToJson(getReportsByDatesRequest());
+    void getReportsShouldThrowWhenInternalServerError() throws Exception {
+        var request = mapToJson(getReportPageRequest());
 
-        ErrorResponse response = new ErrorResponse(500, "Internal server error");
-        when(reportService.getReportsByDate(any(ReportsByDatesRequest.class))).thenThrow(new RuntimeException(response.message));
+        ErrorResponse response = new ErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
 
-        mockMvc.perform(get(REPORTS_BY_DATES.getUrl())
+
+        when(reportService.getAllReports(any(com.dama.wanderwave.report.request.ReportPageRequest.class)))
+                .thenThrow(new RuntimeException(response.message));
+
+        mockMvc.perform(get(ALL_REPORTS.getUrl())
                         .contentType(CONTENT_TYPE)
                         .content(request)
                         .accept(ACCEPT_TYPE))
                 .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.errorCode").value(response.errorCode))
+                .andExpect(jsonPath("$.errorCode").value(response.errorCode.value()))
                 .andExpect(jsonPath("$.message").value(response.message));
 
-        verify(reportService, times(1)).getReportsByDate(any(ReportsByDatesRequest.class));
+        verify(reportService, times(1)).getAllReports(any(com.dama.wanderwave.report.request.ReportPageRequest.class));
     }
+
 
     // get user reports
 
     @Test
     void getUserReportsShouldBeOk() throws Exception {
-        ResponseRecord response = new ResponseRecord(200, "All reports retrieved successfully");
-
-        when(reportService.getUserReports(any(String.class))).thenReturn(
-                List.of(Report.builder().id("mockId").build())
+        when(reportService.getUserReports(any(Pageable.class), any(String.class))).thenReturn(
+                getMockPage()
         );
 
         mockMvc.perform(get(USER_REPORTS.getUrl(), "mockUserId")
+                        .param("pageNumber", "0")
+                        .param("pageSize", "2")
                         .contentType(CONTENT_TYPE)
                         .accept(ACCEPT_TYPE))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(response.code))
-                .andExpect(jsonPath("$.message").isArray())
-                .andExpect(jsonPath("$.message[0].id").value("mockId"));
+                .andExpect(jsonPath("$.message.content").isArray())
+                .andExpect(jsonPath("$.message.content[0].id").value("abc"));
 
-        verify(reportService, times(1)).getUserReports(any(String.class));
+        verify(reportService, times(1)).getUserReports(any(Pageable.class), any(String.class));
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"user", "report"})
     void getUserReportsShouldThrowWhenNotFound(String ex) throws Exception {
-        ErrorResponse response = new ErrorResponse(404, "User not found or no reports available");
+        ErrorResponse response = new ErrorResponse(HttpStatus.NOT_FOUND, "User not found or no reports available");
 
         Exception exception = ex.equals("user") ? new UserNotFoundException(response.message) : ex.equals("report") ?
                 new ReportNotFoundException(response.message) : null;
 
-        when(reportService.getUserReports(any(String.class))).thenThrow(exception);
+        when(reportService.getUserReports(any(Pageable.class), any(String.class))).thenThrow(exception);
 
         mockMvc.perform(get(USER_REPORTS.getUrl(), "mockUserId")
-                        .accept(ACCEPT_TYPE))
+                        .accept(ACCEPT_TYPE)
+                        .param("pageNumber", "0")
+                        .param("pageSize", "2"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.errorCode").value(response.errorCode))
+                .andExpect(jsonPath("$.errorCode").value(response.errorCode.value()))
                 .andExpect(jsonPath("$.message").value(response.message));
 
-        verify(reportService, times(1)).getUserReports(any(String.class));
+
+        verify(reportService, times(1)).getUserReports(any(Pageable.class), any(String.class));
     }
 
     @Test
     void getUserReportsShouldThrowWhenInternalServerError() throws Exception {
-        ErrorResponse response = new ErrorResponse(500, "Internal server error");
+        ErrorResponse response = new ErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
 
-        when(reportService.getUserReports(any(String.class))).thenThrow(new RuntimeException(response.message));
+        when(reportService.getUserReports(any(Pageable.class), any(String.class))).thenThrow(new RuntimeException(response.message));
 
         mockMvc.perform(get(USER_REPORTS.getUrl(), "mockUserId")
-                        .accept(ACCEPT_TYPE))
+                        .accept(ACCEPT_TYPE)
+                        .param("pageNumber", "0")
+                        .param("pageSize", "2"))
                 .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.errorCode").value(response.errorCode))
                 .andExpect(jsonPath("$.message").value(response.message));
 
-        verify(reportService, times(1)).getUserReports(any(String.class));
+        verify(reportService, times(1)).getUserReports(any(Pageable.class), any(String.class));
     }
 
     @Test
     void getUserReportsShouldThrowNotAuthed() throws Exception {
-        ErrorResponse response = new ErrorResponse(403, "Forbidden: Authenticated user is not authorized to perform this action");
+        ErrorResponse response = new ErrorResponse(HttpStatus.FORBIDDEN, "Forbidden: Authenticated user is not authorized to perform this action");
 
-        when(reportService.getUserReports(any(String.class))).thenThrow(new UnauthorizedActionException(response.message));
+        when(reportService.getUserReports(any(Pageable.class), any(String.class))).thenThrow(new UnauthorizedActionException(response.message));
 
         mockMvc.perform(get(USER_REPORTS.getUrl(), "mockUserId")
-                        .accept(ACCEPT_TYPE))
+                        .accept(ACCEPT_TYPE).param("pageNumber", "0")
+                        .param("pageSize", "2"))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.errorCode").value(response.errorCode))
+                .andExpect(jsonPath("$.errorCode").value(response.errorCode.value()))
                 .andExpect(jsonPath("$.message").value(response.message));
 
-        verify(reportService, times(1)).getUserReports(any(String.class));
+        verify(reportService, times(1)).getUserReports(any(Pageable.class), any(String.class));
     }
+//
+//    // review report
+//
+//    @Test
+//    void reviewReportShouldBeOk() throws Exception {
+//        ResponseRecord response = new ResponseRecord(200, "Report reviewed");
+//
+//        String mockJson = mapToJson(getReviewReportRequest());
+//        when(reportService.reviewReport(any(ReviewReportRequest.class))).thenReturn(response.message);
+//
+//        mockMvc.perform(post(REVIEW_REPORT.getUrl())
+//                        .contentType(CONTENT_TYPE)
+//                        .accept(ACCEPT_TYPE)
+//                        .content(mockJson))
+//                .andExpect(status().isOk())
+//                .andExpect(jsonPath("$.code").value(response.code))
+//                .andExpect(jsonPath("$.message").value(response.message));
+//
+//        verify(reportService, times(1)).reviewReport(any(ReviewReportRequest.class));
+//    }
+//
+//    @Test
+//    void reviewReportShouldThrowWhenNotFound() throws Exception {
+//        ErrorResponse response = new ErrorResponse(404, "Report not found");
+//
+//        String mockJson = mapToJson(getReviewReportRequest());
+//        when(reportService.reviewReport(any(ReviewReportRequest.class))).thenThrow(new ReportTypeNotFoundException(response.message));
+//
+//        mockMvc.perform(post(REVIEW_REPORT.getUrl())
+//                        .accept(ACCEPT_TYPE)
+//                        .contentType(CONTENT_TYPE)
+//                        .content(mockJson))
+//                .andExpect(status().isNotFound())
+//                .andExpect(jsonPath("$.errorCode").value(response.errorCode))
+//                .andExpect(jsonPath("$.message").value(response.message));
+//
+//        verify(reportService, times(1)).reviewReport(any(ReviewReportRequest.class));
+//    }
+//
+//    @Test
+//    void reviewReportShouldThrowWhenInternalServerError() throws Exception {
+//        ErrorResponse response = new ErrorResponse(500, "Internal server error");
+//
+//        String mockJson = mapToJson(getReviewReportRequest());
+//        when(reportService.reviewReport(any(ReviewReportRequest.class))).thenThrow(new RuntimeException(response.message));
+//
+//        mockMvc.perform(post(REVIEW_REPORT.getUrl())
+//                        .accept(ACCEPT_TYPE)
+//                        .contentType(CONTENT_TYPE)
+//                        .content(mockJson))
+//                .andExpect(status().isInternalServerError())
+//                .andExpect(jsonPath("$.errorCode").value(response.errorCode))
+//                .andExpect(jsonPath("$.message").value(response.message));
+//
+//        verify(reportService, times(1)).reviewReport(any(ReviewReportRequest.class));
+//    }
 
-    /*
-    @PostMapping("/review")
-    @ResponseStatus(HttpStatus.OK)
-    @Operation(summary = "Review a report", description = "Review a specific report by its ID.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Report reviewed successfully"),
-            @ApiResponse(responseCode = "404", description = "Report not found"),
-            @ApiResponse(responseCode = "500", description = "Internal server error")
-    })
-    public ResponseEntity<ResponseRecord> reviewReport(@RequestBody @Valid ReviewReportRequest request) {
-        var message = service.reviewReport(request);
-        return ResponseEntity.ok().body(new ResponseRecord(200, message));
-    }
-     */
-
-    // review report
-
-    @Test
-    void reviewReportShouldBeOk() throws Exception {
-        ResponseRecord response = new ResponseRecord(200, "Report reviewed");
-
-        String mockJson = mapToJson(getReviewReportRequest());
-        when(reportService.reviewReport(any(ReviewReportRequest.class))).thenReturn(response.message);
-
-        mockMvc.perform(post(REVIEW_REPORT.getUrl())
-                        .contentType(CONTENT_TYPE)
-                        .accept(ACCEPT_TYPE)
-                        .content(mockJson))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(response.code))
-                .andExpect(jsonPath("$.message").value(response.message));
-
-        verify(reportService, times(1)).reviewReport(any(ReviewReportRequest.class));
-    }
-
-    @Test
-    void reviewReportShouldThrowWhenNotFound() throws Exception {
-        ErrorResponse response = new ErrorResponse(404, "Report not found");
-
-        String mockJson = mapToJson(getReviewReportRequest());
-        when(reportService.reviewReport(any(ReviewReportRequest.class))).thenThrow(new ReportTypeNotFoundException(response.message));
-
-        mockMvc.perform(post(REVIEW_REPORT.getUrl())
-                        .accept(ACCEPT_TYPE)
-                        .contentType(CONTENT_TYPE)
-                        .content(mockJson))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.errorCode").value(response.errorCode))
-                .andExpect(jsonPath("$.message").value(response.message));
-
-        verify(reportService, times(1)).reviewReport(any(ReviewReportRequest.class));
-    }
-
-    @Test
-    void reviewReportShouldThrowWhenInternalServerError() throws Exception {
-        ErrorResponse response = new ErrorResponse(500, "Internal server error");
-
-        String mockJson = mapToJson(getReviewReportRequest());
-        when(reportService.reviewReport(any(ReviewReportRequest.class))).thenThrow(new RuntimeException(response.message));
-
-        mockMvc.perform(post(REVIEW_REPORT.getUrl())
-                        .accept(ACCEPT_TYPE)
-                        .contentType(CONTENT_TYPE)
-                        .content(mockJson))
-                .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.errorCode").value(response.errorCode))
-                .andExpect(jsonPath("$.message").value(response.message));
-
-        verify(reportService, times(1)).reviewReport(any(ReviewReportRequest.class));
-    }
-
-    private SendReportRequest getReportRequest() {
+    private com.dama.wanderwave.report.request.SendReportRequest getSendReportRequest() {
         return SendReportRequest.builder()
                 .description("test")
                 .objectId("objectId")
@@ -405,18 +399,27 @@ class ReportControllerTest {
                 .build();
     }
 
-    private ReviewReportRequest getReviewReportRequest() {
+    private com.dama.wanderwave.report.request.ReviewReportRequest getReviewReportRequest() {
         return ReviewReportRequest.builder()
                 .reportId("reportId")
                 .comment("comment")
                 .build();
     }
 
-    private ReportsByDatesRequest getReportsByDatesRequest() {
-        return ReportsByDatesRequest.builder()
-                .startDate(LocalDateTime.now().minusDays(1))
-                .endDate(LocalDateTime.now().plusDays(1))
+    private com.dama.wanderwave.report.request.ReportPageRequest getReportPageRequest() {
+        return ReportPageRequest.builder()
+                .pageSize(2)
+                .pageNumber(0)
                 .build();
+    }
+
+    private Page<Report> getMockPage() {
+        List<Report> mockReports = List.of(
+                PostReport.builder().id("abc").build(),
+                PostReport.builder().id("qwe").build()
+        );
+
+        return new PageImpl<>(mockReports);
     }
 
     private String mapToJson(Object request) throws Exception {

@@ -4,9 +4,16 @@ import com.dama.wanderwave.handler.ReportNotFoundException;
 import com.dama.wanderwave.handler.ReportTypeNotFoundException;
 import com.dama.wanderwave.handler.UnauthorizedActionException;
 import com.dama.wanderwave.handler.UserNotFoundException;
+import com.dama.wanderwave.report.entity.PostReport;
+import com.dama.wanderwave.report.entity.Report;
+import com.dama.wanderwave.report.entity.ReportType;
+import com.dama.wanderwave.report.repository.ReportRepository;
+import com.dama.wanderwave.report.repository.ReportTypeRepository;
+import com.dama.wanderwave.report.request.ReportPageRequest;
+import com.dama.wanderwave.report.request.ReviewReportRequest;
+import com.dama.wanderwave.report.request.SendReportRequest;
 import com.dama.wanderwave.user.User;
 import com.dama.wanderwave.user.UserRepository;
-import com.dama.wanderwave.util.Utils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,10 +22,12 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -32,15 +41,13 @@ import static org.mockito.Mockito.*;
 class ReportServiceTest {
 
     @InjectMocks
-    private ReportService service;
+    private ReportService reportService;
     @Mock
     private ReportRepository reportRepository;
     @Mock
     private UserRepository userRepository;
     @Mock
     private ReportTypeRepository typeRepository;
-    @Mock
-    private Utils utils;
 
     private Authentication authentication;
 
@@ -67,7 +74,7 @@ class ReportServiceTest {
 
         when(typeRepository.findAll()).thenReturn(List.of(mockType1, mockType2));
 
-        var types = service.getReportTypes();
+        var types = reportService.getReportTypes();
 
         verify(typeRepository, times(1)).findAll();
         assertEquals(types, List.of(mockType1, mockType2));
@@ -80,7 +87,7 @@ class ReportServiceTest {
     void getReportTypesShouldThrowWhenEmpty() {
         when(typeRepository.findAll()).thenReturn(new ArrayList<>());
 
-        assertThrows(ReportTypeNotFoundException.class, () -> service.getReportTypes());
+        assertThrows(ReportTypeNotFoundException.class, () -> reportService.getReportTypes());
 
         verify(typeRepository, times(1)).findAll();
     }
@@ -88,7 +95,7 @@ class ReportServiceTest {
     @ParameterizedTest
     @MethodSource("userProvider")
     void testSendReport(String authEmail, String userSenderId, String userReportedId, String reportType, Exception expectedException) {
-        SendReportRequest mockRequest = SendReportRequest.builder()
+        com.dama.wanderwave.report.request.SendReportRequest mockRequest = SendReportRequest.builder()
                 .userSenderId(userSenderId)
                 .userReportedId(userReportedId)
                 .reportType(reportType)
@@ -119,11 +126,11 @@ class ReportServiceTest {
 
         if (expectedException == null) {
             when(typeRepository.findByName(reportType)).thenReturn(Optional.of(new ReportType()));
-            String result = service.sendReport(mockRequest);
+            String result = reportService.sendReport(mockRequest);
             assertEquals("Report created successfully", result);
             verify(reportRepository, times(1)).save(any(Report.class));
         } else {
-            Exception exception = assertThrows(expectedException.getClass(), () -> service.sendReport(mockRequest));
+            Exception exception = assertThrows(expectedException.getClass(), () -> reportService.sendReport(mockRequest));
             verify(reportRepository, never()).save(any(Report.class));
             assertEquals(expectedException.getMessage(), exception.getMessage());
         }
@@ -132,100 +139,226 @@ class ReportServiceTest {
     @Test
     void getUserReportsShouldBeOk() {
         when(authentication.getName()).thenReturn("mock@mail.com");
-        User mockUser = User.builder()
+        var mockUser = getMockUser();
+
+        var mockPage = getMockPage();
+
+        when(userRepository.findById("userId")).thenReturn(Optional.of(mockUser));
+        when(reportRepository.findAllBySender(PageRequest.of(0, 2), mockUser)).thenReturn(mockPage);
+
+        var result = reportService.getUserReports(PageRequest.of(0, 2), "userId");
+
+        verify(userRepository, times(1)).findById("userId");
+        verify(reportRepository, times(1)).findAllBySender(PageRequest.of(0, 2), mockUser);
+        assertEquals(mockPage, result);
+    }
+
+    @Test
+    void getUserReportsShouldThrowUserNotFoundException() {
+        when(authentication.getName()).thenReturn("mock@mail.com");
+
+        when(userRepository.findById("invalidUserId")).thenReturn(Optional.empty());
+
+        assertThrows(UserNotFoundException.class, () -> reportService.getUserReports(PageRequest.of(0, 2), "invalidUserId"));
+
+        verify(userRepository, times(1)).findById("invalidUserId");
+        verify(reportRepository, times(0)).findAllBySender(any(), any());
+    }
+
+    @Test
+    void getUserReportsShouldThrowUnauthorizedActionException() {
+        when(authentication.getName()).thenReturn("mock@mail.com");
+
+        User mockUser = getMockUser();
+        mockUser.setEmail("wrong@mail.com");
+
+        when(userRepository.findById("userId")).thenReturn(Optional.of(mockUser));
+
+        assertThrows(UnauthorizedActionException.class, () -> reportService.getUserReports(PageRequest.of(0, 2), "userId"));
+
+        verify(userRepository, times(1)).findById("userId");
+        verify(reportRepository, times(0)).findAllBySender(any(), any());
+    }
+
+    @Test
+    void getUserReportsShouldThrowReportNotFoundException() {
+        when(authentication.getName()).thenReturn("mock@mail.com");
+
+        User mockUser = getMockUser();
+
+        Page<Report> emptyPage = new PageImpl<>(List.of());
+
+        when(userRepository.findById("userId")).thenReturn(Optional.of(mockUser));
+        when(reportRepository.findAllBySender(PageRequest.of(0, 2), mockUser)).thenReturn(emptyPage);
+
+        assertThrows(ReportNotFoundException.class, () -> reportService.getUserReports(PageRequest.of(0, 2), "userId"));
+
+        verify(userRepository, times(1)).findById("userId");
+        verify(reportRepository, times(1)).findAllBySender(PageRequest.of(0, 2), mockUser);
+    }
+
+    @Test
+    void getAllReportsShouldReturnPageOfReports() {
+        com.dama.wanderwave.report.request.ReportPageRequest request = new com.dama.wanderwave.report.request.ReportPageRequest(0, 2);
+
+        Page<Report> mockPage = getMockPage();
+        when(reportRepository.findAll(PageRequest.of(request.getPageNumber(), request.getPageSize()))).thenReturn(mockPage);
+
+        var result = reportService.getAllReports(request);
+
+        verify(reportRepository, times(1)).findAll(PageRequest.of(request.getPageNumber(), request.getPageSize()));
+        assertEquals(2, result.getNumberOfElements());
+    }
+
+    @Test
+    void getAllReportsShouldThrowReportNotFoundExceptionWhenEmpty() {
+        com.dama.wanderwave.report.request.ReportPageRequest request = new ReportPageRequest(0, 2);
+
+        Page<Report> emptyPage = new PageImpl<>(List.of());
+        when(reportRepository.findAll(PageRequest.of(request.getPageNumber(), request.getPageSize()))).thenReturn(emptyPage);
+
+        assertThrows(ReportNotFoundException.class, () -> reportService.getAllReports(request));
+
+        verify(reportRepository, times(1)).findAll(PageRequest.of(request.getPageNumber(), request.getPageSize()));
+    }
+
+    @Test
+    void getReportByIdShouldReturnReportWhenAuthorized() {
+        Report mockReport = getMockReport();
+        User mockUser = mockReport.getSender();
+
+        when(authentication.getName()).thenReturn("mock@mail.com");
+        when(userRepository.findById("userId")).thenReturn(Optional.of(mockUser));
+        when(reportRepository.findById("reportId")).thenReturn(Optional.of(mockReport));
+
+        var result = reportService.getReportById("reportId");
+
+        assertEquals(mockReport, result);
+        verify(reportRepository, times(1)).findById("reportId");
+        verify(userRepository, times(1)).findById(mockUser.getId());
+    }
+
+    @Test
+    void getReportByIdShouldThrowReportNotFoundException() {
+        when(reportRepository.findById(anyString())).thenReturn(Optional.empty());
+
+        assertThrows(ReportNotFoundException.class, () -> reportService.getReportById("nonExistentReportId"));
+
+        verify(reportRepository, times(1)).findById("nonExistentReportId");
+        verify(userRepository, times(0)).findById(anyString());
+    }
+
+    @Test
+    void getReportByIdShouldThrowUserNotFoundException() {
+        Report mockReport = getMockReport();
+
+        when(authentication.getName()).thenReturn("mock@mail.com");
+        when(reportRepository.findById(anyString())).thenReturn(Optional.of(mockReport));
+        when(userRepository.findById(mockReport.getSender().getId())).thenReturn(Optional.empty());
+
+        assertThrows(UserNotFoundException.class, () -> reportService.getReportById("reportId"));
+
+        verify(reportRepository, times(1)).findById("reportId");
+        verify(userRepository, times(1)).findById(mockReport.getSender().getId());
+    }
+
+    @Test
+    void getReportByIdShouldThrowUnauthorizedActionException() {
+        Report mockReport = getMockReport();
+
+        when(authentication.getName()).thenReturn("wrong@mail.com");
+        when(reportRepository.findById(anyString())).thenReturn(Optional.of(mockReport));
+        when(userRepository.findById(mockReport.getSender().getId())).thenReturn(Optional.of(mockReport.getSender()));
+
+        assertThrows(UnauthorizedActionException.class, () -> reportService.getReportById("reportId"));
+
+        verify(reportRepository, times(1)).findById("reportId");
+        verify(userRepository, times(1)).findById(mockReport.getSender().getId());
+    }
+
+    @Test
+    void reviewReportShouldBeSuccessful() {
+        User mockAdmin = getMockUser();
+        Report mockReport = getMockReport();
+        com.dama.wanderwave.report.request.ReviewReportRequest request = getMockReviewRequest();
+
+        when(authentication.getName()).thenReturn(mockAdmin.getEmail());
+        when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(mockAdmin));
+        when(reportRepository.findById(anyString())).thenReturn(Optional.of(mockReport));
+
+        var result = reportService.reviewReport(request);
+
+        assertEquals("Report reviewed", result);
+        verify(userRepository, times(1)).findByEmail(mockAdmin.getEmail());
+        verify(reportRepository, times(1)).findById("reportId");
+        verify(reportRepository, times(1)).save(mockReport);
+        assertNotNull(mockReport.getReviewedAt());
+        assertEquals(mockAdmin, mockReport.getReviewedBy());
+        assertEquals("Test comment", mockReport.getReportComment());
+    }
+
+    @Test
+    void reviewReportShouldThrowUserNotFoundException() {
+        when(authentication.getName()).thenReturn("admin@mail.com");
+        when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
+
+        com.dama.wanderwave.report.request.ReviewReportRequest request = getMockReviewRequest();
+
+        assertThrows(UserNotFoundException.class, () -> reportService.reviewReport(request));
+
+        verify(userRepository, times(1)).findByEmail("admin@mail.com");
+        verify(reportRepository, times(0)).findById(anyString());
+        verify(reportRepository, times(0)).save(any(Report.class));
+    }
+
+    @Test
+    void reviewReportShouldThrowReportNotFoundException() {
+        User mockAdmin = getMockUser();
+
+        // Mocking SecurityContext and repository behavior
+        when(authentication.getName()).thenReturn(mockAdmin.getEmail());
+        when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(mockAdmin));
+        when(reportRepository.findById(anyString())).thenReturn(Optional.empty());
+
+        com.dama.wanderwave.report.request.ReviewReportRequest request = getMockReviewRequest();
+
+        assertThrows(ReportNotFoundException.class, () -> reportService.reviewReport(request));
+
+        verify(userRepository, times(1)).findByEmail(mockAdmin.getEmail());
+        verify(reportRepository, times(1)).findById("reportId");
+        verify(reportRepository, times(0)).save(any(Report.class));
+    }
+
+    private Report getMockReport() {
+        User sender = getMockUser();
+
+        return PostReport.builder()
+                .id("reportId")
+                .sender(sender)
+                .build();
+    }
+
+    private User getMockUser () {
+        return User.builder()
+                .id("userId")
                 .email("mock@mail.com")
                 .build();
+    }
 
+    private Page<Report> getMockPage() {
         List<Report> mockReports = List.of(
-                Report.builder().id("abc").build(),
-                Report.builder().id("qwe").build()
+                PostReport.builder().id("abc").build(),
+                PostReport.builder().id("qwe").build()
         );
 
-        when(userRepository.findById(anyString())).thenReturn(Optional.of(mockUser));
-        when(reportRepository.findAllBySender(mockUser)).thenReturn(mockReports);
-
-
-        var result = service.getUserReports("mock@mail.com");
-
-        verify(reportRepository, times(1)).findAllBySender(mockUser);
-        verify(userRepository, times(1)).findById(anyString());
-        assertEquals(mockReports, result);
+        return new PageImpl<>(mockReports);
     }
 
-    @Test
-    void getUserReportsShouldThrowWhenUserNotFound() {
-        when(userRepository.findById(anyString())).thenReturn(Optional.empty());
-
-        assertThrows(UserNotFoundException.class, () -> service.getUserReports("mock@mail.com"));
-
-        verify(userRepository, times(1)).findById(anyString());
-        verify(reportRepository, never()).findAllBySender(any(User.class));
-    }
-
-    @Test
-    void getUserReportsShouldThrowWhenReportNotFound() {
-        when(authentication.getName()).thenReturn("mock@mail.com");
-
-        User mockUser = User.builder()
-                .email("mock@mail.com")
+    private com.dama.wanderwave.report.request.ReviewReportRequest getMockReviewRequest() {
+        return ReviewReportRequest.builder()
+                .reportId("reportId")
+                .comment("Test comment")
                 .build();
-
-        when(userRepository.findById(anyString())).thenReturn(Optional.of(mockUser));
-        when(reportRepository.findAllBySender(any(User.class))).thenReturn(List.of());
-
-        assertThrows(ReportNotFoundException.class, () -> service.getUserReports("mock@mail.com"));
-
-        verify(userRepository, times(1)).findById(anyString());
-        verify(reportRepository, times(1)).findAllBySender(any(User.class));
-    }
-
-    @Test
-    void getUserReportsShouldThrowWhenUserTryingToFetchNotOwnReports() {
-        when(authentication.getName()).thenReturn("mock@mail.com");
-
-        User mockUser = User.builder()
-                .email("diff@mail.com")
-                .build();
-
-        when(userRepository.findById(anyString())).thenReturn(Optional.of(mockUser));
-
-        assertThrows(UnauthorizedActionException.class, () -> service.getUserReports("diff@mail.com"));
-
-        verify(userRepository, times(1)).findById(anyString());
-        verify(reportRepository, never()).findAllBySender(any(User.class));
-    }
-
-    @Test
-    void getReportsByDateShouldBeOk() {
-        var startDate = LocalDateTime.now().minusDays(1);
-        var endDate = LocalDateTime.now().plusDays(1);
-
-        var mockReports = List.of(
-                Report.builder().id("abc").build(),
-                Report.builder().id("qwe").build()
-        );
-
-        when(reportRepository.findByDates(startDate, endDate)).thenReturn(mockReports);
-
-        var result = reportRepository.findByDates(startDate, endDate);
-
-        verify(reportRepository, times(1)).findByDates(startDate, endDate);
-        assertEquals(result, mockReports);
-    }
-
-    @Test
-    void getReportsByDateShouldThrowWhenReportNotFound() {
-        var startDate = LocalDateTime.now().minusDays(1);
-        var endDate = LocalDateTime.now().plusDays(1);
-        var request = ReportsByDatesRequest.builder()
-                .startDate(startDate)
-                .endDate(endDate)
-                .build();
-
-        when(reportRepository.findByDates(startDate, endDate)).thenReturn(List.of());
-
-        assertThrows(ReportNotFoundException.class, () -> service.getReportsByDate(request));
-        verify(reportRepository, times(1)).findByDates(startDate, endDate);
     }
 
 }
