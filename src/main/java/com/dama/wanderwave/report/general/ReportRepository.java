@@ -1,6 +1,5 @@
-package com.dama.wanderwave.report.repository;
+package com.dama.wanderwave.report.general;
 
-import com.dama.wanderwave.report.entity.Report;
 import com.dama.wanderwave.user.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

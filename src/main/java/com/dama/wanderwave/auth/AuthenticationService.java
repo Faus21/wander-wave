@@ -155,7 +155,7 @@ public class AuthenticationService {
         markTokenAsValidated(savedEmailToken);
 
         log.info("Password changed successfully for user: {}", savedEmailToken.getUser().getEmail());
-        return new ResponseRecord(HttpStatus.ACCEPTED, "Password changed successfully");
+        return new ResponseRecord(HttpStatus.ACCEPTED.value(), "Password changed successfully");
     }
 
     protected void checkTokenExpiration(EmailToken emailToken, java.util.function.Consumer<User> resendAction) {

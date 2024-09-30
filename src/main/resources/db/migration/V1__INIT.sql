@@ -172,16 +172,24 @@ CREATE TABLE report_types
     CONSTRAINT pk_report_types PRIMARY KEY (report_type_id)
 );
 
+CREATE TABLE report_status
+(
+    report_status_id VARCHAR(255) NOT NULL,
+    name             VARCHAR(50)  NOT NULL,
+    CONSTRAINT pk_report_statuses PRIMARY KEY (report_status_id)
+);
+
 CREATE TABLE reports
 (
-    report_id      VARCHAR(255)                NOT NULL,
-    description    VARCHAR(1024)               NOT NULL,
-    user_sender_id VARCHAR(255)                NOT NULL,
-    report_type_id VARCHAR(255)                NOT NULL,
-    created_at     TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-    reviewed_at    TIMESTAMP WITHOUT TIME ZONE,
-    reviewed_by     VARCHAR(255),
-    report_comment VARCHAR(255),
+    report_id        VARCHAR(255)                NOT NULL,
+    description      VARCHAR(1024)               NOT NULL,
+    user_sender_id   VARCHAR(255)                NOT NULL,
+    report_type_id   VARCHAR(255)                NOT NULL,
+    report_status_id VARCHAR(255)                NOT NULL,
+    created_at       TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    reviewed_at      TIMESTAMP WITHOUT TIME ZONE,
+    reviewed_by      VARCHAR(255),
+    report_comment   VARCHAR(255),
     CONSTRAINT pk_reports PRIMARY KEY (report_id)
 );
 
@@ -276,13 +284,13 @@ ALTER TABLE refresh_tokens
     ADD CONSTRAINT FK_REFRESH_TOKENS_ON_USER FOREIGN KEY (user_id) REFERENCES users (user_id);
 
 ALTER TABLE reports
-    ADD CONSTRAINT FK_REPORTED_USER_REPORT FOREIGN KEY (user_id) REFERENCES users (user_id);
-
-ALTER TABLE reports
     ADD CONSTRAINT FK_REPORT_REVIEWED_BY_USER FOREIGN KEY (reviewed_by) REFERENCES users (user_id);
 
 ALTER TABLE reports
     ADD CONSTRAINT FK_REPORT_TYPE_REPORT FOREIGN KEY (report_type_id) REFERENCES report_types (report_type_id);
+
+ALTER TABLE reports
+    ADD CONSTRAINT FK_REPORT_STATUS_REPORT FOREIGN KEY (report_status_id) REFERENCES report_status (report_status_id);
 
 ALTER TABLE reports
     ADD CONSTRAINT FK_USER_SENDER_REPORT FOREIGN KEY (user_sender_id) REFERENCES users (user_id);

@@ -1,6 +1,7 @@
-package com.dama.wanderwave.report.entity;
+package com.dama.wanderwave.report.post;
 
 import com.dama.wanderwave.post.Post;
+import com.dama.wanderwave.report.general.Report;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;

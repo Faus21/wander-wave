@@ -1,8 +1,7 @@
 package com.dama.wanderwave.comment;
 
 import com.dama.wanderwave.post.Post;
-import com.dama.wanderwave.report.entity.CommentReport;
-import com.dama.wanderwave.report.entity.Report;
+import com.dama.wanderwave.report.comment.CommentReport;
 import com.dama.wanderwave.user.User;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;

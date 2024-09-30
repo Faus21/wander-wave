@@ -1,7 +1,6 @@
 package com.dama.wanderwave.post;
 
-import com.dama.wanderwave.report.entity.PostReport;
-import com.dama.wanderwave.report.entity.Report;
+import com.dama.wanderwave.report.post.PostReport;
 import com.dama.wanderwave.user.User;
 import com.dama.wanderwave.hashtag.HashTag;
 import com.dama.wanderwave.user.like.Like;

@@ -1,5 +1,6 @@
-package com.dama.wanderwave.report.entity;
+package com.dama.wanderwave.report.user;
 
+import com.dama.wanderwave.report.general.Report;
 import com.dama.wanderwave.user.User;
 import jakarta.persistence.*;
 import lombok.*;

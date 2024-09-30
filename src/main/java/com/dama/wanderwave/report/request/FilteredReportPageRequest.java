@@ -4,6 +4,7 @@ import jakarta.validation.constraints.Size;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -16,8 +17,9 @@ public class FilteredReportPageRequest {
     private String from;
     @Size(max = 255)
     private String on;
-    @Size(max = 255)
-    private String admin;
+
+    private List<String> admins;
+
     @Size(max = 255)
     private String category;
     Boolean isReviewed;

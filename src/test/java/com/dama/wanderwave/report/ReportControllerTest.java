@@ -1,10 +1,9 @@
 package com.dama.wanderwave.report;
 
 import com.dama.wanderwave.handler.*;
-import com.dama.wanderwave.report.entity.PostReport;
-import com.dama.wanderwave.report.entity.Report;
-import com.dama.wanderwave.report.entity.ReportType;
-import com.dama.wanderwave.report.request.ReportPageRequest;
+import com.dama.wanderwave.report.post.PostReport;
+import com.dama.wanderwave.report.general.Report;
+import com.dama.wanderwave.report.general.ReportType;
 import com.dama.wanderwave.report.request.ReviewReportRequest;
 import com.dama.wanderwave.report.request.SendReportRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -406,12 +405,12 @@ class ReportControllerTest {
                 .build();
     }
 
-    private com.dama.wanderwave.report.request.ReportPageRequest getReportPageRequest() {
-        return ReportPageRequest.builder()
-                .pageSize(2)
-                .pageNumber(0)
-                .build();
-    }
+//    private com.dama.wanderwave.report.request.ReportPageRequest getReportPageRequest() {
+//        return ReportPageRequest.builder()
+//                .pageSize(2)
+//                .pageNumber(0)
+//                .build();
+//    }
 
     private Page<Report> getMockPage() {
         List<Report> mockReports = List.of(

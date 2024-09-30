@@ -1,7 +1,6 @@
-package com.dama.wanderwave.report.repository;
+package com.dama.wanderwave.report.post;
 
 import com.dama.wanderwave.post.Post;
-import com.dama.wanderwave.report.entity.PostReport;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

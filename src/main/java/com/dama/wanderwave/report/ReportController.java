@@ -40,7 +40,7 @@ public class ReportController {
     })
     public ResponseEntity<ResponseRecord> sendReport(@RequestBody @Valid SendReportRequest request) {
         String message = service.sendReport(request);
-        return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK, message));
+        return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), message));
     }
 
     @GetMapping("/types")
@@ -53,7 +53,7 @@ public class ReportController {
     })
     public ResponseEntity<ResponseRecord> getReportTypes() {
         var types = service.getReportTypes();
-        return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK, types));
+        return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), types));
     }
 
     @GetMapping("/get")
@@ -70,7 +70,7 @@ public class ReportController {
             @RequestBody(required = false) @Valid FilteredReportPageRequest request) {
         Pageable page = PageRequest.of(pageNumber, pageSize);
         var reports = service.getAllReports(page, request);
-        return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK, reports));
+        return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), reports));
     }
 
     @GetMapping("/user/{userId}")
@@ -87,7 +87,7 @@ public class ReportController {
                                                          @PathVariable String userId) {
         Pageable page = PageRequest.of(pageNumber, pageSize);
         var reports = service.getUserReports(page, userId);
-        return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK, reports));
+        return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), reports));
     }
 
     @PostMapping("/review")
@@ -100,7 +100,7 @@ public class ReportController {
     })
     public ResponseEntity<ResponseRecord> reviewReport(@RequestBody @Valid ReviewReportRequest request) {
         var message = service.reviewReport(request);
-        return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK, message));
+        return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), message));
     }
 
     @GetMapping("/get/{reportId}")
@@ -114,7 +114,7 @@ public class ReportController {
     })
     public ResponseEntity<ResponseRecord> getReportById(@PathVariable String reportId) {
         var message = service.getReportById(reportId);
-        return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK, message));
+        return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), message));
     }
 
 

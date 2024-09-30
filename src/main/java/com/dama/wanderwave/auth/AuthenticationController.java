@@ -39,7 +39,7 @@ public class AuthenticationController {
 	})
 	public ResponseEntity<ResponseRecord> register(@RequestBody @Valid RegistrationRequest request) {
 		String message = service.register(request);
-		return ResponseEntity.accepted().body(new ResponseRecord(HttpStatus.ACCEPTED, message));
+		return ResponseEntity.accepted().body(new ResponseRecord(HttpStatus.ACCEPTED.value(), message));
 	}
 
 	@PostMapping("/authenticate")
@@ -67,7 +67,7 @@ public class AuthenticationController {
 	})
 	public ResponseEntity<ResponseRecord> activateAccount(@RequestParam String emailToken) {
 		String jwtToken = service.activateAccount(emailToken);
-		return ResponseEntity.accepted().body(new ResponseRecord(HttpStatus.OK, jwtToken));
+		return ResponseEntity.accepted().body(new ResponseRecord(HttpStatus.OK.value(), jwtToken));
 	}
 
 	@GetMapping("/recover-account")
@@ -78,7 +78,7 @@ public class AuthenticationController {
 	})
 	public ResponseEntity<ResponseRecord> recoverByEmail(@RequestParam String email) {
 		String responseMessage = service.recoverAccount(email);
-		return ResponseEntity.accepted().body(new ResponseRecord(HttpStatus.ACCEPTED, responseMessage));
+		return ResponseEntity.accepted().body(new ResponseRecord(HttpStatus.ACCEPTED.value(), responseMessage));
 	}
 
 	@PostMapping("/change-password")
@@ -111,7 +111,7 @@ public class AuthenticationController {
 					       String newAccessToken = jwtService.generateToken(claims, user);
 					       return ResponseEntity.ok()
 							              .body(ResponseRecord.builder()
-									                    .code(HttpStatus.OK)
+									                    .code(HttpStatus.OK.value())
 									                    .message(newAccessToken)
 									                    .build());
 				       })

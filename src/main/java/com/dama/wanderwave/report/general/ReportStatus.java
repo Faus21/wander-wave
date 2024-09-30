@@ -1,4 +1,4 @@
-package com.dama.wanderwave.report.entity;
+package com.dama.wanderwave.report.general;
 
 
 import jakarta.persistence.*;

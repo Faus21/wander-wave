@@ -19,17 +19,13 @@ public class SendReportRequest {
     @NotEmpty(message = "Sender user ID is mandatory")
     private String userSenderId;
 
-    @Size(max = 255, message = "Reported user ID length must be less than or equal to 255 characters")
-    @NotEmpty(message = "Reported user ID is mandatory")
-    private String userReportedId;
-
     @Size(max = 255, message = "Report type length must be less than or equal to 255 characters")
     @NotEmpty(message = "Report type is mandatory")
     private String reportType;
 
     @Size(max = 32, message = "Object type should be less or equal to 32 characters")
     @NotEmpty(message = "Object type is mandatory")
-    private String objectType;
+    private ReportObjectType objectType;
 
     @Size(max = 8, message = "Object ID length must be less than or equal to 8 characters")
     @NotEmpty(message = "Object ID is mandatory")

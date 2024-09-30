@@ -3,11 +3,19 @@ package com.dama.wanderwave.report;
 import com.dama.wanderwave.comment.CommentRepository;
 import com.dama.wanderwave.handler.*;
 import com.dama.wanderwave.post.PostRepository;
-import com.dama.wanderwave.report.entity.*;
-import com.dama.wanderwave.report.repository.*;
+import com.dama.wanderwave.report.comment.CommentReport;
+import com.dama.wanderwave.report.comment.CommentReportRepository;
+import com.dama.wanderwave.report.general.Report;
+import com.dama.wanderwave.report.general.ReportRepository;
+import com.dama.wanderwave.report.general.ReportType;
+import com.dama.wanderwave.report.general.ReportTypeRepository;
+import com.dama.wanderwave.report.post.PostReport;
+import com.dama.wanderwave.report.post.PostReportRepository;
 import com.dama.wanderwave.report.request.FilteredReportPageRequest;
 import com.dama.wanderwave.report.request.ReviewReportRequest;
 import com.dama.wanderwave.report.request.SendReportRequest;
+import com.dama.wanderwave.report.user.UserReport;
+import com.dama.wanderwave.report.user.UserReportRepository;
 import com.dama.wanderwave.user.User;
 import com.dama.wanderwave.user.UserRepository;
 import jakarta.persistence.criteria.Predicate;
@@ -25,6 +33,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Function;
+
+import static com.dama.wanderwave.report.request.ReportObjectType.*;
 
 @Slf4j
 @Service
@@ -70,41 +82,30 @@ public class ReportService {
         Report report;
 
         switch (request.getObjectType()) {
-            case "comment" -> {
-                var comment = commentRepository.findById(request.getObjectId())
-                        .orElseThrow(() -> {
-                            log.error("Comment not found with ID: {}", request.getObjectId());
-                            return new CommentNotFoundException("Comment not found with ID: " + request.getObjectId());
-                        });
-                log.info("Reported comment found with ID: {}", comment.getId());
-                report = CommentReport.builder()
-                        .comment(comment)
-                        .build();
-            }
-            case "user" -> {
-                var reportedUser = userRepository.findById(request.getUserReportedId())
-                        .orElseThrow(() -> {
-                            log.error("Reported user not found with ID: {}", request.getUserReportedId());
-                            return new UserNotFoundException("Reported user not found with ID: " + request.getUserReportedId());
-                        });
-                log.info("Reported user found with ID: {}", reportedUser.getId());
-                report = UserReport.builder()
-                        .sender(reportedUser)
-                        .build();
-            }
-            case "post" -> {
-                var post = postRepository.findById(request.getObjectId())
-                        .orElseThrow(() -> {
-                            log.error("Post not found with ID: {}", request.getObjectId());
-                            return new PostNotFoundException("Post not found with ID: " + request.getObjectId());
-                        });
-                log.info("Reported post found with ID: {}", post.getId());
-                report = PostReport.builder()
-                        .post(post)
-                        .build();
-            }
+            case COMMENT -> report = buildReport(
+                    commentRepository.findById(request.getObjectId()),
+                    request.getObjectId(),
+                    COMMENT.name(),
+                    CommentNotFoundException.class,
+                    comment -> CommentReport.builder().comment(comment).build()
+            );
+            case USER -> report = buildReport(
+                    userRepository.findById(request.getObjectId()),
+                    request.getObjectId(),
+                    USER.name(),
+                    UserNotFoundException.class,
+                    user -> UserReport.builder().sender(user).build()
+            );
+            case POST -> report = buildReport(
+                    postRepository.findById(request.getObjectId()),
+                    request.getObjectId(),
+                    POST.name(),
+                    PostNotFoundException.class,
+                    post -> PostReport.builder().post(post).build()
+            );
             default -> throw new WrongReportObjectException("Wrong report object! Should be comment/user/post");
         }
+
 
 
         log.debug("Creating new report with description: {}", request.getDescription());
@@ -145,6 +146,7 @@ public class ReportService {
             log.warn("No reports found for user ID: {}", user.getId());
             throw new ReportNotFoundException("Reports not found for user with ID: " + user.getId());
         }
+        isReportsEmpty(reports, "No reports found for user ID: " + user.getId());
 
         log.info("Successfully fetched {} reports for user ID '{}'.", reports.getNumberOfElements(), user.getId());
         return reports;
@@ -184,26 +186,21 @@ public class ReportService {
     public Page<Report> getAllReports(Pageable page, FilteredReportPageRequest filter) {
         log.info("Fetching reports: page = {}, size = {}", page.getPageNumber(), page.getPageSize());
 
-        if (filter == null || (filter.getFrom() == null && filter.getOn() == null && filter.getAdmin() == null &&
+        if (filter == null || (filter.getFrom() == null && filter.getOn() == null && filter.getAdmins() == null &&
                 filter.getCategory() == null && filter.getIsReviewed() == null && filter.getStartDate() == null &&
                 filter.getEndDate() == null)) {
             var reports = reportRepository.findAll(page);
 
-            if (reports.isEmpty()) {
-                log.warn("No reports found: page = {}, size = {}", page.getPageNumber(), page.getPageSize());
-                throw new ReportNotFoundException("Reports not found");
-            }
+            isReportsEmpty(reports, "No reports found: page = " + page.getPageNumber()
+                    + ", size = " + page.getPageSize());
+
 
             log.info("Found {} reports: page = {}, size = {}", reports.getNumberOfElements(), page.getPageNumber(), page.getPageSize());
             return reports;
         }
 
         var reports = filterReports(page, filter);
-
-        if (reports.isEmpty()) {
-            log.warn("No reports found with the provided filters: {}", filter);
-            throw new ReportNotFoundException("Reports not found with the provided filters");
-        }
+        isReportsEmpty(reports, "No reports found with the provided filters: " + filter);
 
         log.info("Found {} reports with the provided filters: {}", reports.getNumberOfElements(), filter);
         return reports;
@@ -239,10 +236,6 @@ public class ReportService {
                     return new ReportNotFoundException("Report not found with ID: " + request.getReportId());
                 });
 
-        report.setReviewedAt(LocalDateTime.now());
-        report.setReviewedBy(admin);
-        report.setReportComment(request.getComment());
-
         List<? extends Report> reports = findRelatedReports(report);
 
         if (reports == null) {
@@ -263,24 +256,20 @@ public class ReportService {
     }
 
     private List<? extends Report> findRelatedReports(Report report) {
-        switch (report) {
-            case CommentReport commentReport -> {
-                var comment = commentReport.getComment();
-                return commentReportRepository.findAllByComment(comment);
-            }
-            case PostReport postReport -> {
-                var post = postReport.getPost();
-                return postReportRepository.findAllByPost(post);
-            }
-            case UserReport userReport -> {
-                var user = userReport.getUser();
-                return userReportRepository.findAllByUser(user);
-            }
-            default -> {
-                return null;
-            }
+        if (report instanceof CommentReport commentReport) {
+            var comment = commentReport.getComment();
+            return commentReportRepository.findAllByComment(comment);
+        } else if (report instanceof PostReport postReport) {
+            var post = postReport.getPost();
+            return postReportRepository.findAllByPost(post);
+        } else if (report instanceof UserReport userReport) {
+            var user = userReport.getUser();
+            return userReportRepository.findAllByUser(user);
+        } else {
+            return null;
         }
     }
+
 
     private Page<Report> filterReports(Pageable pageable, FilteredReportPageRequest filter) {
         return reportRepository.findAll((root, query, criteriaBuilder) -> {
@@ -292,8 +281,8 @@ public class ReportService {
             if (filter.getOn() != null) {
                 predicates.add(criteriaBuilder.equal(root.get("type").get("id"), filter.getOn()));
             }
-            if (filter.getAdmin() != null) {
-                predicates.add(criteriaBuilder.equal(root.get("reviewedBy").get("id"), filter.getAdmin()));
+            if (filter.getAdmins() != null && !filter.getAdmins().isEmpty()) {
+                predicates.add(root.get("reviewedBy").get("id").in(filter.getAdmins()));
             }
             if (filter.getCategory() != null) {
                 predicates.add(criteriaBuilder.equal(root.get("category").get("id"), filter.getCategory()));
@@ -317,4 +306,24 @@ public class ReportService {
         }, pageable);
     }
 
+    private void isReportsEmpty(Page<Report> reports, String message) {
+        if (reports.isEmpty()) {
+            log.error(message);
+            throw new ReportNotFoundException(message);
+        }
+    }
+
+    private <T, E extends Report, X extends RuntimeException> E buildReport(Optional<T> entityOptional, String id, String entityType, Class<X> exceptionClass, Function<T, E> reportBuilder) {
+        var entity = entityOptional.orElseThrow(() -> {
+            log.error("{} not found with ID: {}", entityType, id);
+            try {
+                return exceptionClass.getConstructor(String.class).newInstance(entityType + " not found with ID: " + id);
+            } catch (Exception e) {
+                throw new RuntimeException("Error creating exception", e);
+            }
+        });
+
+        log.info("Reported {} found with ID: {}", entityType.toLowerCase(), id);
+        return reportBuilder.apply(entity);
+    }
 }

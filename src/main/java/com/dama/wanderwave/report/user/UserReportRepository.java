@@ -1,6 +1,5 @@
-package com.dama.wanderwave.report.repository;
+package com.dama.wanderwave.report.user;
 
-import com.dama.wanderwave.report.entity.UserReport;
 import com.dama.wanderwave.user.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
