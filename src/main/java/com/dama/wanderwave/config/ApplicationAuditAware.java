@@ -1,4 +1,4 @@
-package com.dama.wanderwave.utils;
+package com.dama.wanderwave.config;
 
 import lombok.NonNull;
 import org.springframework.data.domain.AuditorAware;

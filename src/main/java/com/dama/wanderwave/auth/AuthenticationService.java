@@ -6,7 +6,7 @@ import com.dama.wanderwave.refresh_token.RefreshTokenService;
 import com.dama.wanderwave.role.RoleRepository;
 import com.dama.wanderwave.security.JwtService;
 import com.dama.wanderwave.token.EmailToken;
-import com.dama.wanderwave.token.EmailTokenRepository;
+import com.dama.wanderwave.token.TokenRepository;
 import com.dama.wanderwave.user.User;
 import com.dama.wanderwave.user.UserRepository;
 import com.dama.wanderwave.utils.ResponseRecord;
@@ -42,7 +42,7 @@ public class AuthenticationService {
 	private final JwtService jwtService;
 	private final AuthenticationManager authenticationManager;
 	private final RoleRepository roleRepository;
-	private final EmailTokenRepository emailTokenRepository;
+	private final TokenRepository tokenRepository;
 	private final EmailService emailService;
 	private final SecureRandom secureRandom = new SecureRandom();
 	private final RefreshTokenService refreshTokenService;
@@ -194,7 +194,7 @@ public class AuthenticationService {
 
 	protected EmailToken findTokenOrThrow( String token) {
 		log.debug("Searching for token: {}", token);
-		return emailTokenRepository.findByContent(token)
+		return tokenRepository.findByContent(token)
 				       .orElseThrow(() -> {
 					       log.warn("Invalid token attempted: {}", token);
 					       return new TokenNotFoundException("Invalid token");
@@ -215,7 +215,7 @@ public class AuthenticationService {
 
 	protected void markTokenAsValidated( EmailToken emailToken ) {
 		emailToken.setValidatedAt(LocalDateTime.now());
-		emailTokenRepository.save(emailToken);
+		tokenRepository.save(emailToken);
 		log.debug("Token marked as validated: {}", emailToken.getContent());
 	}
 
@@ -228,7 +228,7 @@ public class AuthenticationService {
 				                        .user(user)
 				                        .build();
 
-		emailTokenRepository.save(emailToken);
+		tokenRepository.save(emailToken);
 		log.debug("Generated and saved new token for user: {}", user.getEmail());
 		return tokenContent;
 	}

@@ -24,17 +24,6 @@ CREATE TABLE comments
     CONSTRAINT pk_comments PRIMARY KEY (comment_id)
 );
 
-CREATE TABLE email_tokens
-(
-    token_id     VARCHAR(255)                NOT NULL,
-    content      VARCHAR(255)                NOT NULL,
-    created_at   TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-    expires_at   TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-    validated_at TIMESTAMP WITHOUT TIME ZONE,
-    user_id      VARCHAR(255)                NOT NULL,
-    CONSTRAINT pk_email_tokens PRIMARY KEY (token_id)
-);
-
 CREATE TABLE hashtags
 (
     hashtag_id VARCHAR(255) NOT NULL,
@@ -97,15 +86,6 @@ CREATE TABLE posts
     CONSTRAINT pk_posts PRIMARY KEY (post_id)
 );
 
-CREATE TABLE refresh_tokens
-(
-    refresh_token_id VARCHAR(255)                NOT NULL,
-    token            VARCHAR(255)                NOT NULL,
-    user_id          VARCHAR(255),
-    expires_at       TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-    CONSTRAINT pk_refresh_tokens PRIMARY KEY (refresh_token_id)
-);
-
 CREATE TABLE report_types
 (
     report_type_id VARCHAR(255) NOT NULL,
@@ -136,6 +116,17 @@ CREATE TABLE subscribers
 (
     follower_id VARCHAR(255) NOT NULL,
     followed_id VARCHAR(255)
+);
+
+CREATE TABLE tokens
+(
+    token_id     VARCHAR(255)                NOT NULL,
+    content      VARCHAR(255)                NOT NULL,
+    created_at   TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    expires_at   TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    validated_at TIMESTAMP WITHOUT TIME ZONE,
+    user_id      VARCHAR(255)                NOT NULL,
+    CONSTRAINT pk_tokens PRIMARY KEY (token_id)
 );
 
 CREATE TABLE user_likes
@@ -198,12 +189,6 @@ ALTER TABLE chat_rooms
 ALTER TABLE hashtags
     ADD CONSTRAINT uc_hashtags_title UNIQUE (title);
 
-ALTER TABLE refresh_tokens
-    ADD CONSTRAINT uc_refresh_tokens_token UNIQUE (token);
-
-ALTER TABLE refresh_tokens
-    ADD CONSTRAINT uc_refresh_tokens_user UNIQUE (user_id);
-
 ALTER TABLE report_types
     ADD CONSTRAINT uc_report_types_name UNIQUE (name);
 
@@ -243,16 +228,13 @@ ALTER TABLE posts
 ALTER TABLE posts
     ADD CONSTRAINT FK_POST_USER FOREIGN KEY (user_id) REFERENCES users (user_id);
 
-ALTER TABLE refresh_tokens
-    ADD CONSTRAINT FK_REFRESH_TOKENS_ON_USER FOREIGN KEY (user_id) REFERENCES users (user_id);
-
 ALTER TABLE reports
     ADD CONSTRAINT FK_REPORTED_USER_REPORT FOREIGN KEY (user_id) REFERENCES users (user_id);
 
 ALTER TABLE reports
     ADD CONSTRAINT FK_REPORT_TYPE_REPORT FOREIGN KEY (report_type_id) REFERENCES report_types (report_type_id);
 
-ALTER TABLE email_tokens
+ALTER TABLE tokens
     ADD CONSTRAINT FK_TOKEN_USER FOREIGN KEY (user_id) REFERENCES users (user_id);
 
 ALTER TABLE user_likes
