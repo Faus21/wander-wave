@@ -4,17 +4,22 @@ import com.dama.wanderwave.email.EmailService;
 import com.dama.wanderwave.handler.TokenExpiredException;
 import com.dama.wanderwave.handler.TokenNotFoundException;
 import com.dama.wanderwave.handler.UniqueConstraintViolationException;
-import com.dama.wanderwave.refresh_token.RefreshToken;
-import com.dama.wanderwave.refresh_token.RefreshTokenService;
+import com.dama.wanderwave.refreshToken.RefreshToken;
+import com.dama.wanderwave.refreshToken.RefreshTokenService;
 import com.dama.wanderwave.role.Role;
 import com.dama.wanderwave.role.RoleRepository;
 import com.dama.wanderwave.security.JwtService;
-import com.dama.wanderwave.token.EmailToken;
-import com.dama.wanderwave.token.TokenRepository;
+import com.dama.wanderwave.emailToken.EmailToken;
+import com.dama.wanderwave.emailToken.EmailTokenRepository;
 import com.dama.wanderwave.user.User;
 import com.dama.wanderwave.user.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -36,14 +41,17 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("AuthenticationService Tests")
 class AuthenticationServiceTest {
 
 	@InjectMocks
 	private AuthenticationService authenticationService;
+
 	@Mock
 	private UserRepository userRepository;
+
 	@Mock
-	private TokenRepository tokenRepository;
+	private EmailTokenRepository emailTokenRepository;
 
 	@Mock
 	private PasswordEncoder passwordEncoder;
@@ -63,170 +71,206 @@ class AuthenticationServiceTest {
 	@Mock
 	private AuthenticationManager authenticationManager;
 
+	private User mockUser;
+	private EmailToken mockEmailToken;
 
-	// findUserByEmail
-	// ----------------------------------------------------------
+	@BeforeEach
+	void setUp() {
+		mockUser = new User();
+		mockUser.setEmail("test@example.com");
+		mockUser.setNickname("testUser");
 
-	@Test
-	void findUserByEmailShouldReturnNullWithNonExistentEmail() {
-		String mockEmail = "test@test.com";
-		when(userRepository.findByEmail(mockEmail)).thenReturn(Optional.empty());
-
-		User user = userRepository.findByEmail(mockEmail).orElse(null);
-
-		verify(userRepository, times(1)).findByEmail(mockEmail);
-		assertNull(user);
+		mockEmailToken = EmailToken.builder()
+				                 .content("mockToken")
+				                 .createdAt(LocalDateTime.now())
+				                 .expiresAt(LocalDateTime.now().plusMinutes(15))
+				                 .user(mockUser)
+				                 .build();
 	}
 
-	@Test
-	void findUserByEmailShouldReturnUserWithExistentEmail() {
-		String mockEmail = "test@test.com";
-		User mockUser = new User();
-		when(userRepository.findByEmail(mockEmail)).thenReturn(Optional.of(mockUser));
+	@Nested
+	@DisplayName("findUserByEmail Method")
+	class FindUserByEmailTests {
 
-		User user = userRepository.findByEmail(mockEmail).orElse(null);
+		@Test
+		@DisplayName("Should return null with non-existent email")
+		void findUserByEmailShouldReturnNullWithNonExistentEmail() {
+			String mockEmail = "test@test.com";
+			when(userRepository.findByEmail(mockEmail)).thenReturn(Optional.empty());
 
-		verify(userRepository, times(1)).findByEmail(mockEmail);
-		assertSame(user, mockUser);
+			User user = userRepository.findByEmail(mockEmail).orElse(null);
+
+			verify(userRepository, times(1)).findByEmail(mockEmail);
+			assertNull(user);
+		}
+
+		@Test
+		@DisplayName("Should return user with existent email")
+		void findUserByEmailShouldReturnUserWithExistentEmail() {
+			String mockEmail = "test@test.com";
+			when(userRepository.findByEmail(mockEmail)).thenReturn(Optional.of(mockUser));
+
+			User user = userRepository.findByEmail(mockEmail).orElse(null);
+
+			verify(userRepository, times(1)).findByEmail(mockEmail);
+			assertSame(user, mockUser);
+		}
 	}
 
-	// findUserById
-	// ----------------------------------------------------------
-	@Test
-	void findUserByIdShouldReturnNullWithNonExistentId() {
-		String mockId = "mockId";
-		when(userRepository.findById(mockId)).thenReturn(Optional.empty());
+	@Nested
+	@DisplayName("findUserById Method")
+	class FindUserByIdTests {
 
-		User user = userRepository.findById(mockId).orElse(null);
+		@Test
+		@DisplayName("Should return null with non-existent id")
+		void findUserByIdShouldReturnNullWithNonExistentId() {
+			String mockId = "mockId";
+			when(userRepository.findById(mockId)).thenReturn(Optional.empty());
 
-		verify(userRepository, times(1)).findById(mockId);
-		assertNull(user);
+			User user = userRepository.findById(mockId).orElse(null);
+
+			verify(userRepository, times(1)).findById(mockId);
+			assertNull(user);
+		}
+
+		@Test
+		@DisplayName("Should return user with existent id")
+		void findUserByIdShouldReturnUserWithExistentId() {
+			String mockId = "mockId";
+			when(userRepository.findById(mockId)).thenReturn(Optional.of(mockUser));
+
+			User user = userRepository.findById(mockId).orElse(null);
+
+			verify(userRepository, times(1)).findById(mockId);
+			assertSame(user, mockUser);
+		}
 	}
 
-	@Test
-	void findUserByIdShouldReturnUserWithExistentId() {
-		String mockId = "mockId";
-		User mockUser = new User();
-		when(userRepository.findById(mockId)).thenReturn(Optional.of(mockUser));
+	@Nested
+	@DisplayName("findTokenByContent Method")
+	class FindTokenByContentTests {
 
-		User user = userRepository.findById(mockId).orElse(null);
+		@Test
+		@DisplayName("Should return token when token exists")
+		void findExistingTokenShouldBeOk() {
+			String mockContent = "testToken";
+			when(emailTokenRepository.findByContent(mockContent)).thenReturn(Optional.of(mockEmailToken));
 
-		verify(userRepository, times(1)).findById(mockId);
-		assertSame(user, mockUser);
+			EmailToken emailToken = emailTokenRepository.findByContent(mockContent).orElse(null);
+
+			verify(emailTokenRepository, times(1)).findByContent(mockContent);
+			assertSame(mockEmailToken, emailToken);
+		}
+
+		@Test
+		@DisplayName("Should return null when token does not exist")
+		void findNonExistingTokenShouldBeNull() {
+			String mockContent = "testToken";
+			when(emailTokenRepository.findByContent(mockContent)).thenReturn(Optional.empty());
+
+			EmailToken emailToken = emailTokenRepository.findByContent(mockContent).orElse(null);
+
+			verify(emailTokenRepository, times(1)).findByContent(mockContent);
+			assertNull(emailToken);
+		}
 	}
 
+	@Nested
+	@DisplayName("saveToken Method")
+	class SaveTokenTests {
 
-	// findTokenByContent
-	// ----------------------------------------------------------
-	@Test
-	void findExistingTokenShouldBeOk() {
-		String mockContent = "testToken";
-		EmailToken mockEmailToken = new EmailToken();
-		when(tokenRepository.findByContent(mockContent)).thenReturn(Optional.of(mockEmailToken));
+		@Test
+		@DisplayName("Should save token successfully")
+		void saveTokenShouldBeOk() {
+			when(emailTokenRepository.save(mockEmailToken)).thenReturn(mockEmailToken);
 
-		EmailToken emailToken = tokenRepository.findByContent(mockContent).orElse(null);
+			EmailToken emailToken = emailTokenRepository.save(mockEmailToken);
 
-		verify(tokenRepository, times(1)).findByContent(mockContent);
-		assertSame(mockEmailToken, emailToken);
+			verify(emailTokenRepository, times(1)).save(mockEmailToken);
+			assertNotNull(emailToken);
+			assertSame(mockEmailToken, emailToken);
+		}
 	}
 
-	@Test
-	void findNonExistingTokenShouldBeNull() {
-		String mockContent = "testToken";
-		when(tokenRepository.findByContent(mockContent)).thenReturn(Optional.empty());
+	@Nested
+	@DisplayName("recoverAccount Method")
+	class RecoverAccountTests {
 
-		EmailToken emailToken = tokenRepository.findByContent(mockContent).orElse(null);
+		@Test
+		@DisplayName("Should not throw exception when user with non-existent email")
+		void recoverUserWithNonExistentEmailShouldBeOk() {
+			String mockEmail = "test@test.com";
+			when(userRepository.findByEmail(mockEmail)).thenReturn(Optional.empty());
 
-		verify(tokenRepository, times(1)).findByContent(mockContent);
-		assertNull(emailToken);
+			User user = userRepository.findByEmail(mockEmail).orElse(null);
+
+			verify(userRepository, times(1)).findByEmail(mockEmail);
+			assertNull(user);
+			assertDoesNotThrow(() -> authenticationService.recoverAccount(mockEmail));
+		}
+
+		@Test
+		@DisplayName("Should not throw exception when user with existent email")
+		void recoverUserWithExistentEmailShouldBeOk() {
+			String mockEmail = "test@test.com";
+			when(userRepository.findByEmail(mockEmail)).thenReturn(Optional.of(mockUser));
+
+			User user = userRepository.findByEmail(mockEmail).orElse(null);
+
+			verify(userRepository, times(1)).findByEmail(mockEmail);
+			assertSame(mockUser, user);
+			assertDoesNotThrow(() -> authenticationService.recoverAccount(mockEmail));
+		}
 	}
 
-	// saveToken method
-	// ----------------------------------------------------------
-	@Test
-	void saveTokenShouldBeOk() {
-		EmailToken mockEmailToken = EmailToken.builder().content("mockToken").createdAt(LocalDateTime.now()).expiresAt(LocalDateTime.now().plusMinutes(15)).user(new User()).build();
+	@Nested
+	@DisplayName("generateTokenCode Method")
+	class GenerateTokenCodeTests {
 
-		when(tokenRepository.save(mockEmailToken)).thenReturn(mockEmailToken);
+		@Test
+		@DisplayName("Should generate token with normal length")
+		void generateTokenCodeNormalCase() {
+			int length = 6;
+			String token = authenticationService.generateTokenCode(length);
 
-		EmailToken emailToken = tokenRepository.save(mockEmailToken);
+			assertNotNull(token);
+			assertEquals(length, token.length());
+		}
 
-		verify(tokenRepository, times(1)).save(mockEmailToken);
-		assertNotNull(emailToken);
-		assertSame(mockEmailToken, emailToken);
-	}
+		@Test
+		@DisplayName("Should generate token with edge case length one")
+		void generateTokenCodeEdgeCaseLengthOne() {
+			int length = 1;
+			String token = authenticationService.generateTokenCode(length);
 
+			assertNotNull(token);
+			assertEquals(length, token.length());
+		}
 
-	// recoverAccount method
-	// ----------------------------------------------------------
-	@Test
-	void recoverUserWithNonExistentEmailShouldBeOk() {
-		String mockEmail = "test@test.com";
-		when(userRepository.findByEmail(mockEmail)).thenReturn(Optional.empty());
+		@Test
+		@DisplayName("Should throw exception when length is zero")
+		void generateTokenCodeInvalidCaseLengthZero() {
+			int length = 0;
 
-		User user = userRepository.findByEmail(mockEmail).orElse(null);
+			IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> authenticationService.generateTokenCode(length));
 
-		verify(userRepository, times(1)).findByEmail(mockEmail);
-		assertNull(user);
-		assertDoesNotThrow(() -> authenticationService.recoverAccount(mockEmail));
-	}
+			assertEquals("Length must be greater than 0", exception.getMessage());
+		}
 
-	@Test
-	void recoverUserWithExistentEmailShouldBeOk() {
-		String mockEmail = "test@test.com";
-		User mockUser = new User();
-		when(userRepository.findByEmail(mockEmail)).thenReturn(Optional.of(mockUser));
+		@Test
+		@DisplayName("Should throw exception when length is negative")
+		void generateTokenCodeInvalidCaseLengthNegative() {
+			int length = -5;
 
-		User user = userRepository.findByEmail(mockEmail).orElse(null);
+			IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> authenticationService.generateTokenCode(length));
 
-		verify(userRepository, times(1)).findByEmail(mockEmail);
-		assertSame(mockUser, user);
-		assertDoesNotThrow(() -> authenticationService.recoverAccount(mockEmail));
-	}
+			assertEquals("Length must be greater than 0", exception.getMessage());
+		}
 
-	// generateTokenCode method
-	// ----------------------------------------------------------
-	@Test
-	void generateTokenCodeNormalCase() {
-		int length = 6;
-		String token = authenticationService.generateTokenCode(length);
-
-		assertNotNull(token);
-		assertEquals(length, token.length());
-	}
-
-	@Test
-	void generateTokenCodeEdgeCaseLengthOne() {
-		int length = 1;
-		String token = authenticationService.generateTokenCode(length);
-
-		assertNotNull(token);
-		assertEquals(length, token.length());
-	}
-
-	@Test
-	void generateTokenCodeInvalidCaseLengthZero() {
-		int length = 0;
-
-		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> authenticationService.generateTokenCode(length));
-
-		assertEquals("Length must be greater than 0", exception.getMessage());
-	}
-
-	@Test
-	void generateTokenCodeInvalidCaseLengthNegative() {
-		int length = -5;
-
-		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> authenticationService.generateTokenCode(length));
-
-		assertEquals("Length must be greater than 0", exception.getMessage());
-	}
-
-	@Test
-	void generateTokenCodeDifferentLengths() {
-		int[] lengths = {2, 4, 8, 10};
-
-		for ( int length : lengths ) {
+		@ParameterizedTest
+		@ValueSource(ints = {2, 4, 8, 10})
+		@DisplayName("Should generate token with different lengths")
+		void generateTokenCodeDifferentLengths(int length) {
 			String token = authenticationService.generateTokenCode(length);
 
 			assertNotNull(token);
@@ -234,398 +278,398 @@ class AuthenticationServiceTest {
 		}
 	}
 
+	@Nested
+	@DisplayName("generateAndSaveToken Method")
+	class GenerateAndSaveTokenTests {
 
-	// generateAndSaveToken method
-	// ----------------------------------------------------------
+		@Test
+		@DisplayName("Should generate and save token successfully")
+		void generateAndSaveTokenShouldGenerateTokenAndSaveIt() {
+			int tokenLength = 10;
+			String generatedToken = "mockedTokenContent";
 
-	@Test
-	void generateAndSaveTokenShouldGenerateTokenAndSaveIt() {
+			AuthenticationService spyService = spy(authenticationService);
+			doReturn(generatedToken).when(spyService).generateTokenCode(tokenLength);
 
-		User user = new User();
-		user.setEmail("test@example.com");
+			String result = spyService.generateAndSaveToken(mockUser, tokenLength);
 
-		int tokenLength = 10;
-		String generatedToken = "mockedTokenContent";
+			assertEquals(generatedToken, result);
 
-		AuthenticationService spyService = spy(authenticationService);
-		doReturn(generatedToken).when(spyService).generateTokenCode(tokenLength);
+			ArgumentCaptor<EmailToken> tokenCaptor = ArgumentCaptor.forClass(EmailToken.class);
+			verify(emailTokenRepository, times(1)).save(tokenCaptor.capture());
+			EmailToken savedEmailToken = tokenCaptor.getValue();
 
+			assertEquals(generatedToken, savedEmailToken.getContent());
+			assertEquals(mockUser, savedEmailToken.getUser());
+			assertNotNull(savedEmailToken.getCreatedAt());
+			assertNotNull(savedEmailToken.getExpiresAt());
+			assertTrue(savedEmailToken.getExpiresAt().isAfter(savedEmailToken.getCreatedAt()));
+		}
 
-		String result = spyService.generateAndSaveToken(user, tokenLength);
+		@Test
+		@DisplayName("Should throw exception when length is invalid")
+		void generateTokenCodeShouldThrowExceptionWhenLengthIsInvalid() {
+			int invalidLength = 0;
+			IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> authenticationService.generateTokenCode(invalidLength));
+			assertEquals("Length must be greater than 0", exception.getMessage());
+		}
 
+		@Test
+		@DisplayName("Should return valid token when length is valid")
+		void generateTokenCodeShouldReturnValidTokenWhenLengthIsValid() {
+			int validLength = 6;
 
-		assertEquals(generatedToken, result);
+			String token = authenticationService.generateTokenCode(validLength);
 
-		ArgumentCaptor<EmailToken> tokenCaptor = ArgumentCaptor.forClass(EmailToken.class);
-		verify(tokenRepository, times(1)).save(tokenCaptor.capture());
-		EmailToken savedEmailToken = tokenCaptor.getValue();
-
-		assertEquals(generatedToken, savedEmailToken.getContent());
-		assertEquals(user, savedEmailToken.getUser());
-		assertNotNull(savedEmailToken.getCreatedAt());
-		assertNotNull(savedEmailToken.getExpiresAt());
-		assertTrue(savedEmailToken.getExpiresAt().isAfter(savedEmailToken.getCreatedAt()));
-
+			assertNotNull(token);
+			assertEquals(validLength, token.length());
+		}
 	}
 
-	@Test
-	void generateTokenCodeShouldThrowExceptionWhenLengthIsInvalid() {
+	@Nested
+	@DisplayName("markTokenAsValidated Method")
+	class MarkTokenAsValidatedTests {
 
-		int invalidLength = 0;
-		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> authenticationService.generateTokenCode(invalidLength));
-		assertEquals("Length must be greater than 0", exception.getMessage());
+		@Test
+		@DisplayName("Should set validatedAt and save token")
+		void markTokenAsValidatedShouldSetValidatedAtAndSaveToken() {
+			authenticationService.markTokenAsValidated(mockEmailToken);
+
+			assertNotNull(mockEmailToken.getValidatedAt());
+			assertTrue(mockEmailToken.getValidatedAt().isBefore(LocalDateTime.now().plusSeconds(1)));
+
+			verify(emailTokenRepository, times(1)).save(mockEmailToken);
+		}
+
+		@Test
+		@DisplayName("Should throw exception when token is null")
+		void markTokenAsValidatedShouldThrowExceptionWhenTokenIsNull() {
+			assertThrows(NullPointerException.class, () -> authenticationService.markTokenAsValidated(null));
+
+			verify(emailTokenRepository, never()).save(any());
+		}
 	}
 
-	@Test
-	void generateTokenCodeShouldReturnValidTokenWhenLengthIsValid() {
-		int validLength = 6;
+	@Nested
+	@DisplayName("findTokenOrThrow Method")
+	class FindTokenOrThrowTests {
 
-		String token = authenticationService.generateTokenCode(validLength);
+		@Test
+		@DisplayName("Should return token when token exists")
+		void findTokenOrThrowShouldReturnTokenWhenTokenExists() {
+			String tokenContent = "validToken";
+			when(emailTokenRepository.findByContent(tokenContent)).thenReturn(Optional.of(mockEmailToken));
 
-		assertNotNull(token);
-		assertEquals(validLength, token.length());
+			EmailToken result = authenticationService.findTokenOrThrow(tokenContent);
 
-	}
-	// markTokenAsValidated method
-	// ----------------------------------------------------------
+			assertEquals(mockEmailToken, result);
+		}
 
-	@Test
-	void markTokenAsValidatedShouldSetValidatedAtAndSaveToken() {
-		EmailToken emailToken = new EmailToken();
-		emailToken.setContent("testToken");
+		@Test
+		@DisplayName("Should throw exception when token does not exist")
+		void findTokenOrThrowShouldThrowTokenNotFoundExceptionWhenTokenDoesNotExist() {
+			String tokenContent = "invalidToken";
+			when(emailTokenRepository.findByContent(tokenContent)).thenReturn(Optional.empty());
 
-		authenticationService.markTokenAsValidated(emailToken);
+			TokenNotFoundException exception = assertThrows(TokenNotFoundException.class, () -> authenticationService.findTokenOrThrow(tokenContent));
 
-		assertNotNull(emailToken.getValidatedAt());
-		assertTrue(emailToken.getValidatedAt().isBefore(LocalDateTime.now().plusSeconds(1)));
-
-		verify(tokenRepository, times(1)).save(emailToken);
-	}
-
-	@Test
-	void markTokenAsValidatedShouldThrowExceptionWhenTokenIsNull() {
-		assertThrows(NullPointerException.class, () -> authenticationService.markTokenAsValidated(null));
-
-		verify(tokenRepository, never()).save(any());
+			assertEquals("Invalid token", exception.getMessage());
+		}
 	}
 
+	@Nested
+	@DisplayName("activateUser Method")
+	class ActivateUserTests {
 
-	// 	findTokenOrThrow method
-	// ----------------------------------------------------------
+		@Test
+		@DisplayName("Should enable user and save")
+		void activateUserShouldEnableUserAndSave() {
+			mockUser.setEnabled(false);
 
-	@Test
-	void findTokenOrThrowShouldReturnTokenWhenTokenExists() {
-		String tokenContent = "validToken";
-		EmailToken emailToken = new EmailToken();
-		emailToken.setContent(tokenContent);
-		when(tokenRepository.findByContent(tokenContent)).thenReturn(Optional.of(emailToken));
+			authenticationService.activateUser(mockUser);
 
-		EmailToken result = authenticationService.findTokenOrThrow(tokenContent);
-
-		assertEquals(emailToken, result);
+			assertTrue(mockUser.isEnabled());
+			verify(userRepository).save(mockUser);
+		}
 	}
 
-	@Test
-	void findTokenOrThrowShouldThrowTokenNotFoundExceptionWhenTokenDoesNotExist() {
-		String tokenContent = "invalidToken";
-		when(tokenRepository.findByContent(tokenContent)).thenReturn(Optional.empty());
+	@Nested
+	@DisplayName("changeUserPassword Method")
+	class ChangeUserPasswordTests {
 
-		TokenNotFoundException exception = assertThrows(TokenNotFoundException.class, () -> authenticationService.findTokenOrThrow(tokenContent));
+		@Test
+		@DisplayName("Should fail with wrong token")
+		void changePasswordWithWrongTokenShouldFail() {
+			String mockToken = "mockToken";
+			String mockPassword = "mockPassword";
 
-		assertEquals("Invalid token", exception.getMessage());
+			assertThrows(RuntimeException.class, () -> authenticationService.changeUserPassword(mockToken, mockPassword));
+		}
+
+		@Test
+		@DisplayName("Should fail with expired token")
+		void changePasswordWithExpiredTokenShouldFail() {
+			String mockContent = "mockContent";
+			mockEmailToken.setCreatedAt(LocalDateTime.now().minusMinutes(20));
+			mockEmailToken.setExpiresAt(LocalDateTime.now().minusMinutes(5));
+
+			when(emailTokenRepository.findByContent(mockContent)).thenReturn(Optional.of(mockEmailToken));
+
+			assertThrows(TokenExpiredException.class, () -> authenticationService.changeUserPassword(mockContent, "mockPassword"));
+		}
+
+		@Test
+		@DisplayName("Should succeed with correct token")
+		void changePasswordWithCorrectTokenShouldBeOk() {
+			String mockContent = "mockContent";
+			when(emailTokenRepository.findByContent(mockContent)).thenReturn(Optional.of(mockEmailToken));
+
+			assertDoesNotThrow(() -> authenticationService.changeUserPassword(mockContent, "mockPassword"));
+		}
 	}
 
-	// 	activateUser method
-	// ----------------------------------------------------------
+	@Nested
+	@DisplayName("register Method")
+	class RegisterTests {
 
-	@Test
-	void activateUserShouldEnableUserAndSave() {
-		User user = new User();
-		user.setEmail("test@example.com");
-		user.setEnabled(false);
+		@Test
+		@DisplayName("Should create new user and send validation email")
+		void registerShouldCreateNewUserAndSendValidationEmail() throws Exception {
+			RegistrationRequest registrationRequest = new RegistrationRequest("testUser", "test@example.com", "password");
+			Role role = Role.builder().name("USER").build();
 
-		authenticationService.activateUser(user);
+			when(userRepository.findByNicknameOrEmail(anyString(), anyString())).thenReturn(Optional.empty());
+			when(roleRepository.findByName("USER")).thenReturn(Optional.of(role));
+			when(userRepository.save(any(User.class))).thenAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
 
-		assertTrue(user.isEnabled());
-		verify(userRepository).save(user);
+			String result = authenticationService.register(registrationRequest);
+
+			assertNotNull(result);
+			assertTrue(result.contains("Added new User::"));
+
+			ArgumentCaptor<User> userArgumentCaptor = ArgumentCaptor.forClass(User.class);
+			verify(userRepository, times(1)).save(userArgumentCaptor.capture());
+			User savedUser = userArgumentCaptor.getValue();
+
+			assertEquals("testUser", savedUser.getNickname());
+			assertEquals("test@example.com", savedUser.getEmail());
+			assertFalse(savedUser.isEnabled());
+			assertEquals(Set.of(role), savedUser.getRoles());
+			verify(emailService, times(1)).sendValidationEmail(anyString(), eq(savedUser.getEmail()));
+		}
+
+		@Test
+		@DisplayName("Should throw exception when user with same nickname exists")
+		void registerShouldThrowExceptionWhenUserWithSameNicknameExists() throws Exception {
+			RegistrationRequest registrationRequest = new RegistrationRequest("testUser", "test@example.com", "password");
+			User existingUser = new User();
+			existingUser.setNickname("testUser");
+			existingUser.setEmail("another@example.com");
+
+			when(userRepository.findByNicknameOrEmail("testUser", "test@example.com")).thenReturn(Optional.of(existingUser));
+
+			UniqueConstraintViolationException exception = assertThrows(UniqueConstraintViolationException.class, () -> authenticationService.register(registrationRequest));
+
+			assertEquals("Unique constraint violation: nickname", exception.getMessage());
+			verify(userRepository, never()).save(any(User.class));
+			verify(emailService, never()).sendValidationEmail(anyString(), anyString());
+		}
+
+		@Test
+		@DisplayName("Should throw exception when user with same email exists")
+		void registerShouldThrowExceptionWhenUserWithSameEmailExists() throws Exception {
+			RegistrationRequest registrationRequest = new RegistrationRequest("testUser", "test@example.com", "password");
+			User existingUser = new User();
+			existingUser.setNickname("anotherUser");
+			existingUser.setEmail("test@example.com");
+
+			when(userRepository.findByNicknameOrEmail("testUser", "test@example.com")).thenReturn(Optional.of(existingUser));
+
+			UniqueConstraintViolationException exception = assertThrows(UniqueConstraintViolationException.class, () -> authenticationService.register(registrationRequest));
+
+			assertEquals("Unique constraint violation: email", exception.getMessage());
+			verify(userRepository, never()).save(any(User.class));
+			verify(emailService, never()).sendValidationEmail(anyString(), anyString());
+		}
+
+		@Test
+		@DisplayName("Should throw exception when role not found")
+		void registerShouldThrowExceptionWhenRoleNotFound() throws Exception {
+			RegistrationRequest registrationRequest = new RegistrationRequest("testUser", "test@example.com", "password");
+			when(userRepository.findByNicknameOrEmail(anyString(), anyString())).thenReturn(Optional.empty());
+			when(roleRepository.findByName("USER")).thenReturn(Optional.empty());
+
+			assertThrows(RuntimeException.class, () -> authenticationService.register(registrationRequest));
+
+			verify(userRepository, never()).save(any(User.class));
+			verify(emailService, never()).sendValidationEmail(anyString(), anyString());
+		}
 	}
 
+	@Nested
+	@DisplayName("authenticate Method")
+	class AuthenticateTests {
 
-	// 	changeUserPassword method
-	// ----------------------------------------------------------
+		@Test
+		@DisplayName("Should return token when credentials are correct")
+		void authenticateShouldReturnTokenWhenCredentialsAreCorrect() {
+			AuthenticationRequest request = new AuthenticationRequest("test@example.com", "password");
+			Authentication auth = mock(Authentication.class);
+			when(auth.getPrincipal()).thenReturn(mockUser);
+			when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(auth);
 
-	@Test
-	void changePasswordWithWrongTokenShouldFail() {
-		String mockToken = "mockToken";
-		String mockPassword = "mockPassword";
+			Map<String, Object> claims = new HashMap<>();
+			claims.put("username", mockUser.getNickname());
+			String accessToken = "access";
 
-		assertThrows(RuntimeException.class, () -> authenticationService.changeUserPassword(mockToken, mockPassword));
+			when(jwtService.generateToken(claims, mockUser)).thenReturn(accessToken);
+
+			RefreshToken refreshToken = new RefreshToken();
+			refreshToken.setToken("refresh");
+
+			when(refreshTokenService.createRefreshToken(mockUser)).thenReturn(refreshToken);
+
+			AuthenticationResponse response = authenticationService.authenticate(request);
+
+			assertNotNull(response);
+			assertEquals(accessToken, response.getAccessToken());
+			assertEquals(refreshToken.getToken(), response.getRefreshToken());
+			verify(authenticationManager, times(1)).authenticate(any(UsernamePasswordAuthenticationToken.class));
+			verify(jwtService, times(1)).generateToken(claims, mockUser);
+		}
+
+		@Test
+		@DisplayName("Should throw exception when credentials are incorrect")
+		void authenticateShouldThrowExceptionWhenCredentialsAreIncorrect() {
+			AuthenticationRequest request = new AuthenticationRequest("test@example.com", "wrongPassword");
+			when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenThrow(new BadCredentialsException("Invalid credentials"));
+
+			BadCredentialsException exception = assertThrows(BadCredentialsException.class, () -> authenticationService.authenticate(request));
+
+			assertEquals("Invalid credentials", exception.getMessage());
+			verify(authenticationManager, times(1)).authenticate(any(UsernamePasswordAuthenticationToken.class));
+			verify(jwtService, never()).generateToken(anyMap(), any(User.class));
+		}
+
+		@Test
+		@DisplayName("Should throw exception when authentication manager throws exception")
+		void authenticateShouldThrowExceptionWhenAuthenticationManagerThrowsException() {
+			AuthenticationRequest request = new AuthenticationRequest("test@example.com", "password");
+			when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenThrow(new RuntimeException("Authentication failed"));
+
+			RuntimeException exception = assertThrows(RuntimeException.class, () -> authenticationService.authenticate(request));
+
+			assertEquals("Authentication failed", exception.getMessage());
+			verify(authenticationManager, times(1)).authenticate(any(UsernamePasswordAuthenticationToken.class));
+			verify(jwtService, never()).generateToken(anyMap(), any(User.class));
+		}
 	}
 
-	@Test
-	void changePasswordWithExpiredTokenShouldFail() {
-		String mockContent = "mockContent";
-		EmailToken mockEmailToken = EmailToken.builder().content(mockContent).createdAt(LocalDateTime.now().minusMinutes(20)).expiresAt(LocalDateTime.now().minusMinutes(5)).user(new User()).build();
-		String mockPassword = "mockPassword";
+	@Nested
+	@DisplayName("activateAccount Method")
+	class ActivateAccountTests {
 
-		when(tokenRepository.findByContent(mockContent)).thenReturn(Optional.of(mockEmailToken));
+		@Test
+		@DisplayName("Should activate account successfully")
+		void activateAccount_ShouldActivateAccountSuccessfully() {
+			String tokenContent = "validToken";
+			User user = new User();
+			user.setId("userId");
+			user.setEmail("test@example.com");
+			user.setEnabled(false);
+			EmailToken emailToken = EmailToken.builder().content(tokenContent).createdAt(LocalDateTime.now()).expiresAt(LocalDateTime.now().plusMinutes(15)).user(user).build();
 
-		assertThrows(TokenExpiredException.class, () -> authenticationService.changeUserPassword(mockContent, mockPassword));
+			when(emailTokenRepository.findByContent(tokenContent)).thenReturn(Optional.of(emailToken));
+
+			String result = authenticationService.activateAccount(tokenContent);
+
+			assertEquals(tokenContent, result);
+			verify(userRepository, times(1)).save(user);
+			verify(emailTokenRepository, times(1)).save(emailToken);
+			assertTrue(user.isEnabled());
+			assertNotNull(emailToken.getValidatedAt());
+		}
+
+		@Test
+		@DisplayName("Should throw exception when token does not exist")
+		void activateAccountShouldThrowTokenNotFoundExceptionWhenTokenDoesNotExist() {
+			String tokenContent = "invalidToken";
+			when(emailTokenRepository.findByContent(tokenContent)).thenReturn(Optional.empty());
+
+			TokenNotFoundException exception = assertThrows(TokenNotFoundException.class, () -> authenticationService.activateAccount(tokenContent));
+
+			assertEquals("Invalid token", exception.getMessage());
+			verify(userRepository, never()).save(any(User.class));
+			verify(emailTokenRepository, never()).save(any(EmailToken.class));
+		}
+
+		@Test
+		@DisplayName("Should throw exception when token is expired")
+		void activateAccountShouldThrowTokenExpiredExceptionWhenTokenIsExpired() {
+			String tokenContent = "expiredToken";
+			mockEmailToken.setCreatedAt(LocalDateTime.now().minusMinutes(20));
+			mockEmailToken.setExpiresAt(LocalDateTime.now().minusMinutes(5));
+
+			when(emailTokenRepository.findByContent(tokenContent)).thenReturn(Optional.of(mockEmailToken));
+
+			TokenExpiredException exception = assertThrows(TokenExpiredException.class, () -> authenticationService.activateAccount(tokenContent));
+
+			assertEquals("Token has expired. A new token has been sent to the same email address.", exception.getMessage());
+			verify(userRepository, never()).save(any(User.class));
+		}
 	}
 
-	@Test
-	void changePasswordWithCorrectTokenShouldBeOk() {
-		String mockContent = "mockContent";
-		User mockUser = new User();
-		mockUser.setId("mockId");
-		EmailToken mockEmailToken = EmailToken.builder().content(mockContent).createdAt(LocalDateTime.now()).expiresAt(LocalDateTime.now().plusMinutes(15)).user(mockUser).build();
-		String mockPassword = "mockPassword";
+	@Nested
+	@DisplayName("sendEmail Method")
+	class SendEmailTests {
 
+		@Test
+		@DisplayName("Should send email successfully")
+		void sendEmailShouldSendEmail() throws Exception {
+			int tokenLength = 6;
+			AuthenticationService.EmailSender emailSender = mock(AuthenticationService.EmailSender.class);
 
-		when(tokenRepository.findByContent(mockContent)).thenReturn(Optional.of(mockEmailToken));
+			doNothing().when(emailSender).sendEmail(anyString(), eq(mockUser.getEmail()));
 
-		assertDoesNotThrow(() -> authenticationService.changeUserPassword(mockContent, mockPassword));
+			authenticationService.sendEmail(mockUser, tokenLength, emailSender);
+
+			verify(emailSender, times(1)).sendEmail(anyString(), eq(mockUser.getEmail()));
+		}
 	}
 
-	// 	register method
-	// ----------------------------------------------------------
+	@Nested
+	@DisplayName("checkTokenExpiration Method")
+	class CheckTokenExpirationTests {
 
-	@Test
-	void registerShouldCreateNewUserAndSendValidationEmail() throws Exception {
-		RegistrationRequest registrationRequest = new RegistrationRequest("testUser", "text@example.com", "password");
-		Role role = Role.builder().name("USER").build();
+		@Test
+		@DisplayName("Should not throw exception when token is not expired")
+		void checkTokenExpirationShouldNotThrowExceptionWhenTokenIsNotExpired() {
+			assertDoesNotThrow(() -> authenticationService.checkTokenExpiration(mockEmailToken, user1 -> { }));
+		}
 
-		when(userRepository.findByNicknameOrEmail(anyString(), anyString())).thenReturn(Optional.empty());
-		when(roleRepository.findByName("USER")).thenReturn(Optional.of(role));
-		when(userRepository.save(any(User.class))).thenAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
+		@Test
+		@DisplayName("Should throw exception when token is expired")
+		void checkTokenExpirationShouldThrowExceptionWhenTokenIsExpired() {
+			mockEmailToken.setCreatedAt(LocalDateTime.now().minusMinutes(20));
+			mockEmailToken.setExpiresAt(LocalDateTime.now().minusMinutes(5));
 
-		String result = authenticationService.register(registrationRequest);
+			TokenExpiredException exception = assertThrows(TokenExpiredException.class, () -> authenticationService.checkTokenExpiration(mockEmailToken, user1 -> { }));
 
-		assertNotNull(result);
-		assertTrue(result.contains("Added new User::"));
-
-		ArgumentCaptor<User> userArgumentCaptor = ArgumentCaptor.forClass(User.class);
-		verify(userRepository, times(1)).save(userArgumentCaptor.capture());
-		User savedUser = userArgumentCaptor.getValue();
-
-		assertEquals("testUser", savedUser.getNickname());
-		assertEquals("text@example.com", savedUser.getEmail());
-		assertFalse(savedUser.isEnabled());
-		assertEquals(Set.of(role), savedUser.getRoles());
-		verify(emailService, times(1)).sendValidationEmail(anyString(), eq(savedUser.getEmail()));
+			assertEquals("Token has expired. A new token has been sent to the same email address.", exception.getMessage());
+		}
 	}
 
-	@Test
-	void registerShouldThrowExceptionWhenUserWithSameNicknameExists() throws Exception {
-		RegistrationRequest registrationRequest = new RegistrationRequest("testUser", "test@example.com", "password");
-		User existingUser = new User();
-		existingUser.setNickname("testUser");
-		existingUser.setEmail("another@example.com");
+	@Nested
+	@DisplayName("createClaims Method")
+	class CreateClaimsTests {
 
-		when(userRepository.findByNicknameOrEmail("testUser", "test@example.com")).thenReturn(Optional.of(existingUser));
+		@Test
+		@DisplayName("Should return correct claims")
+		void createClaimsShouldReturnCorrectClaims() {
+			Map<String, Object> claims = authenticationService.createClaims(mockUser);
 
-		UniqueConstraintViolationException exception = assertThrows(UniqueConstraintViolationException.class, () -> authenticationService.register(registrationRequest));
-
-		assertEquals("Unique constraint violation: nickname", exception.getMessage());
-		verify(userRepository, never()).save(any(User.class));
-		verify(emailService, never()).sendValidationEmail(anyString(), anyString());
+			assertNotNull(claims);
+			assertEquals("testUser", claims.get("username"));
+		}
 	}
-
-	@Test
-	void registerShouldThrowExceptionWhenUserWithSameEmailExists() throws Exception {
-		RegistrationRequest registrationRequest = new RegistrationRequest("testUser", "test@example.com", "password");
-		User existingUser = new User();
-		existingUser.setNickname("anotherUser");
-		existingUser.setEmail("test@example.com");
-
-		when(userRepository.findByNicknameOrEmail("testUser", "test@example.com")).thenReturn(Optional.of(existingUser));
-
-		UniqueConstraintViolationException exception = assertThrows(UniqueConstraintViolationException.class, () -> authenticationService.register(registrationRequest));
-
-		assertEquals("Unique constraint violation: email", exception.getMessage());
-		verify(userRepository, never()).save(any(User.class));
-		verify(emailService, never()).sendValidationEmail(anyString(), anyString());
-	}
-
-	@Test
-	void registerShouldThrowExceptionWhenRoleNotFound() throws Exception {
-		RegistrationRequest registrationRequest = new RegistrationRequest("testUser", "test@example.com", "password");
-		when(userRepository.findByNicknameOrEmail(anyString(), anyString())).thenReturn(Optional.empty());
-		when(roleRepository.findByName("USER")).thenReturn(Optional.empty());
-
-		assertThrows(RuntimeException.class, () -> authenticationService.register(registrationRequest));
-
-		verify(userRepository, never()).save(any(User.class));
-		verify(emailService, never()).sendValidationEmail(anyString(), anyString());
-	}
-
-	// 	authenticate method
-	// ----------------------------------------------------------
-
-	@Test
-	void authenticateShouldReturnTokenWhenCredentialsAreCorrect() {
-		AuthenticationRequest request = new AuthenticationRequest("test@example.com", "password");
-		User user = new User();
-		user.setEmail("test@example.com");
-		user.setNickname("testUser");
-
-		Authentication auth = mock(Authentication.class);
-		when(auth.getPrincipal()).thenReturn(user);
-		when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(auth);
-
-		Map<String, Object> claims = new HashMap<>();
-		claims.put("username", user.getNickname());
-		String accessToken = "access";
-
-		when(jwtService.generateToken(claims, user)).thenReturn(accessToken);
-
-		RefreshToken refreshToken = new RefreshToken();
-		refreshToken.setToken("refresh");
-
-		when(refreshTokenService.createRefreshToken(user)).thenReturn(refreshToken);
-
-		AuthenticationResponse response = authenticationService.authenticate(request);
-
-
-		assertNotNull(response);
-		assertEquals(accessToken, response.getAccessToken());
-		assertEquals(refreshToken.getToken(), response.getRefreshToken());
-		verify(authenticationManager, times(1)).authenticate(any(UsernamePasswordAuthenticationToken.class));
-		verify(jwtService, times(1)).generateToken(claims, user);
-	}
-
-	@Test
-	void authenticateShouldThrowExceptionWhenCredentialsAreIncorrect() {
-		AuthenticationRequest request = new AuthenticationRequest("test@example.com", "wrongPassword");
-		when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenThrow(new BadCredentialsException("Invalid credentials"));
-
-		BadCredentialsException exception = assertThrows(BadCredentialsException.class, () -> authenticationService.authenticate(request));
-
-		assertEquals("Invalid credentials", exception.getMessage());
-		verify(authenticationManager, times(1)).authenticate(any(UsernamePasswordAuthenticationToken.class));
-		verify(jwtService, never()).generateToken(anyMap(), any(User.class));
-	}
-
-	@Test
-	void authenticateShouldThrowExceptionWhenAuthenticationManagerThrowsException() {
-		AuthenticationRequest request = new AuthenticationRequest("test@example.com", "password");
-		when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenThrow(new RuntimeException("Authentication failed"));
-
-
-		RuntimeException exception = assertThrows(RuntimeException.class, () -> authenticationService.authenticate(request));
-
-		assertEquals("Authentication failed", exception.getMessage());
-		verify(authenticationManager, times(1)).authenticate(any(UsernamePasswordAuthenticationToken.class));
-		verify(jwtService, never()).generateToken(anyMap(), any(User.class));
-	}
-
-
-	//  activateAccount method
-	// ----------------------------------------------------------
-
-	@Test
-	void activateAccount_ShouldActivateAccountSuccessfully() {
-		String tokenContent = "validToken";
-		User user = new User();
-		user.setId("userId");
-		user.setEmail("test@example.com");
-		user.setEnabled(false);
-		EmailToken emailToken = EmailToken.builder().content(tokenContent).createdAt(LocalDateTime.now()).expiresAt(LocalDateTime.now().plusMinutes(15)).user(user).build();
-
-		when(tokenRepository.findByContent(tokenContent)).thenReturn(Optional.of(emailToken));
-
-		String result = authenticationService.activateAccount(tokenContent);
-
-		assertEquals(tokenContent, result);
-		verify(userRepository, times(1)).save(user);
-		verify(tokenRepository, times(1)).save(emailToken);
-		assertTrue(user.isEnabled());
-		assertNotNull(emailToken.getValidatedAt());
-	}
-
-	@Test
-	void activateAccountShouldThrowTokenNotFoundExceptionWhenTokenDoesNotExist() {
-
-		String tokenContent = "invalidToken";
-		when(tokenRepository.findByContent(tokenContent)).thenReturn(Optional.empty());
-
-
-		TokenNotFoundException exception = assertThrows(TokenNotFoundException.class, () -> authenticationService.activateAccount(tokenContent));
-
-		assertEquals("Invalid token", exception.getMessage());
-		verify(userRepository, never()).save(any(User.class));
-		verify(tokenRepository, never()).save(any(EmailToken.class));
-	}
-
-
-	@Test
-	void activateAccountShouldThrowTokenExpiredExceptionWhenTokenIsExpired() {
-		String tokenContent = "expiredToken";
-		User user = new User();
-		user.setId("userId");
-		user.setEmail("test@example.com");
-		user.setEnabled(false);
-		EmailToken emailToken = EmailToken.builder().content(tokenContent).createdAt(LocalDateTime.now().minusMinutes(20)).expiresAt(LocalDateTime.now().minusMinutes(5)).user(user).build();
-
-		when(tokenRepository.findByContent(tokenContent)).thenReturn(Optional.of(emailToken));
-
-
-		TokenExpiredException exception = assertThrows(TokenExpiredException.class, () -> authenticationService.activateAccount(tokenContent));
-
-		assertEquals("Token has expired. A new token has been sent to the same email address.", exception.getMessage());
-		verify(userRepository, never()).save(any(User.class));
-	}
-
-	// sendEmail method
-	// ----------------------------------------------------------
-	@Test
-	void sendEmailShouldSendEmail() throws Exception {
-		User user = new User();
-		user.setEmail("test@example.com");
-		int tokenLength = 6;
-		AuthenticationService.EmailSender emailSender = mock(AuthenticationService.EmailSender.class);
-
-		doNothing().when(emailSender).sendEmail(anyString(), eq(user.getEmail()));
-
-		authenticationService.sendEmail(user, tokenLength, emailSender);
-
-		verify(emailSender, times(1)).sendEmail(anyString(), eq(user.getEmail()));
-	}
-
-	// checkTokenExpiration method
-	// ----------------------------------------------------------
-	@Test
-	void checkTokenExpirationShouldNotThrowExceptionWhenTokenIsNotExpired() {
-		User user = new User();
-		user.setEmail("test@example.com");
-		EmailToken emailToken = EmailToken.builder().content("validToken").createdAt(LocalDateTime.now()).expiresAt(LocalDateTime.now().plusMinutes(15)).user(user).build();
-
-		assertDoesNotThrow(() -> authenticationService.checkTokenExpiration(emailToken, user1 -> { }));
-	}
-
-	@Test
-	void checkTokenExpirationShouldThrowExceptionWhenTokenIsExpired() {
-		User user = new User();
-		user.setEmail("test@example.com");
-		EmailToken emailToken = EmailToken.builder().content("expiredToken").createdAt(LocalDateTime.now().minusMinutes(20)).expiresAt(LocalDateTime.now().minusMinutes(5)).user(user).build();
-
-		TokenExpiredException exception = assertThrows(TokenExpiredException.class, () -> authenticationService.checkTokenExpiration(emailToken, user1 -> { }));
-
-		assertEquals("Token has expired. A new token has been sent to the same email address.", exception.getMessage());
-	}
-
-	// createClaims method
-	// ----------------------------------------------------------
-	@Test
-	void createClaimsShouldReturnCorrectClaims() {
-		User user = new User();
-		user.setNickname("testUser");
-		user.setEmail("test@example.com");
-
-		Map<String, Object> claims = authenticationService.createClaims(user);
-
-		assertNotNull(claims);
-		assertEquals("testUser", claims.get("username"));
-	}
-
 }

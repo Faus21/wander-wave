@@ -1,4 +1,4 @@
-package com.dama.wanderwave.token;
+package com.dama.wanderwave.emailToken;
 
 import com.dama.wanderwave.user.User;
 import jakarta.persistence.*;

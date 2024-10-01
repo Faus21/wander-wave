@@ -1,5 +1,6 @@
 package com.dama.wanderwave.chat;
 
+import com.dama.wanderwave.handler.ChatRoomException;
 import com.dama.wanderwave.handler.UserNotFoundException;
 import com.dama.wanderwave.hash.HashUUIDGenerator;
 import com.dama.wanderwave.user.User;
@@ -31,7 +32,7 @@ public class ChatService {
     }
 
 
-    private Chat createNewChatRoom( String senderId, String recipientId) {
+    Chat createNewChatRoom( String senderId, String recipientId ) {
         String chatId = createChatId(senderId, recipientId);
 
         User sender = getUserOrThrow(senderId);
@@ -43,22 +44,28 @@ public class ChatService {
         return chat;
     }
 
-    private String createChatId(String senderId, String recipientId) {
+    String createChatId( String senderId, String recipientId ) {
         return hashUUIDGenerator.encodeString(senderId + recipientId);
     }
 
-    private User getUserOrThrow(String userId) {
+    User getUserOrThrow( String userId ) {
         return userRepository.findById(userId)
                        .orElseThrow(() -> new UserNotFoundException(String.format("User not found! ID::%s", userId)));
     }
 
-    private Chat createAndSaveChatRoom( String chatId, User sender, User recipient) {
+    protected Chat createAndSaveChatRoom(String chatId, User sender, User recipient) {
+
+        if (chatId == null || sender == null || recipient == null) {
+            throw new ChatRoomException("Chat attributes cannot be null");
+        }
+
         Chat chat = Chat.builder()
-                                    .id(chatId)
-                                    .sender(sender)
-                                    .recipient(recipient)
-                                    .build();
+                            .id(chatId)
+                            .sender(sender)
+                            .recipient(recipient)
+                            .build();
 
         return chatRepository.save(chat);
     }
+
 }

@@ -1,42 +1,61 @@
 package com.dama.wanderwave.handler;
 
 import jakarta.validation.ConstraintViolationException;
+import lombok.Builder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
-	@ExceptionHandler({Exception.class, Error.class})
+	@ExceptionHandler(Throwable.class)
 	public ResponseEntity<ErrorResponse> handleAllThrowables(Throwable throwable) {
 		return buildErrorResponse(throwable);
 	}
 
 	private ResponseEntity<ErrorResponse> buildErrorResponse(Throwable throwable) {
 		HttpStatus status = ExceptionStatus.getStatusFor(throwable);
-		String message = throwable.getMessage();
+		String message = resolveErrorMessage(throwable);
+		return ResponseEntity.status(status).body(ErrorResponse.builder()
+				                                          .errorCode(status.value())
+				                                          .message(message)
+				                                          .build());
+	}
 
+	private String resolveErrorMessage(Throwable throwable) {
 		if (throwable instanceof MethodArgumentNotValidException ex) {
-			message = ex.getBindingResult().getFieldErrors().stream()
-					          .map(error -> error.getField() + ": " + error.getDefaultMessage())
-					          .collect(Collectors.joining(", ", "Validation failed: ", ""));
+			return formatValidationErrors(
+					ex.getBindingResult().getFieldErrors(),
+					error -> formatErrorMessage(error.getField(), error.getDefaultMessage())
+			);
 		} else if (throwable instanceof ConstraintViolationException ex) {
-			message = ex.getConstraintViolations().stream()
-					          .map(violation -> violation.getPropertyPath() + ": " + violation.getMessage())
-					          .collect(Collectors.joining(", ", "Validation failed: ", ""));
+			return formatValidationErrors(
+					ex.getConstraintViolations(),
+					violation -> formatErrorMessage(violation.getPropertyPath().toString(), violation.getMessage())
+			);
 		}
-
-		return new ResponseEntity<>(createErrorResponse(status, message), status);
+		return throwable.getMessage();
 	}
 
-	private static ErrorResponse createErrorResponse(HttpStatus status, String message) {
-		return new ErrorResponse(status.value(), message);
+	private String formatErrorMessage(String field, String message) {
+		return String.format("%s: %s", field, message);
 	}
 
-	public record ErrorResponse(int errorCode, String message) { }
+
+	private <T> String formatValidationErrors(Iterable<T> errors, Function<T, String> mapper) {
+		String errorMessages = StreamSupport.stream(errors.spliterator(), false)
+				                       .map(mapper)
+				                       .collect(Collectors.joining(", "));
+		return String.format("Validation failed: %s", errorMessages);
+	}
+
+	@Builder
+	public record ErrorResponse(int errorCode, String message) {}
 }

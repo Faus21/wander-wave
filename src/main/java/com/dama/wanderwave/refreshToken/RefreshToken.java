@@ -1,4 +1,4 @@
-package com.dama.wanderwave.refresh_token;
+package com.dama.wanderwave.refreshToken;
 
 import com.dama.wanderwave.user.User;
 import jakarta.persistence.*;
@@ -9,7 +9,6 @@ import lombok.Setter;
 import org.hibernate.annotations.GenericGenerator;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 
 @Getter
 @Setter

@@ -1,5 +1,9 @@
 package com.dama.wanderwave.message;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -19,13 +23,13 @@ public class ChatController {
     private final ChatMessageService chatMessageService;
 
     @MessageMapping("/chat")
+    @Operation(summary = "Process chat message", description = "Sends a chat message to the recipient.")
     public void processMessage(@Payload ChatMessage chatMessage) {
-
         ChatMessage savedMsg = chatMessageService.save(chatMessage);
         sendChatNotification(savedMsg);
     }
 
-    private void sendChatNotification(ChatMessage savedMsg) {
+    void sendChatNotification( ChatMessage savedMsg ) {
         ChatNotification notification = ChatNotification.builder()
                                                 .id(savedMsg.getId().toString())
                                                 .senderId(savedMsg.getSenderId())
@@ -34,15 +38,21 @@ public class ChatController {
                                                 .build();
 
         messagingTemplate.convertAndSendToUser(
-                savedMsg.getId().getRecipientId(),
+                savedMsg.getRecipientId(),
                 "/queue/messages",
                 notification
         );
     }
 
     @GetMapping("/messages/{senderId}/{recipientId}")
-    public ResponseEntity<List<ChatMessage>> findChatMessages(@PathVariable("senderId") String senderId,
-                                                              @PathVariable("recipientId") String recipientId) {
+    @Operation(summary = "Retrieve chat messages", description = "Fetches chat messages between two users.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Messages retrieved successfully"),
+            @ApiResponse(responseCode = "404", description = "Chat messages not found")
+    })
+    public ResponseEntity<List<ChatMessage>> findChatMessages(
+            @Parameter(description = "ID of the sender") @PathVariable("senderId") String senderId,
+            @Parameter(description = "ID of the recipient") @PathVariable("recipientId") String recipientId) {
         List<ChatMessage> chatMessages = chatMessageService.findChatMessages(senderId, recipientId);
         return ResponseEntity.ok(chatMessages);
     }

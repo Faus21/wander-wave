@@ -2,11 +2,11 @@ package com.dama.wanderwave.auth;
 
 import com.dama.wanderwave.email.EmailService;
 import com.dama.wanderwave.handler.*;
-import com.dama.wanderwave.refresh_token.RefreshTokenService;
+import com.dama.wanderwave.refreshToken.RefreshTokenService;
 import com.dama.wanderwave.role.RoleRepository;
 import com.dama.wanderwave.security.JwtService;
-import com.dama.wanderwave.token.EmailToken;
-import com.dama.wanderwave.token.TokenRepository;
+import com.dama.wanderwave.emailToken.EmailToken;
+import com.dama.wanderwave.emailToken.EmailTokenRepository;
 import com.dama.wanderwave.user.User;
 import com.dama.wanderwave.user.UserRepository;
 import com.dama.wanderwave.utils.ResponseRecord;
@@ -24,10 +24,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -44,7 +42,7 @@ public class AuthenticationService {
 	private final JwtService jwtService;
 	private final AuthenticationManager authenticationManager;
 	private final RoleRepository roleRepository;
-	private final TokenRepository tokenRepository;
+	private final EmailTokenRepository emailTokenRepository;
 	private final EmailService emailService;
 	private final SecureRandom secureRandom = new SecureRandom();
 	private final RefreshTokenService refreshTokenService;
@@ -196,7 +194,7 @@ public class AuthenticationService {
 
 	protected EmailToken findTokenOrThrow( String token) {
 		log.debug("Searching for token: {}", token);
-		return tokenRepository.findByContent(token)
+		return emailTokenRepository.findByContent(token)
 				       .orElseThrow(() -> {
 					       log.warn("Invalid token attempted: {}", token);
 					       return new TokenNotFoundException("Invalid token");
@@ -217,7 +215,7 @@ public class AuthenticationService {
 
 	protected void markTokenAsValidated( EmailToken emailToken ) {
 		emailToken.setValidatedAt(LocalDateTime.now());
-		tokenRepository.save(emailToken);
+		emailTokenRepository.save(emailToken);
 		log.debug("Token marked as validated: {}", emailToken.getContent());
 	}
 
@@ -230,7 +228,7 @@ public class AuthenticationService {
 				                        .user(user)
 				                        .build();
 
-		tokenRepository.save(emailToken);
+		emailTokenRepository.save(emailToken);
 		log.debug("Generated and saved new token for user: {}", user.getEmail());
 		return tokenContent;
 	}

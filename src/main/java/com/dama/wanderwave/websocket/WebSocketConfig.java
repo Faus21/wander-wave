@@ -23,11 +23,11 @@ import static com.dama.wanderwave.websocket.WebSocketSettings.*;
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 	private final AuthChannelInterceptor authChannelInterceptor;
 
-	private  TaskScheduler messageBrokerTaskScheduler;
+	private TaskScheduler taskScheduler;
 
 	@Autowired
 	public void setMessageBrokerTaskScheduler(@Lazy TaskScheduler taskScheduler) {
-		this.messageBrokerTaskScheduler = taskScheduler;
+		this.taskScheduler = taskScheduler;
 	}
 
 	@Override
@@ -36,16 +36,16 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 	}
 
 	@Override
-	public void registerStompEndpoints( StompEndpointRegistry registry ) {
+	public void registerStompEndpoints(StompEndpointRegistry registry) {
 		registry.addEndpoint(CHAT_ENDPOINT.getStringValue())
-				.setAllowedOriginPatterns(ALLOWED_ORIGINS.getStringValue())
+				.setAllowedOrigins(ALLOWED_ORIGINS.getStringValue())
 				.withSockJS()
-				.setSuppressCors(false)
+				.setTaskScheduler(taskScheduler)
 				.setHeartbeatTime(HEARTBEAT_TIME.getIntValue())
-				.setTaskScheduler(this.messageBrokerTaskScheduler)
 				.setStreamBytesLimit(STREAM_BYTES_LIMIT.getIntValue())
 				.setHttpMessageCacheSize(HTTP_MESSAGE_CACHE_SIZE.getIntValue())
-				.setDisconnectDelay(DISCONNECT_DELAY.getIntValue());
+				.setDisconnectDelay(DISCONNECT_DELAY.getIntValue())
+				.setSuppressCors(false);
 	}
 
 	@Override
@@ -64,7 +64,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
 	@Override
 	public void configureWebSocketTransport( WebSocketTransportRegistration registry ) {
-		registry.setMessageSizeLimit(4 * 8192);
-		registry.setTimeToFirstMessage(30000);
+		registry.setMessageSizeLimit(MESSAGE_SIZE_LIMIT.getIntValue());
+		registry.setTimeToFirstMessage(TIME_TO_FIRST_MESSAGE.getIntValue());
 	}
 }
