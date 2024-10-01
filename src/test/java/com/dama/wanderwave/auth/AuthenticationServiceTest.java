@@ -10,7 +10,7 @@ import com.dama.wanderwave.role.Role;
 import com.dama.wanderwave.role.RoleRepository;
 import com.dama.wanderwave.security.JwtService;
 import com.dama.wanderwave.token.EmailToken;
-import com.dama.wanderwave.token.EmailTokenRepository;
+import com.dama.wanderwave.token.TokenRepository;
 import com.dama.wanderwave.user.User;
 import com.dama.wanderwave.user.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -38,13 +38,12 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class AuthenticationServiceTest {
 
-
 	@InjectMocks
 	private AuthenticationService authenticationService;
 	@Mock
 	private UserRepository userRepository;
 	@Mock
-	private EmailTokenRepository emailTokenRepository;
+	private TokenRepository tokenRepository;
 
 	@Mock
 	private PasswordEncoder passwordEncoder;
@@ -57,7 +56,6 @@ class AuthenticationServiceTest {
 
 	@Mock
 	private RoleRepository roleRepository;
-
 
 	@Mock
 	private JwtService jwtService;
@@ -124,22 +122,22 @@ class AuthenticationServiceTest {
 	void findExistingTokenShouldBeOk() {
 		String mockContent = "testToken";
 		EmailToken mockEmailToken = new EmailToken();
-		when(emailTokenRepository.findByContent(mockContent)).thenReturn(Optional.of(mockEmailToken));
+		when(tokenRepository.findByContent(mockContent)).thenReturn(Optional.of(mockEmailToken));
 
-		EmailToken emailToken = emailTokenRepository.findByContent(mockContent).orElse(null);
+		EmailToken emailToken = tokenRepository.findByContent(mockContent).orElse(null);
 
-		verify(emailTokenRepository, times(1)).findByContent(mockContent);
+		verify(tokenRepository, times(1)).findByContent(mockContent);
 		assertSame(mockEmailToken, emailToken);
 	}
 
 	@Test
 	void findNonExistingTokenShouldBeNull() {
 		String mockContent = "testToken";
-		when(emailTokenRepository.findByContent(mockContent)).thenReturn(Optional.empty());
+		when(tokenRepository.findByContent(mockContent)).thenReturn(Optional.empty());
 
-		EmailToken emailToken = emailTokenRepository.findByContent(mockContent).orElse(null);
+		EmailToken emailToken = tokenRepository.findByContent(mockContent).orElse(null);
 
-		verify(emailTokenRepository, times(1)).findByContent(mockContent);
+		verify(tokenRepository, times(1)).findByContent(mockContent);
 		assertNull(emailToken);
 	}
 
@@ -149,11 +147,11 @@ class AuthenticationServiceTest {
 	void saveTokenShouldBeOk() {
 		EmailToken mockEmailToken = EmailToken.builder().content("mockToken").createdAt(LocalDateTime.now()).expiresAt(LocalDateTime.now().plusMinutes(15)).user(new User()).build();
 
-		when(emailTokenRepository.save(mockEmailToken)).thenReturn(mockEmailToken);
+		when(tokenRepository.save(mockEmailToken)).thenReturn(mockEmailToken);
 
-		EmailToken emailToken = emailTokenRepository.save(mockEmailToken);
+		EmailToken emailToken = tokenRepository.save(mockEmailToken);
 
-		verify(emailTokenRepository, times(1)).save(mockEmailToken);
+		verify(tokenRepository, times(1)).save(mockEmailToken);
 		assertNotNull(emailToken);
 		assertSame(mockEmailToken, emailToken);
 	}
@@ -259,7 +257,7 @@ class AuthenticationServiceTest {
 		assertEquals(generatedToken, result);
 
 		ArgumentCaptor<EmailToken> tokenCaptor = ArgumentCaptor.forClass(EmailToken.class);
-		verify(emailTokenRepository, times(1)).save(tokenCaptor.capture());
+		verify(tokenRepository, times(1)).save(tokenCaptor.capture());
 		EmailToken savedEmailToken = tokenCaptor.getValue();
 
 		assertEquals(generatedToken, savedEmailToken.getContent());
@@ -301,14 +299,14 @@ class AuthenticationServiceTest {
 		assertNotNull(emailToken.getValidatedAt());
 		assertTrue(emailToken.getValidatedAt().isBefore(LocalDateTime.now().plusSeconds(1)));
 
-		verify(emailTokenRepository, times(1)).save(emailToken);
+		verify(tokenRepository, times(1)).save(emailToken);
 	}
 
 	@Test
 	void markTokenAsValidatedShouldThrowExceptionWhenTokenIsNull() {
 		assertThrows(NullPointerException.class, () -> authenticationService.markTokenAsValidated(null));
 
-		verify(emailTokenRepository, never()).save(any());
+		verify(tokenRepository, never()).save(any());
 	}
 
 
@@ -320,7 +318,7 @@ class AuthenticationServiceTest {
 		String tokenContent = "validToken";
 		EmailToken emailToken = new EmailToken();
 		emailToken.setContent(tokenContent);
-		when(emailTokenRepository.findByContent(tokenContent)).thenReturn(Optional.of(emailToken));
+		when(tokenRepository.findByContent(tokenContent)).thenReturn(Optional.of(emailToken));
 
 		EmailToken result = authenticationService.findTokenOrThrow(tokenContent);
 
@@ -330,7 +328,7 @@ class AuthenticationServiceTest {
 	@Test
 	void findTokenOrThrowShouldThrowTokenNotFoundExceptionWhenTokenDoesNotExist() {
 		String tokenContent = "invalidToken";
-		when(emailTokenRepository.findByContent(tokenContent)).thenReturn(Optional.empty());
+		when(tokenRepository.findByContent(tokenContent)).thenReturn(Optional.empty());
 
 		TokenNotFoundException exception = assertThrows(TokenNotFoundException.class, () -> authenticationService.findTokenOrThrow(tokenContent));
 
@@ -370,7 +368,7 @@ class AuthenticationServiceTest {
 		EmailToken mockEmailToken = EmailToken.builder().content(mockContent).createdAt(LocalDateTime.now().minusMinutes(20)).expiresAt(LocalDateTime.now().minusMinutes(5)).user(new User()).build();
 		String mockPassword = "mockPassword";
 
-		when(emailTokenRepository.findByContent(mockContent)).thenReturn(Optional.of(mockEmailToken));
+		when(tokenRepository.findByContent(mockContent)).thenReturn(Optional.of(mockEmailToken));
 
 		assertThrows(TokenExpiredException.class, () -> authenticationService.changeUserPassword(mockContent, mockPassword));
 	}
@@ -384,7 +382,7 @@ class AuthenticationServiceTest {
 		String mockPassword = "mockPassword";
 
 
-		when(emailTokenRepository.findByContent(mockContent)).thenReturn(Optional.of(mockEmailToken));
+		when(tokenRepository.findByContent(mockContent)).thenReturn(Optional.of(mockEmailToken));
 
 		assertDoesNotThrow(() -> authenticationService.changeUserPassword(mockContent, mockPassword));
 	}
@@ -534,13 +532,13 @@ class AuthenticationServiceTest {
 		user.setEnabled(false);
 		EmailToken emailToken = EmailToken.builder().content(tokenContent).createdAt(LocalDateTime.now()).expiresAt(LocalDateTime.now().plusMinutes(15)).user(user).build();
 
-		when(emailTokenRepository.findByContent(tokenContent)).thenReturn(Optional.of(emailToken));
+		when(tokenRepository.findByContent(tokenContent)).thenReturn(Optional.of(emailToken));
 
 		String result = authenticationService.activateAccount(tokenContent);
 
 		assertEquals(tokenContent, result);
 		verify(userRepository, times(1)).save(user);
-		verify(emailTokenRepository, times(1)).save(emailToken);
+		verify(tokenRepository, times(1)).save(emailToken);
 		assertTrue(user.isEnabled());
 		assertNotNull(emailToken.getValidatedAt());
 	}
@@ -549,14 +547,14 @@ class AuthenticationServiceTest {
 	void activateAccountShouldThrowTokenNotFoundExceptionWhenTokenDoesNotExist() {
 
 		String tokenContent = "invalidToken";
-		when(emailTokenRepository.findByContent(tokenContent)).thenReturn(Optional.empty());
+		when(tokenRepository.findByContent(tokenContent)).thenReturn(Optional.empty());
 
 
 		TokenNotFoundException exception = assertThrows(TokenNotFoundException.class, () -> authenticationService.activateAccount(tokenContent));
 
 		assertEquals("Invalid token", exception.getMessage());
 		verify(userRepository, never()).save(any(User.class));
-		verify(emailTokenRepository, never()).save(any(EmailToken.class));
+		verify(tokenRepository, never()).save(any(EmailToken.class));
 	}
 
 
@@ -569,7 +567,7 @@ class AuthenticationServiceTest {
 		user.setEnabled(false);
 		EmailToken emailToken = EmailToken.builder().content(tokenContent).createdAt(LocalDateTime.now().minusMinutes(20)).expiresAt(LocalDateTime.now().minusMinutes(5)).user(user).build();
 
-		when(emailTokenRepository.findByContent(tokenContent)).thenReturn(Optional.of(emailToken));
+		when(tokenRepository.findByContent(tokenContent)).thenReturn(Optional.of(emailToken));
 
 
 		TokenExpiredException exception = assertThrows(TokenExpiredException.class, () -> authenticationService.activateAccount(tokenContent));

@@ -1,12 +1,13 @@
 package com.dama.wanderwave.auth;
 
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 @Getter
 @Setter
 @Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class AuthenticationResponse {
-    private String token;
+    private String accessToken;
+    private String refreshToken;
 }
