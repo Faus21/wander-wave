@@ -5,14 +5,13 @@ CREATE TABLE category_types
     CONSTRAINT pk_category_types PRIMARY KEY (category_type_id)
 );
 
-CREATE TABLE chats
+CREATE TABLE chat_rooms
 (
-    chat_id     VARCHAR(255) NOT NULL,
-    user1_id    VARCHAR(255) NOT NULL,
-    user2_id    VARCHAR(255) NOT NULL,
-    user_1_mute BOOLEAN      NOT NULL,
-    user_2_mute BOOLEAN      NOT NULL,
-    CONSTRAINT pk_chats PRIMARY KEY (chat_id)
+    chat_id      VARCHAR(255) NOT NULL,
+    sender_id    VARCHAR(255) NOT NULL,
+    recipient_id VARCHAR(255) NOT NULL,
+    muted        BOOLEAN      NOT NULL,
+    CONSTRAINT pk_chat_rooms PRIMARY KEY (chat_id)
 );
 
 CREATE TABLE comments
@@ -45,12 +44,12 @@ CREATE TABLE hashtags
 
 CREATE TABLE messages
 (
-    message_id VARCHAR(255)                NOT NULL,
-    user_id    VARCHAR(255)                NOT NULL,
-    chat_id    VARCHAR(255)                NOT NULL,
-    content    VARCHAR(1024)               NOT NULL,
-    created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-    CONSTRAINT pk_messages PRIMARY KEY (message_id)
+    chat_id      VARCHAR(255)                NOT NULL,
+    content      VARCHAR(1024)               NOT NULL,
+    created_at   TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    sender_id    VARCHAR(255)                NOT NULL,
+    recipient_id VARCHAR(255)                NOT NULL,
+    CONSTRAINT pk_messages PRIMARY KEY (sender_id, recipient_id)
 );
 
 CREATE TABLE notifications
@@ -193,6 +192,9 @@ ALTER TABLE report_types
 ALTER TABLE category_types
     ADD CONSTRAINT uc_category_types_name UNIQUE (name);
 
+ALTER TABLE chat_rooms
+    ADD CONSTRAINT uc_chat_rooms_recipient UNIQUE (recipient_id);
+
 ALTER TABLE hashtags
     ADD CONSTRAINT uc_hashtags_title UNIQUE (title);
 
@@ -211,11 +213,11 @@ ALTER TABLE users
 ALTER TABLE users
     ADD CONSTRAINT uc_users_nickname UNIQUE (nickname);
 
-ALTER TABLE chats
-    ADD CONSTRAINT FK_CHATS_ON_USER1 FOREIGN KEY (user1_id) REFERENCES users (user_id);
+ALTER TABLE chat_rooms
+    ADD CONSTRAINT FK_CHAT_ROOMS_ON_RECIPIENT FOREIGN KEY (recipient_id) REFERENCES users (user_id);
 
-ALTER TABLE chats
-    ADD CONSTRAINT FK_CHATS_ON_USER2 FOREIGN KEY (user2_id) REFERENCES users (user_id);
+ALTER TABLE chat_rooms
+    ADD CONSTRAINT FK_CHAT_ROOMS_ON_SENDER FOREIGN KEY (sender_id) REFERENCES users (user_id);
 
 ALTER TABLE comments
     ADD CONSTRAINT FK_COMMENT_POST FOREIGN KEY (post_id) REFERENCES posts (post_id);
@@ -224,10 +226,7 @@ ALTER TABLE comments
     ADD CONSTRAINT FK_COMMENT_USER FOREIGN KEY (user_id) REFERENCES users (user_id);
 
 ALTER TABLE messages
-    ADD CONSTRAINT FK_MESSAGE_CHAT FOREIGN KEY (chat_id) REFERENCES chats (chat_id);
-
-ALTER TABLE messages
-    ADD CONSTRAINT FK_MESSAGE_USER FOREIGN KEY (user_id) REFERENCES users (user_id);
+    ADD CONSTRAINT FK_MESSAGE_CHAT FOREIGN KEY (chat_id) REFERENCES chat_rooms (chat_id);
 
 ALTER TABLE notifications
     ADD CONSTRAINT FK_NOTIFICATION_RECIPIENT_USER FOREIGN KEY (recipient_id) REFERENCES users (user_id);

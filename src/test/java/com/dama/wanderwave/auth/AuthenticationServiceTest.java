@@ -10,7 +10,7 @@ import com.dama.wanderwave.role.Role;
 import com.dama.wanderwave.role.RoleRepository;
 import com.dama.wanderwave.security.JwtService;
 import com.dama.wanderwave.token.EmailToken;
-import com.dama.wanderwave.token.TokenRepository;
+import com.dama.wanderwave.token.EmailTokenRepository;
 import com.dama.wanderwave.user.User;
 import com.dama.wanderwave.user.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -44,7 +44,7 @@ class AuthenticationServiceTest {
 	@Mock
 	private UserRepository userRepository;
 	@Mock
-	private TokenRepository tokenRepository;
+	private EmailTokenRepository emailTokenRepository;
 
 	@Mock
 	private PasswordEncoder passwordEncoder;
@@ -124,22 +124,22 @@ class AuthenticationServiceTest {
 	void findExistingTokenShouldBeOk() {
 		String mockContent = "testToken";
 		EmailToken mockEmailToken = new EmailToken();
-		when(tokenRepository.findByContent(mockContent)).thenReturn(Optional.of(mockEmailToken));
+		when(emailTokenRepository.findByContent(mockContent)).thenReturn(Optional.of(mockEmailToken));
 
-		EmailToken emailToken = tokenRepository.findByContent(mockContent).orElse(null);
+		EmailToken emailToken = emailTokenRepository.findByContent(mockContent).orElse(null);
 
-		verify(tokenRepository, times(1)).findByContent(mockContent);
+		verify(emailTokenRepository, times(1)).findByContent(mockContent);
 		assertSame(mockEmailToken, emailToken);
 	}
 
 	@Test
 	void findNonExistingTokenShouldBeNull() {
 		String mockContent = "testToken";
-		when(tokenRepository.findByContent(mockContent)).thenReturn(Optional.empty());
+		when(emailTokenRepository.findByContent(mockContent)).thenReturn(Optional.empty());
 
-		EmailToken emailToken = tokenRepository.findByContent(mockContent).orElse(null);
+		EmailToken emailToken = emailTokenRepository.findByContent(mockContent).orElse(null);
 
-		verify(tokenRepository, times(1)).findByContent(mockContent);
+		verify(emailTokenRepository, times(1)).findByContent(mockContent);
 		assertNull(emailToken);
 	}
 
@@ -149,11 +149,11 @@ class AuthenticationServiceTest {
 	void saveTokenShouldBeOk() {
 		EmailToken mockEmailToken = EmailToken.builder().content("mockToken").createdAt(LocalDateTime.now()).expiresAt(LocalDateTime.now().plusMinutes(15)).user(new User()).build();
 
-		when(tokenRepository.save(mockEmailToken)).thenReturn(mockEmailToken);
+		when(emailTokenRepository.save(mockEmailToken)).thenReturn(mockEmailToken);
 
-		EmailToken emailToken = tokenRepository.save(mockEmailToken);
+		EmailToken emailToken = emailTokenRepository.save(mockEmailToken);
 
-		verify(tokenRepository, times(1)).save(mockEmailToken);
+		verify(emailTokenRepository, times(1)).save(mockEmailToken);
 		assertNotNull(emailToken);
 		assertSame(mockEmailToken, emailToken);
 	}
@@ -259,7 +259,7 @@ class AuthenticationServiceTest {
 		assertEquals(generatedToken, result);
 
 		ArgumentCaptor<EmailToken> tokenCaptor = ArgumentCaptor.forClass(EmailToken.class);
-		verify(tokenRepository, times(1)).save(tokenCaptor.capture());
+		verify(emailTokenRepository, times(1)).save(tokenCaptor.capture());
 		EmailToken savedEmailToken = tokenCaptor.getValue();
 
 		assertEquals(generatedToken, savedEmailToken.getContent());
@@ -301,14 +301,14 @@ class AuthenticationServiceTest {
 		assertNotNull(emailToken.getValidatedAt());
 		assertTrue(emailToken.getValidatedAt().isBefore(LocalDateTime.now().plusSeconds(1)));
 
-		verify(tokenRepository, times(1)).save(emailToken);
+		verify(emailTokenRepository, times(1)).save(emailToken);
 	}
 
 	@Test
 	void markTokenAsValidatedShouldThrowExceptionWhenTokenIsNull() {
 		assertThrows(NullPointerException.class, () -> authenticationService.markTokenAsValidated(null));
 
-		verify(tokenRepository, never()).save(any());
+		verify(emailTokenRepository, never()).save(any());
 	}
 
 
@@ -320,7 +320,7 @@ class AuthenticationServiceTest {
 		String tokenContent = "validToken";
 		EmailToken emailToken = new EmailToken();
 		emailToken.setContent(tokenContent);
-		when(tokenRepository.findByContent(tokenContent)).thenReturn(Optional.of(emailToken));
+		when(emailTokenRepository.findByContent(tokenContent)).thenReturn(Optional.of(emailToken));
 
 		EmailToken result = authenticationService.findTokenOrThrow(tokenContent);
 
@@ -330,7 +330,7 @@ class AuthenticationServiceTest {
 	@Test
 	void findTokenOrThrowShouldThrowTokenNotFoundExceptionWhenTokenDoesNotExist() {
 		String tokenContent = "invalidToken";
-		when(tokenRepository.findByContent(tokenContent)).thenReturn(Optional.empty());
+		when(emailTokenRepository.findByContent(tokenContent)).thenReturn(Optional.empty());
 
 		TokenNotFoundException exception = assertThrows(TokenNotFoundException.class, () -> authenticationService.findTokenOrThrow(tokenContent));
 
@@ -370,7 +370,7 @@ class AuthenticationServiceTest {
 		EmailToken mockEmailToken = EmailToken.builder().content(mockContent).createdAt(LocalDateTime.now().minusMinutes(20)).expiresAt(LocalDateTime.now().minusMinutes(5)).user(new User()).build();
 		String mockPassword = "mockPassword";
 
-		when(tokenRepository.findByContent(mockContent)).thenReturn(Optional.of(mockEmailToken));
+		when(emailTokenRepository.findByContent(mockContent)).thenReturn(Optional.of(mockEmailToken));
 
 		assertThrows(TokenExpiredException.class, () -> authenticationService.changeUserPassword(mockContent, mockPassword));
 	}
@@ -384,7 +384,7 @@ class AuthenticationServiceTest {
 		String mockPassword = "mockPassword";
 
 
-		when(tokenRepository.findByContent(mockContent)).thenReturn(Optional.of(mockEmailToken));
+		when(emailTokenRepository.findByContent(mockContent)).thenReturn(Optional.of(mockEmailToken));
 
 		assertDoesNotThrow(() -> authenticationService.changeUserPassword(mockContent, mockPassword));
 	}
@@ -534,13 +534,13 @@ class AuthenticationServiceTest {
 		user.setEnabled(false);
 		EmailToken emailToken = EmailToken.builder().content(tokenContent).createdAt(LocalDateTime.now()).expiresAt(LocalDateTime.now().plusMinutes(15)).user(user).build();
 
-		when(tokenRepository.findByContent(tokenContent)).thenReturn(Optional.of(emailToken));
+		when(emailTokenRepository.findByContent(tokenContent)).thenReturn(Optional.of(emailToken));
 
 		String result = authenticationService.activateAccount(tokenContent);
 
 		assertEquals(tokenContent, result);
 		verify(userRepository, times(1)).save(user);
-		verify(tokenRepository, times(1)).save(emailToken);
+		verify(emailTokenRepository, times(1)).save(emailToken);
 		assertTrue(user.isEnabled());
 		assertNotNull(emailToken.getValidatedAt());
 	}
@@ -549,14 +549,14 @@ class AuthenticationServiceTest {
 	void activateAccountShouldThrowTokenNotFoundExceptionWhenTokenDoesNotExist() {
 
 		String tokenContent = "invalidToken";
-		when(tokenRepository.findByContent(tokenContent)).thenReturn(Optional.empty());
+		when(emailTokenRepository.findByContent(tokenContent)).thenReturn(Optional.empty());
 
 
 		TokenNotFoundException exception = assertThrows(TokenNotFoundException.class, () -> authenticationService.activateAccount(tokenContent));
 
 		assertEquals("Invalid token", exception.getMessage());
 		verify(userRepository, never()).save(any(User.class));
-		verify(tokenRepository, never()).save(any(EmailToken.class));
+		verify(emailTokenRepository, never()).save(any(EmailToken.class));
 	}
 
 
@@ -569,7 +569,7 @@ class AuthenticationServiceTest {
 		user.setEnabled(false);
 		EmailToken emailToken = EmailToken.builder().content(tokenContent).createdAt(LocalDateTime.now().minusMinutes(20)).expiresAt(LocalDateTime.now().minusMinutes(5)).user(user).build();
 
-		when(tokenRepository.findByContent(tokenContent)).thenReturn(Optional.of(emailToken));
+		when(emailTokenRepository.findByContent(tokenContent)).thenReturn(Optional.of(emailToken));
 
 
 		TokenExpiredException exception = assertThrows(TokenExpiredException.class, () -> authenticationService.activateAccount(tokenContent));

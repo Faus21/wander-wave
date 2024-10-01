@@ -12,7 +12,7 @@ import java.util.UUID;
 @Component
 public class HashUUIDGenerator implements IdentifierGenerator {
 
-    private static final int ID_LENGTH = 12;
+    private static final int ID_LENGTH = 16;
 
     @Override
     public Serializable generate(SharedSessionContractImplementor session, Object object) {
