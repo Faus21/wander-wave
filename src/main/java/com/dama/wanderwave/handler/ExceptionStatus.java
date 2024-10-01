@@ -5,24 +5,45 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 
-import java.util.Arrays;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+import static org.springframework.http.HttpStatus.*;
 
 public enum ExceptionStatus {
-    USER_NOT_FOUND(UserNotFoundException.class, HttpStatus.NOT_FOUND),
-    ROLE_NOT_FOUND(RoleNotFoundException.class, HttpStatus.NOT_FOUND),
-    METHOD_ARGUMENT_NOT_VALID(MethodArgumentNotValidException.class, HttpStatus.BAD_REQUEST),
-    CONSTRAINT_VIOLATION(ConstraintViolationException.class, HttpStatus.BAD_REQUEST),
-    TOKEN_INVALID(TokenInvalidException.class, HttpStatus.BAD_REQUEST),
-    TOKEN_REFRESH(TokenRefreshException.class, HttpStatus.BAD_REQUEST),
-    TOKEN_EXPIRED(TokenExpiredException.class, HttpStatus.BAD_REQUEST),
-    TOKEN_NOT_FOUND(TokenNotFoundException.class, HttpStatus.NOT_FOUND),
-    CHAT_ROOM_NOT_FOUND(ChatRoomNotFoundException.class, HttpStatus.NOT_FOUND),
-    BAD_CREDENTIALS(BadCredentialsException.class, HttpStatus.UNAUTHORIZED),
-    UNIQUE_CONSTRAINT_VIOLATION(UniqueConstraintViolationException.class, HttpStatus.CONFLICT),
-    EMAIL_TEMPLATE(EmailTemplateException.class, HttpStatus.INTERNAL_SERVER_ERROR),
-    EMAIL_SENDING(EmailSendingException.class, HttpStatus.INTERNAL_SERVER_ERROR),
-    GENERIC_EXCEPTION(Exception.class, HttpStatus.INTERNAL_SERVER_ERROR),
-    INTERNAL_ERROR(InternalError.class, HttpStatus.INTERNAL_SERVER_ERROR);
+    // NOT_FOUND
+    USER_NOT_FOUND(UserNotFoundException.class, NOT_FOUND),
+    ROLE_NOT_FOUND(RoleNotFoundException.class, NOT_FOUND),
+    TOKEN_NOT_FOUND(TokenNotFoundException.class, NOT_FOUND),
+    CHAT_ROOM_NOT_FOUND(ChatRoomNotFoundException.class, NOT_FOUND),
+
+    // BAD_REQUEST
+    METHOD_ARGUMENT_NOT_VALID(MethodArgumentNotValidException.class, BAD_REQUEST),
+    CONSTRAINT_VIOLATION(ConstraintViolationException.class, BAD_REQUEST),
+    TOKEN_INVALID(TokenInvalidException.class, BAD_REQUEST),
+    TOKEN_REFRESH(TokenRefreshException.class, BAD_REQUEST),
+    TOKEN_EXPIRED(TokenExpiredException.class, BAD_REQUEST),
+
+    // UNAUTHORIZED
+    BAD_CREDENTIALS(BadCredentialsException.class, UNAUTHORIZED),
+
+    // CONFLICT
+    UNIQUE_CONSTRAINT_VIOLATION(UniqueConstraintViolationException.class, CONFLICT),
+
+    // INTERNAL_SERVER_ERROR
+    EMAIL_TEMPLATE(EmailTemplateException.class, INTERNAL_SERVER_ERROR),
+    EMAIL_SENDING(EmailSendingException.class, INTERNAL_SERVER_ERROR),
+    GENERIC_EXCEPTION(Exception.class, INTERNAL_SERVER_ERROR),
+    CHAT_ROOM_EXCEPTION(ChatRoomException.class, INTERNAL_SERVER_ERROR),
+    INTERNAL_ERROR(InternalError.class, INTERNAL_SERVER_ERROR);
+
+    private static final Map<Class<? extends Throwable>, HttpStatus> EXCEPTION_STATUS_MAP = new ConcurrentHashMap<>();
+
+    static {
+        for (ExceptionStatus status : values()) {
+            EXCEPTION_STATUS_MAP.put(status.exceptionClass, status.status);
+        }
+    }
 
     private final Class<? extends Throwable> exceptionClass;
     private final HttpStatus status;
@@ -33,10 +54,14 @@ public enum ExceptionStatus {
     }
 
     public static HttpStatus getStatusFor(Throwable throwable) {
-        return Arrays.stream(values())
-                .filter(e -> e.exceptionClass.isAssignableFrom(throwable.getClass()))
-                .map(e -> e.status)
-                .findFirst()
-                .orElse(HttpStatus.INTERNAL_SERVER_ERROR);
+        Class<?> exceptionClass = throwable.getClass();
+        while (exceptionClass != null) {
+            HttpStatus status = EXCEPTION_STATUS_MAP.get(exceptionClass);
+            if (status != null) {
+                return status;
+            }
+            exceptionClass = exceptionClass.getSuperclass();
+        }
+        return INTERNAL_SERVER_ERROR;
     }
 }

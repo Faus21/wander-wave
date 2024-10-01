@@ -1,4 +1,4 @@
-package com.dama.wanderwave.refresh_token;
+package com.dama.wanderwave.refreshToken;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;

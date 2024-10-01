@@ -1,4 +1,4 @@
-package com.dama.wanderwave.refresh_token;
+package com.dama.wanderwave.refreshToken;
 
 
 import com.dama.wanderwave.handler.TokenRefreshException;

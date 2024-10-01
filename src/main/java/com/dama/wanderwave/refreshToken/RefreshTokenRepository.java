@@ -1,4 +1,4 @@
-package com.dama.wanderwave.refresh_token;
+package com.dama.wanderwave.refreshToken;
 
 import com.dama.wanderwave.user.User;
 import org.springframework.data.jpa.repository.JpaRepository;

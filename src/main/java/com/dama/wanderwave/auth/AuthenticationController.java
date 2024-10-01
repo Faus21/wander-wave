@@ -1,9 +1,9 @@
 package com.dama.wanderwave.auth;
 
 import com.dama.wanderwave.handler.TokenRefreshException;
-import com.dama.wanderwave.refresh_token.RefreshToken;
-import com.dama.wanderwave.refresh_token.RefreshTokenService;
-import com.dama.wanderwave.refresh_token.TokenRefreshRequest;
+import com.dama.wanderwave.refreshToken.RefreshToken;
+import com.dama.wanderwave.refreshToken.RefreshTokenService;
+import com.dama.wanderwave.refreshToken.TokenRefreshRequest;
 import com.dama.wanderwave.security.JwtService;
 import com.dama.wanderwave.utils.ResponseRecord;
 import io.swagger.v3.oas.annotations.Operation;

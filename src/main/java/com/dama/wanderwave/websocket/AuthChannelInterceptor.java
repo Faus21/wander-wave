@@ -1,6 +1,7 @@
 package com.dama.wanderwave.websocket;
 
 import com.dama.wanderwave.security.JwtService;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +21,7 @@ public class AuthChannelInterceptor implements ChannelInterceptor {
 	private final UserDetailsService userDetailsService;
 
 	@Override
-	public Message<?> preSend(Message<?> message, MessageChannel channel) {
+	public Message<?> preSend(Message<?> message,@NonNull MessageChannel channel) {
 		String authHeader = (String) message.getHeaders().get("simpSessionAttributes.Authorization");
 
 		if (authHeader != null && authHeader.startsWith("Bearer ")) {
