@@ -2,27 +2,25 @@ package com.dama.wanderwave.hash;
 
 import org.hibernate.engine.spi.SharedSessionContractImplementor;
 import org.hibernate.id.IdentifierGenerator;
-import org.springframework.stereotype.Component;
 
 import java.io.Serializable;
-import java.nio.charset.StandardCharsets;
+import java.nio.ByteBuffer;
 import java.util.Base64;
 import java.util.UUID;
 
-@Component
 public class HashUUIDGenerator implements IdentifierGenerator {
-
-    private static final int ID_LENGTH = 12;
 
     @Override
     public Serializable generate(SharedSessionContractImplementor session, Object object) {
-        String uuid = UUID.randomUUID().toString();
-        return encodeString(uuid);
-    }
+        UUID uuid = UUID.randomUUID();
 
-    public String encodeString(String text) {
-        byte[] uuidBytes = text.getBytes(StandardCharsets.UTF_8);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(uuidBytes)
-                       .substring(0, ID_LENGTH);
+        ByteBuffer byteBuffer = ByteBuffer.wrap(new byte[16]);
+        byteBuffer.putLong(uuid.getMostSignificantBits());
+        byteBuffer.putLong(uuid.getLeastSignificantBits());
+        byte[] uuidBytes = byteBuffer.array();
+
+        String base64Encoded = Base64.getUrlEncoder().encodeToString(uuidBytes);
+
+        return base64Encoded.substring(0, Math.min(8, base64Encoded.length()));
     }
 }
