@@ -1,4 +1,4 @@
-package com.dama.wanderwave.chatroom;
+package com.dama.wanderwave.chat;
 
 import com.dama.wanderwave.handler.UserNotFoundException;
 import com.dama.wanderwave.hash.HashUUIDGenerator;

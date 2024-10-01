@@ -1,7 +1,7 @@
 package com.dama.wanderwave.message;
 
-import com.dama.wanderwave.chatroom.Chat;
-import com.dama.wanderwave.chatroom.ChatService;
+import com.dama.wanderwave.chat.Chat;
+import com.dama.wanderwave.chat.ChatService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

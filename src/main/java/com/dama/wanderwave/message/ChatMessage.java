@@ -1,7 +1,6 @@
 package com.dama.wanderwave.message;
 
-import com.dama.wanderwave.chatroom.Chat;
-import com.dama.wanderwave.user.User;
+import com.dama.wanderwave.chat.Chat;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
