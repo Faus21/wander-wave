@@ -1,4 +1,4 @@
-package com.dama.wanderwave.config;
+package com.dama.wanderwave.utils;
 
 import com.dama.wanderwave.role.Role;
 import com.dama.wanderwave.role.RoleRepository;

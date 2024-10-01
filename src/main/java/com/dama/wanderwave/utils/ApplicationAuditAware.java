@@ -1,4 +1,4 @@
-package com.dama.wanderwave.config;
+package com.dama.wanderwave.utils;
 
 import org.springframework.data.domain.AuditorAware;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
