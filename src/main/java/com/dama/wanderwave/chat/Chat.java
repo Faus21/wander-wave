@@ -1,20 +1,20 @@
 package com.dama.wanderwave.chat;
 
+
+
 import com.dama.wanderwave.user.User;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.GenericGenerator;
 
 @Getter
 @Setter
 @Entity
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "chats")
+@Table(name = "chat_rooms")
 public class Chat {
 
 	@Id
@@ -24,18 +24,18 @@ public class Chat {
 	private String id;
 
 	@ManyToOne(fetch = FetchType.EAGER)
-	@JoinColumn(name = "user1_id", nullable = false)
-	@NotNull(message = "User1 must be specified")
-	private User user1;
+	@JoinColumn(name = "sender_id", nullable = false)
+	@NotNull(message = "Sender must be specified")
+	private User sender;
 
-	@ManyToOne(fetch = FetchType.EAGER)
-	@JoinColumn(name = "user2_id", nullable = false)
-	@NotNull(message = "User2 must be specified")
-	private User user2;
+	@OneToOne(fetch = FetchType.EAGER)
+	@JoinColumn(name = "recipient_id", nullable = false)
+	@NotNull(message = "Recipiet must be specified")
+	private User recipient;
 
-	@Column(name = "user_1_mute", nullable = false)
-	private boolean user1Mute = false;
+	@Column( nullable = false)
+	private boolean muted = false;
 
-	@Column(name = "user_2_mute", nullable = false)
-	private boolean user2Mute = false;
+
 }
+

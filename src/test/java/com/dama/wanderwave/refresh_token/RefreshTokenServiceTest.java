@@ -98,9 +98,7 @@ class RefreshTokenServiceTest {
     void verifyExpiration_ShouldThrowException_WhenTokenIsExpired() {
         refreshToken.setExpiresAt(Instant.now().minusMillis(1000000));
 
-        TokenRefreshException exception = assertThrows(TokenRefreshException.class, () -> {
-            refreshTokenService.verifyExpiration(refreshToken);
-        });
+        TokenRefreshException exception = assertThrows(TokenRefreshException.class, () -> refreshTokenService.verifyExpiration(refreshToken));
 
         assertEquals("Refresh token was expired. Please make a new sign-in request", exception.getMessage());
         verify(refreshTokenRepository, times(1)).delete(refreshToken);
@@ -128,9 +126,7 @@ class RefreshTokenServiceTest {
 
     @Test
     void createRefreshToken_ShouldHandleNullUser() {
-        assertThrows(NullPointerException.class, () -> {
-            refreshTokenService.createRefreshToken(null);
-        });
+        assertThrows(NullPointerException.class, () -> refreshTokenService.createRefreshToken(null));
 
         verify(jwtService, never()).generateRefreshToken(anyMap(), any(User.class));
         verify(refreshTokenRepository, never()).save(any(RefreshToken.class));
@@ -138,9 +134,7 @@ class RefreshTokenServiceTest {
 
     @Test
     void verifyExpiration_ShouldHandleNullToken() {
-        assertThrows(NullPointerException.class, () -> {
-            refreshTokenService.verifyExpiration(null);
-        });
+        assertThrows(NullPointerException.class, () -> refreshTokenService.verifyExpiration(null));
 
         verify(refreshTokenRepository, never()).delete(any(RefreshToken.class));
     }

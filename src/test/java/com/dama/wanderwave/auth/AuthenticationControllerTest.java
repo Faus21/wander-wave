@@ -9,6 +9,7 @@ import com.dama.wanderwave.security.JwtService;
 import com.dama.wanderwave.user.User;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,6 +19,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.test.web.servlet.MockMvc;
@@ -32,8 +34,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
-import lombok.Getter;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -67,9 +67,7 @@ class AuthenticationControllerTest {
 
     public record ErrorResponse(int errorCode, String message) { }
 
-	public record ResponseRecord (int code, String message) { }
-
-
+	public record ResponseRecord (HttpStatus code, String message) { }
 
     private static final String CONTENT_TYPE = MediaType.APPLICATION_JSON_VALUE;
     private static final MediaType ACCEPT_TYPE = MediaType.APPLICATION_JSON;
@@ -231,7 +229,7 @@ class AuthenticationControllerTest {
 	@Test
 	void activeAccountShouldReturnAccepted() throws Exception {
 		String testActivationToken = "12345678";
-		ResponseRecord response = new ResponseRecord(202, "test-token");
+		ResponseRecord response = new ResponseRecord(HttpStatus.ACCEPTED, "test-token");
 
 		when(authenticationService.activateAccount(testActivationToken)).thenReturn(response.message);
 
@@ -326,7 +324,7 @@ class AuthenticationControllerTest {
     void recoverByEmailShouldReturnOk() throws Exception {
 
         String email = "temp@mail.com";
-        ResponseRecord response = new ResponseRecord(202, "Message have sent!");
+        ResponseRecord response = new ResponseRecord(HttpStatus.ACCEPTED, "Message have sent!");
 
         when(authenticationService.recoverAccount(email)).thenReturn(response.message);
 
@@ -384,10 +382,10 @@ class AuthenticationControllerTest {
 
     @Test
     void changePasswordShouldReturnOk() throws Exception {
-        ResponseRecord response = new ResponseRecord(200, "Password changed successfully");
+        ResponseRecord response = new ResponseRecord(HttpStatus.ACCEPTED, "Password changed successfully");
         RecoveryRequest request = new RecoveryRequest("validToken", "newPassword");
 
-        when(authenticationService.changeUserPassword(anyString(), anyString())).thenReturn(new com.dama.wanderwave.utils.ResponseRecord(200, "Password changed successfully"));
+        when(authenticationService.changeUserPassword(anyString(), anyString())).thenReturn(new com.dama.wanderwave.utils.ResponseRecord(HttpStatus.OK.value(), "Password changed successfully"));
 
 
         mockMvc.perform(MockMvcRequestBuilders.post(CHANGE_PASSWORD.getUrl())
@@ -419,7 +417,7 @@ class AuthenticationControllerTest {
                                 .content(mapToJson(mockRecoveryRequest)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.errorCode").value(response.errorCode))
-                .andExpect(jsonPath("$.message").value(response.message));;
+                .andExpect(jsonPath("$.message").value(response.message));
 
         verify(authenticationService, times(1)).changeUserPassword(anyString(), anyString());
 
@@ -454,7 +452,7 @@ class AuthenticationControllerTest {
         User user = new User();
         user.setNickname("testUser");
         refreshTokenEntity.setUser(user);
-        ResponseRecord response = new ResponseRecord(200, newAccessToken);
+        ResponseRecord response = new ResponseRecord(HttpStatus.OK, newAccessToken);
 
         when(refreshTokenService.findByToken(refreshToken)).thenReturn(Optional.of(refreshTokenEntity));
         when(refreshTokenService.verifyExpiration(refreshTokenEntity)).thenReturn(refreshTokenEntity);

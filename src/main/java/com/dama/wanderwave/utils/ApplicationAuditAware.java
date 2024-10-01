@@ -1,5 +1,6 @@
 package com.dama.wanderwave.utils;
 
+import lombok.NonNull;
 import org.springframework.data.domain.AuditorAware;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -11,18 +12,19 @@ import java.util.Optional;
 
 @Component("auditorAware")
 public class ApplicationAuditAware implements AuditorAware<String> {
+
+    @NonNull
     @Override
     public Optional<String> getCurrentAuditor() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return Optional.ofNullable(SecurityContextHolder.getContext().getAuthentication())
+                       .filter(this::isValidAuthentication)
+                       .map(Authentication::getPrincipal)
+                       .filter(User.class::isInstance)
+                       .map(User.class::cast)
+                       .map(User::getId);
+    }
 
-        if (authentication == null ||
-                !authentication.isAuthenticated() ||
-                authentication instanceof AnonymousAuthenticationToken ) {
-            return Optional.empty();
-        }
-
-        User userPrincipal = (User) authentication.getPrincipal();
-
-        return Optional.ofNullable(userPrincipal.getId());
+    private boolean isValidAuthentication(Authentication authentication) {
+        return authentication.isAuthenticated() && !(authentication instanceof AnonymousAuthenticationToken);
     }
 }

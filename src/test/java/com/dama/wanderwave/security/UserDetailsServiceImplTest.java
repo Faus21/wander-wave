@@ -48,9 +48,7 @@ class UserDetailsServiceImplTest {
 
         when(userRepository.findByEmail(username)).thenReturn(Optional.empty());
 
-        UsernameNotFoundException thrownException = assertThrows(UsernameNotFoundException.class, () -> {
-            userDetailsService.loadUserByUsername(username);
-        });
+        UsernameNotFoundException thrownException = assertThrows(UsernameNotFoundException.class, () -> userDetailsService.loadUserByUsername(username));
 
         assertThat(thrownException).hasMessageContaining("User not found");
         verify(userRepository, times(1)).findByEmail(username);
