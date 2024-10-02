@@ -24,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -164,7 +165,13 @@ public class AuthenticationService {
 
 	protected Map<String, Object> createClaims(User user) {
 		log.debug("Created claims for user: {}", user.getEmail());
-		return Map.of("username", user.getNickname());
+		Map<String, Object> claims = new HashMap<>();
+		claims.put("id", user.getId());
+		claims.put("nickname", user.getNickname());
+		claims.put("email", user.getEmail());
+		claims.put("authorities", user.getAuthorities());
+		claims.put("imgUrl", user.getImageUrl());
+		return claims;
 	}
 
 

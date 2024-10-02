@@ -1,6 +1,7 @@
 package com.dama.wanderwave.message;
 
 import com.dama.wanderwave.chat.Chat;
+import com.dama.wanderwave.chat.ChatService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -9,6 +10,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
@@ -33,6 +35,9 @@ class ChatControllerTest {
 
     @Mock
     private ChatMessageService chatMessageService;
+
+    @Mock
+    private ChatService chatService;
 
     private ChatMessage chatMessage;
     private ChatNotification chatNotification;
@@ -126,7 +131,7 @@ class ChatControllerTest {
 
             ResponseEntity<List<ChatMessage>> response = chatController.findChatMessages("senderId", "recipientId");
 
-            assertEquals(200, response.getStatusCode().value()); // Updated line
+            assertEquals(200, response.getStatusCode().value());
             assertEquals(chatMessages, response.getBody());
         }
 
@@ -147,6 +152,36 @@ class ChatControllerTest {
             when(chatMessageService.findChatMessages("senderId", "recipientId")).thenThrow(new RuntimeException("Find failed"));
 
             assertThrows(RuntimeException.class, () -> chatController.findChatMessages("senderId", "recipientId"));
+        }
+    }
+
+    @Nested
+    @DisplayName("changeMuteState Method")
+    class ChangeMuteStateTests {
+
+        @Test
+        @DisplayName("Should change mute state successfully")
+        void changeMuteStateShouldChangeStateSuccessfully() {
+            String senderId = "senderId";
+            String recipientId = "recipientId";
+            boolean muteState = true;
+
+            ResponseEntity<Void> response = chatController.changeMuteState(senderId, recipientId, muteState);
+
+            verify(chatService, times(1)).changeMuteState(senderId, recipientId, muteState);
+            assertEquals(HttpStatus.OK, response.getStatusCode());
+        }
+
+        @Test
+        @DisplayName("Should throw exception if chat room not found")
+        void changeMuteStateShouldThrowExceptionIfChatRoomNotFound() {
+            String senderId = "senderId";
+            String recipientId = "recipientId";
+            boolean muteState = true;
+
+            doThrow(new RuntimeException("Chat room not found")).when(chatService).changeMuteState(senderId, recipientId, muteState);
+
+            assertThrows(RuntimeException.class, () -> chatController.changeMuteState(senderId, recipientId, muteState));
         }
     }
 }

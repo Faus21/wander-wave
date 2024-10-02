@@ -1,6 +1,7 @@
 package com.dama.wanderwave.chat;
 
 import com.dama.wanderwave.handler.ChatRoomException;
+import com.dama.wanderwave.handler.ChatRoomNotFoundException;
 import com.dama.wanderwave.handler.UserNotFoundException;
 import com.dama.wanderwave.hash.HashUUIDGenerator;
 import com.dama.wanderwave.user.User;
@@ -36,6 +37,8 @@ class ChatServiceTest {
 
 	@Mock
 	private HashUUIDGenerator hashUUIDGenerator;
+
+
 
 	private User sender;
 	private User recipient;
@@ -227,14 +230,16 @@ class ChatServiceTest {
 		@DisplayName("Should throw ChatRoomException when sender is null")
 		void createAndSaveChatRoom_ShouldThrowChatRoomException_WhenSenderIsNull() {
 			assertThatThrownBy(() -> chatService.createAndSaveChatRoom("chatId", null, recipient))
-					.isInstanceOf(ChatRoomException.class);
+					.isInstanceOf(ChatRoomException.class)
+					.hasMessageContaining("Chat attributes cannot be null");
 		}
 
 		@Test
 		@DisplayName("Should throw ChatRoomException when recipient is null")
 		void createAndSaveChatRoom_ShouldThrowChatRoomException_WhenRecipientIsNull() {
 			assertThatThrownBy(() -> chatService.createAndSaveChatRoom("chatId", sender, null))
-					.isInstanceOf(ChatRoomException.class);
+					.isInstanceOf(ChatRoomException.class)
+					.hasMessageContaining("Chat attributes cannot be null");
 		}
 
 		@Test
@@ -242,6 +247,49 @@ class ChatServiceTest {
 		void createAndSaveChatRoom_ShouldThrowIllegalArgumentException_WhenChatIdIsNull() {
 			assertThatThrownBy(() -> chatService.createAndSaveChatRoom(null, sender, recipient))
 					.isInstanceOf(IllegalArgumentException.class);
+		}
+	}
+
+
+	@Nested
+	@DisplayName("changeMuteState Method")
+	class ChangeMuteStateTests {
+
+		@Test
+		@DisplayName("Should change mute state successfully")
+		void changeMuteState_ShouldChangeStateSuccessfully() {
+			String senderId = "senderId";
+			String recipientId = "recipientId";
+			boolean muteState = true;
+
+			Chat chatRoom = Chat.builder()
+					                .id("chatId")
+					                .sender(sender)
+					                .recipient(recipient)
+					                .muted(false)
+					                .build();
+
+			when(chatRepository.findBySenderIdAndRecipientId(senderId, recipientId)).thenReturn(Optional.of(chatRoom));
+			when(chatRepository.save(chatRoom)).thenReturn(chatRoom);
+
+			chatService.changeMuteState(senderId, recipientId, muteState);
+
+			assertThat(chatRoom.isMuted()).isTrue();
+			verify(chatRepository, times(1)).save(chatRoom);
+		}
+
+		@Test
+		@DisplayName("Should throw ChatRoomNotFoundException when chat room not found")
+		void changeMuteState_ShouldThrowChatRoomNotFoundException_WhenChatRoomNotFound() {
+			String senderId = "senderId";
+			String recipientId = "recipientId";
+			boolean muteState = true;
+
+			when(chatRepository.findBySenderIdAndRecipientId(senderId, recipientId)).thenReturn(Optional.empty());
+
+			assertThatThrownBy(() -> chatService.changeMuteState(senderId, recipientId, muteState))
+					.isInstanceOf(ChatRoomNotFoundException.class)
+					.hasMessageContaining("Chat room could not be found.");
 		}
 	}
 }

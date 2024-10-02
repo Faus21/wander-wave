@@ -2,6 +2,7 @@ package com.dama.wanderwave.message;
 
 import com.dama.wanderwave.chat.Chat;
 import com.dama.wanderwave.chat.ChatService;
+import com.dama.wanderwave.handler.ChatRoomNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -18,7 +19,7 @@ public class ChatMessageService {
     public ChatMessage save(ChatMessage chatMessage) {
         Chat chat = chatService
 		                    .getChatRoom(chatMessage.getSenderId(), chatMessage.getRecipientId(), true)
-		                    .orElseThrow(() -> new RuntimeException("Chat room could not be created or found."));
+		                    .orElseThrow(() -> new ChatRoomNotFoundException("Chat room could not be created or found."));
 
         chatMessage.setChat(chat);
         return repository.save(chatMessage);
