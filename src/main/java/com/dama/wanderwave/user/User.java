@@ -1,6 +1,6 @@
 package com.dama.wanderwave.user;
 
-import com.dama.wanderwave.report.user.UserReport;
+import com.dama.wanderwave.report.general.UserReport;
 import com.dama.wanderwave.role.Role;
 import com.dama.wanderwave.token.EmailToken;
 import com.dama.wanderwave.user.like.Like;
@@ -95,8 +95,11 @@ public class User implements UserDetails, Principal {
 	@OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
 	private List<Like> likes = new ArrayList<>();
 	@Builder.Default
-	@OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-	private Set<UserReport> reports = new HashSet<>();
+	@OneToMany(mappedBy = "sender", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+	private Set<UserReport> sentReports = new HashSet<>();
+	@Builder.Default
+	@OneToMany(mappedBy = "reported", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+	private Set<UserReport> receivedReports = new HashSet<>();
 
 	@Override
 	public Collection<? extends GrantedAuthority> getAuthorities() {

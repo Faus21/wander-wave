@@ -17,12 +17,14 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/reports")
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
 @Tag(name = "Report", description = "Endpoints for reports")
+@Validated
 public class ReportController {
 
     private static final int MAX_PAGE_SIZE = 50;
@@ -43,19 +45,6 @@ public class ReportController {
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), message));
     }
 
-    @GetMapping("/types")
-    @ResponseStatus(HttpStatus.OK)
-    @Operation(summary = "Get report types", description = "Get all report types.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "All report types retrieved successfully", content = @Content()),
-            @ApiResponse(responseCode = "404", description = "Report types not found", content = @Content()),
-            @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
-    })
-    public ResponseEntity<ResponseRecord> getReportTypes() {
-        var types = service.getReportTypes();
-        return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), types));
-    }
-
     @GetMapping("/get")
     @ResponseStatus(HttpStatus.OK)
     @Operation(summary = "Get reports", description = "Retrieve reports.")
@@ -66,7 +55,7 @@ public class ReportController {
     })
     public ResponseEntity<ResponseRecord> getAllReports(
             @RequestParam int pageNumber,
-            @RequestParam @Max(MAX_PAGE_SIZE) int pageSize,
+            @RequestParam @Max(MAX_PAGE_SIZE) Integer pageSize,
             @RequestBody(required = false) @Valid FilteredReportPageRequest request) {
         Pageable page = PageRequest.of(pageNumber, pageSize);
         var reports = service.getAllReports(page, request);

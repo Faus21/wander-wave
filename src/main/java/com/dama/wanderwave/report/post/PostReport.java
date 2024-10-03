@@ -1,7 +1,7 @@
 package com.dama.wanderwave.report.post;
 
 import com.dama.wanderwave.post.Post;
-import com.dama.wanderwave.report.general.Report;
+import com.dama.wanderwave.report.general.UserReport;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -13,7 +13,7 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 @Entity
 @Table(name = "post_reports")
-public class PostReport extends Report {
+public class PostReport extends UserReport {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "post_id", nullable = false, referencedColumnName = "post_id", foreignKey = @ForeignKey(name = "fk_post_report"))

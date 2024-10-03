@@ -55,7 +55,7 @@ public class SecurityConfig {
                                     "/webjars/**",
                                     "/swagger-ui.html").permitAll()
                             .requestMatchers(
-                                    "/api/reports/find-by-dates",
+//                                    "/api/reports/get",
                                     "/api/reports/review").hasRole(ADMIN.name())
                             .requestMatchers(
                                     "api/reports/send").hasRole(USER.name())

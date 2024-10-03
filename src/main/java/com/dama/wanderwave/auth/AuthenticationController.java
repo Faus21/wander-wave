@@ -57,17 +57,17 @@ public class AuthenticationController {
 	}
 
 	@GetMapping("/activate-account")
-	@ResponseStatus(HttpStatus.OK)
+	@ResponseStatus(HttpStatus.ACCEPTED)
 	@Operation(summary = "Activate user account", description = "Activates a user account using the provided token.")
 	@ApiResponses(value = {
-			@ApiResponse(responseCode = "200", description = "Account activated successfully", content = @Content()),
+			@ApiResponse(responseCode = "202", description = "Account activated successfully", content = @Content()),
 			@ApiResponse(responseCode = "400", description = "Expired token", content = @Content()),
 			@ApiResponse(responseCode = "404", description = "Invalid token", content = @Content()),
 			@ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
 	})
 	public ResponseEntity<ResponseRecord> activateAccount(@RequestParam String emailToken) {
 		String jwtToken = service.activateAccount(emailToken);
-		return ResponseEntity.accepted().body(new ResponseRecord(HttpStatus.OK.value(), jwtToken));
+		return ResponseEntity.accepted().body(new ResponseRecord(HttpStatus.ACCEPTED.value(), jwtToken));
 	}
 
 	@GetMapping("/recover-account")

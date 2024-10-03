@@ -184,13 +184,15 @@ CREATE TABLE reports
     report_id        VARCHAR(255)                NOT NULL,
     description      VARCHAR(1024)               NOT NULL,
     user_sender_id   VARCHAR(255)                NOT NULL,
+    reported_user_id VARCHAR(255)                NOT NULL,
     report_type_id   VARCHAR(255)                NOT NULL,
     report_status_id VARCHAR(255)                NOT NULL,
     created_at       TIMESTAMP WITHOUT TIME ZONE NOT NULL,
     reviewed_at      TIMESTAMP WITHOUT TIME ZONE,
     reviewed_by      VARCHAR(255),
     report_comment   VARCHAR(255),
-    CONSTRAINT pk_reports PRIMARY KEY (report_id)
+    CONSTRAINT pk_reports PRIMARY KEY (report_id),
+    FOREIGN KEY (reported_user_id) REFERENCES users (user_id)
 );
 
 CREATE TABLE comment_reports
@@ -200,15 +202,6 @@ CREATE TABLE comment_reports
     PRIMARY KEY (report_id),
     FOREIGN KEY (report_id) REFERENCES reports (report_id),
     FOREIGN KEY (comment_id) REFERENCES comments (comment_id)
-);
-
-CREATE TABLE user_reports
-(
-    report_id VARCHAR(255) NOT NULL,
-    user_id   VARCHAR(255) NOT NULL,
-    PRIMARY KEY (report_id),
-    FOREIGN KEY (report_id) REFERENCES reports (report_id),
-    FOREIGN KEY (user_id) REFERENCES users (user_id)
 );
 
 CREATE TABLE post_reports

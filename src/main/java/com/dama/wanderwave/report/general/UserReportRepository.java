@@ -7,10 +7,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.lang.NonNull;
 
-public interface ReportRepository extends JpaRepository<Report, String>, JpaSpecificationExecutor<Report> {
+import java.util.List;
 
+public interface UserReportRepository extends JpaRepository<UserReport, String>, JpaSpecificationExecutor<UserReport> {
     @NonNull
-    Page<Report> findAll(@NonNull Pageable pageable);
-    Page<Report> findAllBySender(@NonNull Pageable pageable, User sender);
+    Page<UserReport> findAll(@NonNull Pageable pageable);
+    Page<UserReport> findAllBySender(@NonNull Pageable pageable, User sender);
+    List<UserReport> findAllByReported(User reported);
 
 }

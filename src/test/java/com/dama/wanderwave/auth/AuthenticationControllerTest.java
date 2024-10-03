@@ -239,7 +239,7 @@ class AuthenticationControllerTest {
 				                .accept(ACCEPT_TYPE)
 				                .content(CONTENT_TYPE))
 				.andExpect(status().isAccepted())
-				.andExpect(jsonPath("$.code").value(response.code))
+				.andExpect(jsonPath("$.code").value(response.code.value()))
 				.andExpect(jsonPath("$.message").value(response.message));
 
 		verify(authenticationService, times(1)).activateAccount(testActivationToken);
@@ -334,7 +334,7 @@ class AuthenticationControllerTest {
                                 .contentType(CONTENT_TYPE)
                                 .param("email", email))
                 .andExpect(status().isAccepted())
-                .andExpect(jsonPath("$.code").value(response.code))
+                .andExpect(jsonPath("$.code").value(response.code.value()))
                 .andExpect(jsonPath("$.message").value(response.message));
 
         verify(authenticationService, times(1)).recoverAccount(email);
@@ -383,10 +383,10 @@ class AuthenticationControllerTest {
 
     @Test
     void changePasswordShouldReturnOk() throws Exception {
-        ResponseRecord response = new ResponseRecord(HttpStatus.ACCEPTED, "Password changed successfully");
+        ResponseRecord response = new ResponseRecord(HttpStatus.OK, "Password changed successfully");
         RecoveryRequest request = new RecoveryRequest("validToken", "newPassword");
 
-        when(authenticationService.changeUserPassword(anyString(), anyString())).thenReturn(new com.dama.wanderwave.auth.ResponseRecord(HttpStatus.OK, "Password changed successfully"));
+        when(authenticationService.changeUserPassword(anyString(), anyString())).thenReturn(new com.dama.wanderwave.auth.ResponseRecord(HttpStatus.OK.value(), "Password changed successfully"));
 
 
         mockMvc.perform(MockMvcRequestBuilders.post(CHANGE_PASSWORD.getUrl())
@@ -394,7 +394,7 @@ class AuthenticationControllerTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(new ObjectMapper().writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(response.code))
+                .andExpect(jsonPath("$.code").value(response.code.value()))
                 .andExpect(jsonPath("$.message").value(response.message));
 
         verify(authenticationService, times(1)).changeUserPassword(anyString(), anyString());
@@ -464,7 +464,7 @@ class AuthenticationControllerTest {
                                 .accept(ACCEPT_TYPE)
                                 .content(mapToJson(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(response.code))
+                .andExpect(jsonPath("$.code").value(response.code.value()))
                 .andExpect(jsonPath("$.message").value(response.message));
 
         verify(refreshTokenService, times(1)).findByToken(refreshToken);

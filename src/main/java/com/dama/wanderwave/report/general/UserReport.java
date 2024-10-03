@@ -21,7 +21,7 @@ import java.time.LocalDateTime;
 @EntityListeners(AuditingEntityListener.class)
 @Inheritance(strategy = InheritanceType.JOINED)
 @Table(name = "reports")
-public abstract class Report {
+public class UserReport {
 
 	@Id
 	@GeneratedValue(generator = "hash_generator")
@@ -37,6 +37,10 @@ public abstract class Report {
 	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name = "user_sender_id", nullable = false, referencedColumnName = "user_id", foreignKey = @ForeignKey(name = "fk_user_sender_report"))
 	private User sender;
+
+	@ManyToOne(fetch = FetchType.EAGER)
+	@JoinColumn(name = "reported_user_id", nullable = false, referencedColumnName = "user_id", foreignKey = @ForeignKey(name = "fk_user_report"))
+	private User reported;
 
 	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name = "report_type_id", nullable = false, referencedColumnName = "report_type_id", foreignKey = @ForeignKey(name = "fk_report_type_report"))

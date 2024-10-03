@@ -22,7 +22,8 @@ public class FilteredReportPageRequest {
 
     @Size(max = 255)
     private String category;
-    Boolean isReviewed;
+
+    private String status;
 
     private LocalDateTime startDate;
     private LocalDateTime endDate;
