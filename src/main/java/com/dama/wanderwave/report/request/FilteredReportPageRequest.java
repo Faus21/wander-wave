@@ -13,11 +13,8 @@ import java.util.List;
 @Builder
 public class FilteredReportPageRequest {
 
-    @Size(max = 255)
-    private String from;
-    @Size(max = 255)
-    private String on;
-
+    private List<String> from;
+    private List<String> on;
     private List<String> admins;
 
     @Size(max = 255)

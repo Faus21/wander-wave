@@ -1,4 +1,4 @@
-package com.dama.wanderwave.validation;
+package com.dama.wanderwave.security.validation;
 
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;

@@ -66,6 +66,11 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(ex.getMessage(), 400, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(DuplicateReportException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateReportException(DuplicateReportException ex) {
+        return buildErrorResponse(ex.getMessage(), 400, HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler(TokenNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleTokenNotFoundException(TokenNotFoundException ex) {
         return buildErrorResponse(ex.getMessage(), 404, HttpStatus.NOT_FOUND);
@@ -106,6 +111,11 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(ex.getMessage(), 404, HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(ReportStatusNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleReportStatusNotFoundException(ReportStatusNotFoundException ex) {
+        return buildErrorResponse(ex.getMessage(), 404, HttpStatus.NOT_FOUND);
+    }
+
     @ExceptionHandler(ReportNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleReportNotFoundException(ReportNotFoundException ex) {
         return buildErrorResponse(ex.getMessage(), 404, HttpStatus.NOT_FOUND);
@@ -131,5 +141,6 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, status);
     }
 
-    public record ErrorResponse(int errorCode, String message) { }
+    public record ErrorResponse(int errorCode, String message) {
+    }
 }

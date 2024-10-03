@@ -12,7 +12,7 @@ import org.hibernate.annotations.GenericGenerator;
 @AllArgsConstructor
 @Entity
 @Builder
-@Table(name = "report_status", uniqueConstraints = {@UniqueConstraint(columnNames = {"report_status_id"})})
+@Table(name = "report_status", uniqueConstraints = {@UniqueConstraint(columnNames = {"name"})})
 public class ReportStatus {
 
     @Id
@@ -22,6 +22,6 @@ public class ReportStatus {
     private String id;
 
     @Size(max = 50, message = "Report type name must be less than or equal to 50 characters")
-    @Column(nullable = false, unique = true, length = 50)
+    @Column(name = "name", nullable = false, unique = true, length = 50)
     private String name;
 }

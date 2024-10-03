@@ -1,6 +1,6 @@
 package com.dama.wanderwave.auth;
 
-import com.dama.wanderwave.validation.ValidPassword;
+import com.dama.wanderwave.security.validation.ValidPassword;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;

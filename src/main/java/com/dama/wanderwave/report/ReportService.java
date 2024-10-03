@@ -4,10 +4,7 @@ import com.dama.wanderwave.comment.CommentRepository;
 import com.dama.wanderwave.handler.*;
 import com.dama.wanderwave.post.PostRepository;
 import com.dama.wanderwave.report.comment.CommentReport;
-import com.dama.wanderwave.report.general.ReportType;
-import com.dama.wanderwave.report.general.ReportTypeRepository;
-import com.dama.wanderwave.report.general.UserReport;
-import com.dama.wanderwave.report.general.UserReportRepository;
+import com.dama.wanderwave.report.general.*;
 import com.dama.wanderwave.report.post.PostReport;
 import com.dama.wanderwave.report.request.FilteredReportPageRequest;
 import com.dama.wanderwave.report.request.ReviewReportRequest;
@@ -15,6 +12,7 @@ import com.dama.wanderwave.report.request.SendReportRequest;
 import com.dama.wanderwave.user.User;
 import com.dama.wanderwave.user.UserRepository;
 import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.Path;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +30,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 @Slf4j
@@ -39,7 +38,10 @@ import java.util.function.Function;
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
 public class ReportService {
 
+    private static final String DEFAULT_REPORT_STATUS = "IN_PROGRESS";
+
     private final UserReportRepository reportRepository;
+    private final ReportStatusRepository statusRepository;
     private final UserRepository userRepository;
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
@@ -49,13 +51,20 @@ public class ReportService {
     public String sendReport(SendReportRequest request) {
         User sender = getAuthenticatedSender(request.getUserSenderId());
 
-        ReportType reportType = typeRepository.findByName(request.getReportType())
-                .orElseThrow(() -> new ReportTypeNotFoundException("Report type not found with name: " + request.getReportType()));
+        var existing = reportRepository.findUserReportByObjectAndSender(request.getObjectId(),
+                request.getUserSenderId());
+        if (existing.isPresent()) {
+            log.warn("User '{}' sent duplicate report on object ID '{}'", sender.getId(), request.getObjectId());
+            throw new DuplicateReportException("Report on object from that user already existing in system");
+        }
 
         UserReport report = createReportByType(request);
 
-        report.setType(reportType);
+        report.setType(typeRepository.findByName(request.getReportType()).orElseThrow(
+                () -> new ReportTypeNotFoundException("Report type not found with name: " + request.getReportType())));
         report.setDescription(request.getDescription());
+        report.setStatus(statusRepository.findByName(DEFAULT_REPORT_STATUS).orElseThrow(
+                () -> new ReportStatusNotFoundException("Report status not found with name: " + DEFAULT_REPORT_STATUS)));
 
         reportRepository.save(report);
         log.info("Report created successfully for user: {}", sender.getId());
@@ -98,11 +107,15 @@ public class ReportService {
         UserReport report = reportRepository.findById(request.getReportId())
                 .orElseThrow(() -> new ReportNotFoundException("Report not found with ID: " + request.getReportId()));
 
+        ReportStatus status = statusRepository.findByName(request.getStatus()).orElseThrow(
+                () -> new ReportTypeNotFoundException("Report status not found with name: " + request.getStatus()));
+
         List<? extends UserReport> relatedReports = findRelatedReports(report);
         relatedReports.forEach(rep -> {
             rep.setReviewedBy(admin);
             rep.setReviewedAt(LocalDateTime.now());
             rep.setReportComment(request.getComment());
+            rep.setStatus(status);
         });
 
         reportRepository.saveAll(relatedReports);
@@ -136,14 +149,11 @@ public class ReportService {
     }
 
     private UserReport createReportByType(SendReportRequest request) {
-        var reportedUserOptional = userRepository.findById(request.getUserReportedId());
-
-        if (reportedUserOptional.isEmpty()) {
-            log.warn("User with ID {} not found", request.getObjectId());
-            throw new UserNotFoundException("User not found");
-        }
-
-        var reportedUser = reportedUserOptional.get();
+        var reportedUser = userRepository.findById(request.getUserReportedId()).orElseThrow(
+                () -> {
+                    log.warn("User with ID {} not found", request.getObjectId());
+                    return new UserNotFoundException("User not found");
+                });
 
         return switch (request.getObjectType()) {
             case COMMENT -> buildReport(commentRepository.findById(request.getObjectId()),
@@ -198,33 +208,40 @@ public class ReportService {
         }, pageable);
     }
 
+
     private void addFilterPredicates(FilteredReportPageRequest filter, List<Predicate> predicates, CriteriaBuilder cb, Root<UserReport> root) {
-        if (filter.getStartDate() != null) {
-            predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), filter.getStartDate()));
-        }
-        if (filter.getEndDate() != null) {
-            predicates.add(cb.lessThanOrEqualTo(root.get("createdAt"), filter.getEndDate()));
-        }
+        addDatePredicate(filter.getStartDate(), "createdAt", cb::greaterThanOrEqualTo, predicates, root);
+        addDatePredicate(filter.getEndDate(), "createdAt", cb::lessThanOrEqualTo, predicates, root);
 
-        if (filter.getCategory() != null) {
-            predicates.add(cb.equal(root.get("type").get("name"), filter.getCategory()));
-        }
+        addEqualPredicate(filter.getCategory(), "type", "name", predicates, root, cb);
+        addEqualPredicate(filter.getStatus(), "status", "name", predicates, root, cb);
 
-        if (filter.getStatus() != null) {
-            predicates.add(cb.equal(root.get("status").get("name"), filter.getCategory()));
-        }
+        addInPredicate(filter.getAdmins(), "reviewedBy", "id", predicates, root);
+        addInPredicate(filter.getFrom(), "sender", "id", predicates, root);
+        addInPredicate(filter.getOn(), "reported", "id", predicates, root);
+    }
 
-        if (filter.getAdmins() != null && !filter.getAdmins().isEmpty()) {
-            predicates.add(root.get("reviewedBy").get("id").in(filter.getAdmins()));
-        }
-
-        if (filter.getFrom() != null) {
-            predicates.add(root.get("sender").get("id").in(filter.getFrom()));
-        }
-
-        if (filter.getOn() != null) {
-            predicates.add(root.get("reported").get("id").in(filter.getOn()));
+    private void addDatePredicate(LocalDateTime date, String field,
+                                  BiFunction<Path<LocalDateTime>, LocalDateTime, Predicate> predicateFunction,
+                                  List<Predicate> predicates, Root<UserReport> root) {
+        if (date != null) {
+            predicates.add(predicateFunction.apply(root.get(field), date));
         }
     }
+
+    private void addEqualPredicate(String value, String entity, String field,
+                                   List<Predicate> predicates, Root<UserReport> root, CriteriaBuilder cb) {
+        if (value != null) {
+            predicates.add(cb.equal(root.get(entity).get(field), value));
+        }
+    }
+
+    private void addInPredicate(List<String> values, String entity, String field,
+                                List<Predicate> predicates, Root<UserReport> root) {
+        if (values != null && !values.isEmpty()) {
+            predicates.add(root.get(entity).get(field).in(values));
+        }
+    }
+
 
 }

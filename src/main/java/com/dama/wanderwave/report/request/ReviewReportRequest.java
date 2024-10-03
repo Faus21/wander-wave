@@ -14,6 +14,9 @@ public class ReviewReportRequest {
     @NotEmpty(message = "Report id is mandatory")
     private String reportId;
 
+    @NotEmpty(message = "Status is mandatory")
+    private String status;
+
     @Size(max = 255, message = "Comment length should be less or equal 255")
     private String comment;
 
