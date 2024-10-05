@@ -18,6 +18,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.test.web.servlet.MockMvc;
@@ -67,9 +68,7 @@ class AuthenticationControllerTest {
 
     public record ErrorResponse(int errorCode, String message) { }
 
-	public record ResponseRecord (int code, String message) { }
-
-
+	public record ResponseRecord (HttpStatus code, String message) { }
 
     private static final String CONTENT_TYPE = MediaType.APPLICATION_JSON_VALUE;
     private static final MediaType ACCEPT_TYPE = MediaType.APPLICATION_JSON;
@@ -231,7 +230,7 @@ class AuthenticationControllerTest {
 	@Test
 	void activeAccountShouldReturnAccepted() throws Exception {
 		String testActivationToken = "12345678";
-		ResponseRecord response = new ResponseRecord(202, "test-token");
+		ResponseRecord response = new ResponseRecord(HttpStatus.ACCEPTED, "test-token");
 
 		when(authenticationService.activateAccount(testActivationToken)).thenReturn(response.message);
 
@@ -240,7 +239,7 @@ class AuthenticationControllerTest {
 				                .accept(ACCEPT_TYPE)
 				                .content(CONTENT_TYPE))
 				.andExpect(status().isAccepted())
-				.andExpect(jsonPath("$.code").value(response.code))
+				.andExpect(jsonPath("$.code").value(response.code.value()))
 				.andExpect(jsonPath("$.message").value(response.message));
 
 		verify(authenticationService, times(1)).activateAccount(testActivationToken);
@@ -326,7 +325,7 @@ class AuthenticationControllerTest {
     void recoverByEmailShouldReturnOk() throws Exception {
 
         String email = "temp@mail.com";
-        ResponseRecord response = new ResponseRecord(202, "Message have sent!");
+        ResponseRecord response = new ResponseRecord(HttpStatus.ACCEPTED, "Message have sent!");
 
         when(authenticationService.recoverAccount(email)).thenReturn(response.message);
 
@@ -335,7 +334,7 @@ class AuthenticationControllerTest {
                                 .contentType(CONTENT_TYPE)
                                 .param("email", email))
                 .andExpect(status().isAccepted())
-                .andExpect(jsonPath("$.code").value(response.code))
+                .andExpect(jsonPath("$.code").value(response.code.value()))
                 .andExpect(jsonPath("$.message").value(response.message));
 
         verify(authenticationService, times(1)).recoverAccount(email);
@@ -384,10 +383,10 @@ class AuthenticationControllerTest {
 
     @Test
     void changePasswordShouldReturnOk() throws Exception {
-        ResponseRecord response = new ResponseRecord(200, "Password changed successfully");
+        ResponseRecord response = new ResponseRecord(HttpStatus.OK, "Password changed successfully");
         RecoveryRequest request = new RecoveryRequest("validToken", "newPassword");
 
-        when(authenticationService.changeUserPassword(anyString(), anyString())).thenReturn(new com.dama.wanderwave.auth.ResponseRecord(200, "Password changed successfully"));
+        when(authenticationService.changeUserPassword(anyString(), anyString())).thenReturn(new com.dama.wanderwave.auth.ResponseRecord(HttpStatus.OK.value(), "Password changed successfully"));
 
 
         mockMvc.perform(MockMvcRequestBuilders.post(CHANGE_PASSWORD.getUrl())
@@ -395,7 +394,7 @@ class AuthenticationControllerTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(new ObjectMapper().writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(response.code))
+                .andExpect(jsonPath("$.code").value(response.code.value()))
                 .andExpect(jsonPath("$.message").value(response.message));
 
         verify(authenticationService, times(1)).changeUserPassword(anyString(), anyString());
@@ -454,7 +453,7 @@ class AuthenticationControllerTest {
         User user = new User();
         user.setNickname("testUser");
         refreshTokenEntity.setUser(user);
-        ResponseRecord response = new ResponseRecord(200, newAccessToken);
+        ResponseRecord response = new ResponseRecord(HttpStatus.OK, newAccessToken);
 
         when(refreshTokenService.findByToken(refreshToken)).thenReturn(Optional.of(refreshTokenEntity));
         when(refreshTokenService.verifyExpiration(refreshTokenEntity)).thenReturn(refreshTokenEntity);
@@ -465,7 +464,7 @@ class AuthenticationControllerTest {
                                 .accept(ACCEPT_TYPE)
                                 .content(mapToJson(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(response.code))
+                .andExpect(jsonPath("$.code").value(response.code.value()))
                 .andExpect(jsonPath("$.message").value(response.message));
 
         verify(refreshTokenService, times(1)).findByToken(refreshToken);

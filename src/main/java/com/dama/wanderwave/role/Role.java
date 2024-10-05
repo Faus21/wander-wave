@@ -15,7 +15,7 @@ public class Role {
 	@Id
 	@Column(name = "role_id", nullable = false, updatable = false)
 	@GeneratedValue(generator = "hash_generator")
-	@GenericGenerator(name = "hash_generator", strategy = "com.dama.wanderwave.hash.HashUUIDGenerator")
+	@GenericGenerator(name = "hash_generator", type = com.dama.wanderwave.hash.HashUUIDGenerator.class)
 	private String id;
 
 	@Size(min = 1, max = 50)

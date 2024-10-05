@@ -61,6 +61,16 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(ex.getMessage(), 400, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(WrongReportObjectException.class)
+    public ResponseEntity<ErrorResponse> handleWrongReportObjectException(WrongReportObjectException ex) {
+        return buildErrorResponse(ex.getMessage(), 400, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(DuplicateReportException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateReportException(DuplicateReportException ex) {
+        return buildErrorResponse(ex.getMessage(), 400, HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler(TokenNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleTokenNotFoundException(TokenNotFoundException ex) {
         return buildErrorResponse(ex.getMessage(), 404, HttpStatus.NOT_FOUND);
@@ -96,10 +106,41 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(ex.getMessage(), 500, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
+    @ExceptionHandler(ReportTypeNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleReportTypeNotFoundException(ReportTypeNotFoundException ex) {
+        return buildErrorResponse(ex.getMessage(), 404, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(ReportStatusNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleReportStatusNotFoundException(ReportStatusNotFoundException ex) {
+        return buildErrorResponse(ex.getMessage(), 404, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(ReportNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleReportNotFoundException(ReportNotFoundException ex) {
+        return buildErrorResponse(ex.getMessage(), 404, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(PostNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handlePostNotFoundException(PostNotFoundException ex) {
+        return buildErrorResponse(ex.getMessage(), 404, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(CommentNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleCommentNotFoundException(CommentNotFoundException ex) {
+        return buildErrorResponse(ex.getMessage(), 404, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(UnauthorizedActionException.class)
+    public ResponseEntity<ErrorResponse> handleUnauthorizedActionException(UnauthorizedActionException ex) {
+        return buildErrorResponse(ex.getMessage(), 403, HttpStatus.FORBIDDEN);
+    }
+
     private ResponseEntity<ErrorResponse> buildErrorResponse(String message, int errorCode, HttpStatus status) {
         ErrorResponse errorResponse = new ErrorResponse(errorCode, message);
         return new ResponseEntity<>(errorResponse, status);
     }
 
-    public record ErrorResponse(int errorCode, String message) { }
+    public record ErrorResponse(int errorCode, String message) {
+    }
 }

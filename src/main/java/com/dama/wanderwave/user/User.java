@@ -1,5 +1,6 @@
 package com.dama.wanderwave.user;
 
+import com.dama.wanderwave.report.general.UserReport;
 import com.dama.wanderwave.role.Role;
 import com.dama.wanderwave.token.EmailToken;
 import com.dama.wanderwave.user.like.Like;
@@ -32,7 +33,7 @@ public class User implements UserDetails, Principal {
 
 	@Id
 	@GeneratedValue(generator = "hash_generator")
-	@GenericGenerator(name = "hash_generator", strategy = "com.dama.wanderwave.hash.HashUUIDGenerator")
+	@GenericGenerator(name = "hash_generator", type = com.dama.wanderwave.hash.HashUUIDGenerator.class)
 	@Column(name = "user_id", nullable = false)
 	private String id;
 
@@ -93,6 +94,12 @@ public class User implements UserDetails, Principal {
 	@Builder.Default
 	@OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
 	private List<Like> likes = new ArrayList<>();
+	@Builder.Default
+	@OneToMany(mappedBy = "sender", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+	private Set<UserReport> sentReports = new HashSet<>();
+	@Builder.Default
+	@OneToMany(mappedBy = "reported", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+	private Set<UserReport> receivedReports = new HashSet<>();
 
 	@Override
 	public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -124,7 +131,6 @@ public class User implements UserDetails, Principal {
 	public boolean isEnabled() {
 		return enabled;
 	}
-
 
 	@Override
 	public String getName() {
