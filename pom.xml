@@ -25,7 +25,6 @@
         <flyway.version>10.17.3</flyway.version>
         <jjwt.version>0.11.5</jjwt.version>
         <hibernate-types-60.version>2.21.1</hibernate-types-60.version>
-        <hivernate-ehcache.version>5.6.15.Final</hivernate-ehcache.version>
         <guava.version>33.3.0-jre</guava.version>
     </properties>
     <dependencies>
@@ -158,12 +157,6 @@
             <artifactId>hibernate-types-60</artifactId>
             <version>${hibernate-types-60.version}</version>
         </dependency>
-        <dependency>
-            <groupId>org.hibernate</groupId>
-            <artifactId>hibernate-ehcache</artifactId>
-            <version>${hivernate-ehcache.version}</version>
-        </dependency>
-
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
