@@ -1,12 +1,14 @@
 package com.dama.wanderwave.handler;
 
 import jakarta.validation.ConstraintViolationException;
+import org.springframework.context.ApplicationContextException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 
+import java.util.IdentityHashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+
 
 import static org.springframework.http.HttpStatus.*;
 
@@ -35,11 +37,13 @@ public enum ExceptionStatus {
     EMAIL_SENDING(EmailSendingException.class, INTERNAL_SERVER_ERROR),
     GENERIC_EXCEPTION(Exception.class, INTERNAL_SERVER_ERROR),
     CHAT_ROOM_EXCEPTION(ChatRoomException.class, INTERNAL_SERVER_ERROR),
-    INTERNAL_ERROR(InternalError.class, INTERNAL_SERVER_ERROR);
+    INTERNAL_ERROR(InternalError.class, INTERNAL_SERVER_ERROR),
+    APPLICATION_CONTEXT_EXCEPTION(ApplicationContextException.class, INTERNAL_SERVER_ERROR);
 
-    private static final Map<Class<? extends Throwable>, HttpStatus> EXCEPTION_STATUS_MAP = new ConcurrentHashMap<>();
+    private static final Map<Class<? extends Throwable>, HttpStatus> EXCEPTION_STATUS_MAP;
 
     static {
+        EXCEPTION_STATUS_MAP = new IdentityHashMap<>(values().length);
         for (ExceptionStatus status : values()) {
             EXCEPTION_STATUS_MAP.put(status.exceptionClass, status.status);
         }
@@ -55,13 +59,14 @@ public enum ExceptionStatus {
 
     public static HttpStatus getStatusFor(Throwable throwable) {
         Class<?> exceptionClass = throwable.getClass();
-        while (exceptionClass != null) {
-            HttpStatus status = EXCEPTION_STATUS_MAP.get(exceptionClass);
+        HttpStatus status;
+        do {
+            status = EXCEPTION_STATUS_MAP.get(exceptionClass);
             if (status != null) {
                 return status;
             }
             exceptionClass = exceptionClass.getSuperclass();
-        }
+        } while (exceptionClass != null);
         return INTERNAL_SERVER_ERROR;
     }
 }

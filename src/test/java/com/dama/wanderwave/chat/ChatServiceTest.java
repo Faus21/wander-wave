@@ -71,7 +71,7 @@ class ChatServiceTest {
 			when(chatRepository.findBySenderIdAndRecipientId(sender.getId(), recipient.getId()))
 					.thenReturn(Optional.of(expectedChat));
 
-			Optional<Chat> actualChat = chatService.getChatRoom(sender.getId(), recipient.getId(), false);
+			Optional<Chat> actualChat = chatService.findOrCreateChatRoom(sender.getId(), recipient.getId(), false);
 
 			assertThat(actualChat).isPresent().contains(expectedChat);
 			verify(chatRepository).findBySenderIdAndRecipientId(sender.getId(), recipient.getId());
@@ -87,7 +87,7 @@ class ChatServiceTest {
 			when(hashUUIDGenerator.encodeString(sender.getId() + recipient.getId())).thenReturn("chatId");
 			when(chatRepository.save(any(Chat.class))).thenReturn(expectedChat);
 
-			Optional<Chat> actualChat = chatService.getChatRoom(sender.getId(), recipient.getId(), true);
+			Optional<Chat> actualChat = chatService.findOrCreateChatRoom(sender.getId(), recipient.getId(), true);
 
 			assertThat(actualChat).isPresent().contains(expectedChat);
 			verify(chatRepository, times(2)).save(any(Chat.class));
@@ -99,7 +99,7 @@ class ChatServiceTest {
 			when(chatRepository.findBySenderIdAndRecipientId(sender.getId(), recipient.getId()))
 					.thenReturn(Optional.empty());
 
-			Optional<Chat> actualChat = chatService.getChatRoom(sender.getId(), recipient.getId(), false);
+			Optional<Chat> actualChat = chatService.findOrCreateChatRoom(sender.getId(), recipient.getId(), false);
 
 			assertThat(actualChat).isNotPresent();
 			verify(chatRepository).findBySenderIdAndRecipientId(sender.getId(), recipient.getId());

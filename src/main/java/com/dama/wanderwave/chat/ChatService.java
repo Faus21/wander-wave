@@ -11,7 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.Objects;
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -24,7 +24,7 @@ public class ChatService {
     private final HashUUIDGenerator hashUUIDGenerator;
 
 
-    public Optional<Chat> getChatRoom(String senderId, String recipientId, boolean createNewRoomIfNotExists) {
+    public Optional<Chat> findOrCreateChatRoom( String senderId, String recipientId, boolean createNewRoomIfNotExists) {
         log.info("Getting chat room between senderId: {} and recipientId: {}, createNewRoomIfNotExists: {}", senderId, recipientId, createNewRoomIfNotExists);
         return chatRepository
                        .findBySenderIdAndRecipientId(senderId, recipientId)
@@ -67,7 +67,7 @@ public class ChatService {
                        });
     }
 
-    protected Chat createAndSaveChatRoom(String chatId, User sender, User recipient) {
+    protected Chat createAndSaveChatRoom( String chatId, User sender, User recipient) {
 
 
         if (chatId == null || sender == null || recipient == null) {
@@ -87,7 +87,7 @@ public class ChatService {
     public void changeMuteState(String senderId, String recipientId, boolean muteState) {
         log.info("Changing mute state for chat between senderId: {} and recipientId: {} to {}", senderId, recipientId, muteState);
 
-        Chat room = getChatRoom(senderId, recipientId, false)
+        Chat room = findOrCreateChatRoom(senderId, recipientId, false)
                             .orElseThrow(() -> {
                                 log.error("Chat room not found for senderId: {} and recipientId: {}", senderId, recipientId);
                                 return new ChatRoomNotFoundException("Chat room could not be found.");
@@ -97,5 +97,9 @@ public class ChatService {
 
         chatRepository.save(room);
         log.info("Mute state changed for chat room: {}", room.getId());
+    }
+
+    public List<ChatListElement> retrieveContactsWithLastMessages( String userId) {
+        return chatRepository.findChatListWithLastMessage(userId);
     }
 }

@@ -18,7 +18,7 @@ public class ChatMessageService {
 
     public ChatMessage save(ChatMessage chatMessage) {
         Chat chat = chatService
-		                    .getChatRoom(chatMessage.getSenderId(), chatMessage.getRecipientId(), true)
+		                    .findOrCreateChatRoom(chatMessage.getSenderId(), chatMessage.getRecipientId(), true)
 		                    .orElseThrow(() -> new ChatRoomNotFoundException("Chat room could not be created or found."));
 
         chatMessage.setChat(chat);
@@ -26,7 +26,7 @@ public class ChatMessageService {
     }
 
     public List<ChatMessage> findChatMessages(String senderId, String recipientId) {
-        Optional<Chat> chatRoom = chatService.getChatRoom(senderId, recipientId, false);
+        Optional<Chat> chatRoom = chatService.findOrCreateChatRoom(senderId, recipientId, false);
 
         return chatRoom.map(room -> repository.findByChatId(room.getId()))
                        .orElseGet(Collections::emptyList);

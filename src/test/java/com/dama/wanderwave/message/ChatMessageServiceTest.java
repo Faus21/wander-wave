@@ -51,7 +51,7 @@ class ChatMessageServiceTest {
     @DisplayName("Should save chat message when chat exists")
     void save_shouldSaveChatMessage_whenChatExists() {
 
-        when(chatService.getChatRoom("senderId", "recipientId", true)).thenReturn(Optional.of(chat));
+        when(chatService.findOrCreateChatRoom("senderId", "recipientId", true)).thenReturn(Optional.of(chat));
         when(repository.save(any(ChatMessage.class))).thenReturn(chatMessage);
 
 
@@ -60,7 +60,7 @@ class ChatMessageServiceTest {
 
         assertThat(savedMessage).isNotNull();
         assertThat(savedMessage.getChat()).isEqualTo(chat);
-        verify(chatService).getChatRoom("senderId", "recipientId", true);
+        verify(chatService).findOrCreateChatRoom("senderId", "recipientId", true);
         verify(repository).save(chatMessage);
     }
 
@@ -68,14 +68,14 @@ class ChatMessageServiceTest {
     @DisplayName("Should throw exception when chat does not exist")
     void save_shouldThrowException_whenChatDoesNotExist() {
 
-        when(chatService.getChatRoom("senderId", "recipientId", true)).thenReturn(Optional.empty());
+        when(chatService.findOrCreateChatRoom("senderId", "recipientId", true)).thenReturn(Optional.empty());
 
 
         assertThatExceptionOfType(RuntimeException.class)
                 .isThrownBy(() -> chatMessageService.save(chatMessage))
                 .withMessage("Chat room could not be created or found.");
 
-        verify(chatService).getChatRoom("senderId", "recipientId", true);
+        verify(chatService).findOrCreateChatRoom("senderId", "recipientId", true);
         verify(repository, never()).save(any());
     }
 
@@ -84,7 +84,7 @@ class ChatMessageServiceTest {
     @DisplayName("Should return chat messages based on chat existence")
     void findChatMessages_shouldReturnMessagesBasedOnChatExistence(boolean chatExists, List<ChatMessage> expectedMessages) {
 
-        when(chatService.getChatRoom("senderId", "recipientId", false)).thenReturn(chatExists ? Optional.of(chat) : Optional.empty());
+        when(chatService.findOrCreateChatRoom("senderId", "recipientId", false)).thenReturn(chatExists ? Optional.of(chat) : Optional.empty());
 
         if (chatExists) {
             when(repository.findByChatId(chat.getId())).thenReturn(expectedMessages);
@@ -93,7 +93,7 @@ class ChatMessageServiceTest {
         List<ChatMessage> messages = chatMessageService.findChatMessages("senderId", "recipientId");
 
         assertThat(messages).isEqualTo(expectedMessages);
-        verify(chatService).getChatRoom("senderId", "recipientId", false);
+        verify(chatService).findOrCreateChatRoom("senderId", "recipientId", false);
         if (chatExists) {
             verify(repository).findByChatId(chat.getId());
         } else {

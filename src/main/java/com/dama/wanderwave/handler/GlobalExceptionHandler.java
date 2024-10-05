@@ -15,9 +15,12 @@ import java.util.stream.StreamSupport;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
+	private static final String VALIDATION_FAILED_FORMAT = "Validation failed: %s";
+
 	@ExceptionHandler(Throwable.class)
 	public ResponseEntity<ErrorResponse> handleAllThrowables(Throwable throwable) {
-		return buildErrorResponse(throwable);
+		Throwable rootCause = getRootCause(throwable);
+		return buildErrorResponse(rootCause);
 	}
 
 	private ResponseEntity<ErrorResponse> buildErrorResponse(Throwable throwable) {
@@ -45,15 +48,21 @@ public class GlobalExceptionHandler {
 	}
 
 	private String formatErrorMessage(String field, String message) {
-		return String.format("%s: %s", field, message);
+		return field + ": " + message;
 	}
-
 
 	private <T> String formatValidationErrors(Iterable<T> errors, Function<T, String> mapper) {
 		String errorMessages = StreamSupport.stream(errors.spliterator(), false)
 				                       .map(mapper)
 				                       .collect(Collectors.joining(", "));
-		return String.format("Validation failed: %s", errorMessages);
+		return String.format(VALIDATION_FAILED_FORMAT, errorMessages);
+	}
+
+	private Throwable getRootCause(Throwable throwable) {
+		while (throwable.getCause() != null && throwable.getCause() != throwable) {
+			throwable = throwable.getCause();
+		}
+		return throwable;
 	}
 
 	@Builder

@@ -1,5 +1,6 @@
 package com.dama.wanderwave.message;
 
+import com.dama.wanderwave.chat.ChatListElement;
 import com.dama.wanderwave.chat.ChatService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -7,7 +8,6 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -16,7 +16,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.ResponseStatus;
 
 import java.util.List;
 
@@ -27,6 +26,7 @@ public class ChatController {
     private final SimpMessagingTemplate messagingTemplate;
     private final ChatMessageService messageService;
     private final ChatService chatService;
+
     @MessageMapping("/chat")
     @Operation(summary = "Process chat message", description = "Sends a chat message to the recipient.")
     public void processMessage(@Payload ChatMessage chatMessage) {
@@ -63,17 +63,28 @@ public class ChatController {
 
 
     @PatchMapping("/mute/{senderId}/{recipientId}")
-    @ResponseStatus(HttpStatus.OK)
-    @Operation(summary = "Mute sender's chat", description = "")
+    @Operation(summary = "Toggle mute state for a chat",
+            description = "Changes the mute state of the chat between the sender and recipient. " +
+                                  "If the chat room exists, the mute status is updated.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Mute state changed successfully", content = @Content),
-            @ApiResponse(responseCode = "404", description = "Chat room not found", content = @Content)
+            @ApiResponse(responseCode = "200", description = "Mute state updated successfully", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Chat room not found, mute state not changed", content = @Content)
     })
     public ResponseEntity<Void> changeMuteState(@PathVariable("senderId") String senderId,
                                                 @PathVariable("recipientId") String recipientId,
-                                                @Parameter(name = "muteState") boolean muteState) {
+                                                @Parameter(name = "muteState", description = "Desired mute state for the chat") boolean muteState) {
         chatService.changeMuteState(senderId, recipientId, muteState);
         return ResponseEntity.ok().build();
     }
-    // TODO get all chats
+
+    @GetMapping("/{userId}/contacts")
+    @Operation(summary = "Get contacts with last messages",
+            description = "Fetches the list of contacts along with their latest message.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Contacts and messages retrieved successfully", content = @Content)
+    })
+    public ResponseEntity<List<ChatListElement>> retrieveContactsWithLastMessages( @PathVariable String userId) {
+        List<ChatListElement> contacts = chatService.retrieveContactsWithLastMessages(userId);
+        return ResponseEntity.ok(contacts);
+    }
 }
