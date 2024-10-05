@@ -33,6 +33,7 @@ import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
+@SuppressWarnings("SameParameterValue")
 @Slf4j
 @Service
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
@@ -53,18 +54,19 @@ public class ReportService {
 
         var existing = reportRepository.findUserReportByObjectAndSender(request.getObjectId(),
                 request.getUserSenderId());
-        if (existing.isPresent()) {
+
+        existing.ifPresent(existingReport -> {
             log.warn("User '{}' sent duplicate report on object ID '{}'", sender.getId(), request.getObjectId());
             throw new DuplicateReportException("Report on object from that user already existing in system");
-        }
+        });
 
         UserReport report = createReportByType(request);
 
         report.setType(typeRepository.findByName(request.getReportType()).orElseThrow(
-                () -> new ReportTypeNotFoundException("Report type not found with name: " + request.getReportType())));
+                () -> new ReportTypeNotFoundException("Report type not found with name: " + request.getReportType()))
+        );
         report.setDescription(request.getDescription());
-        report.setStatus(statusRepository.findByName(DEFAULT_REPORT_STATUS).orElseThrow(
-                () -> new ReportStatusNotFoundException("Report status not found with name: " + DEFAULT_REPORT_STATUS)));
+        report.setStatus(getDefaultStatus());
 
         reportRepository.save(report);
         log.info("Report created successfully for user: {}", sender.getId());
@@ -94,7 +96,9 @@ public class ReportService {
 
     public Page<UserReport> getAllReports(Pageable page, FilteredReportPageRequest filter) {
         if (isFilterEmpty(filter)) {
-            return reportRepository.findAll(page);
+            var reports = reportRepository.findAll(page);
+            isReportsEmpty(reports, "No reports found");
+            return reports;
         }
         Page<UserReport> reports = filterReports(page, filter);
         isReportsEmpty(reports, "No reports found with the provided filters: " + filter);
@@ -108,7 +112,7 @@ public class ReportService {
                 .orElseThrow(() -> new ReportNotFoundException("Report not found with ID: " + request.getReportId()));
 
         ReportStatus status = statusRepository.findByName(request.getStatus()).orElseThrow(
-                () -> new ReportTypeNotFoundException("Report status not found with name: " + request.getStatus()));
+                () -> new ReportStatusNotFoundException("Report status not found with name: " + request.getStatus()));
 
         List<? extends UserReport> relatedReports = findRelatedReports(report);
         relatedReports.forEach(rep -> {
@@ -243,5 +247,8 @@ public class ReportService {
         }
     }
 
-
+    private ReportStatus getDefaultStatus() {
+        return statusRepository.findByName(DEFAULT_REPORT_STATUS).orElseThrow(
+                () -> new ReportStatusNotFoundException("Default status not found with name: " + DEFAULT_REPORT_STATUS));
+    }
 }
