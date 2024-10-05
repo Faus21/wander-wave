@@ -14,24 +14,24 @@ import org.springframework.context.annotation.Profile;
 @Configuration
 public class OpenApiConfig {
 
-	@Bean
-	public OpenAPI customOpenAPI() {
-		final String securitySchemeName = "bearerAuth";
-		return new OpenAPI()
-				       .info(new Info()
-						             .title("Wanderwave API")
-						             .version("1.0.0")
-						             .description("API documentation for Wanderwave application")
-						             .license(new License()
-								                      .name("Apache 2.0")
-								                      .url("http://springdoc.org")))
-				       .addSecurityItem(new SecurityRequirement().addList(securitySchemeName))
-				       .components(new Components()
-						                   .addSecuritySchemes(securitySchemeName,
-								                   new SecurityScheme()
-										                   .name(securitySchemeName)
-										                   .type(SecurityScheme.Type.HTTP)
-										                   .scheme("bearer")
-										                   .bearerFormat("JWT")));
-	}
+    @Bean
+    public OpenAPI customOpenAPI() {
+        final String securitySchemeName = "bearerAuth";
+        return new OpenAPI()
+                .info(new Info()
+                        .title("Wanderwave API")
+                        .version("1.0.0")
+                        .description("API documentation for Wanderwave application")
+                        .license(new License()
+                                .name("Apache 2.0")
+                                .url("http://springdoc.org")))
+                .addSecurityItem(new SecurityRequirement().addList(securitySchemeName))
+                .components(new Components()
+                        .addSecuritySchemes(securitySchemeName,
+                                new SecurityScheme()
+                                        .name(securitySchemeName)
+                                        .type(SecurityScheme.Type.HTTP)
+                                        .scheme("bearer")
+                                        .bearerFormat("JWT")));
+    }
 }

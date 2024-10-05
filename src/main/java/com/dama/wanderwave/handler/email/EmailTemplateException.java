@@ -1,10 +1,10 @@
-package com.dama.wanderwave.handler;
+package com.dama.wanderwave.handler.email;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
-public class TokenNotFoundException extends RuntimeException {
+public class EmailTemplateException extends RuntimeException {
 	private final String message;
 }

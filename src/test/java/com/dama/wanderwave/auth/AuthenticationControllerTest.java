@@ -1,6 +1,13 @@
 package com.dama.wanderwave.auth;
 
 import com.dama.wanderwave.handler.*;
+import com.dama.wanderwave.handler.email.EmailSendingException;
+import com.dama.wanderwave.handler.email.EmailTemplateException;
+import com.dama.wanderwave.handler.token.TokenExpiredException;
+import com.dama.wanderwave.handler.token.TokenNotFoundException;
+import com.dama.wanderwave.handler.token.TokenRefreshException;
+import com.dama.wanderwave.handler.user.UniqueConstraintViolationException;
+import com.dama.wanderwave.handler.user.UserNotFoundException;
 import com.dama.wanderwave.refreshToken.RefreshToken;
 import com.dama.wanderwave.refreshToken.RefreshTokenService;
 import com.dama.wanderwave.refreshToken.TokenRefreshRequest;
@@ -311,7 +318,7 @@ class AuthenticationControllerTest {
                                     .param("emailToken", testActivationToken))
                     .andExpect(status().isInternalServerError())
                     .andExpect(jsonPath("$.errorCode").value(response.errorCode))
-                    .andExpect(jsonPath("$.message").value("Handler dispatch failed: java.lang.InternalError: " + response.message));
+                    .andExpect(jsonPath("$.message").value(response.message));
 
             verify(authenticationService, times(1)).activateAccount(testActivationToken);
         }
@@ -326,7 +333,7 @@ class AuthenticationControllerTest {
         void recoverByEmailShouldReturnOk() throws Exception {
             String email = "temp@mail.com";
             ResponseRecord response = new ResponseRecord(HttpStatus.ACCEPTED.value(), "Message have " +
-                                                                                       "sent!");
+                                                                                              "sent!");
 
             when(authenticationService.recoverAccount(email)).thenReturn(response.message);
 
@@ -388,7 +395,7 @@ class AuthenticationControllerTest {
         @DisplayName("Should change password successfully")
         void changePasswordShouldReturnOk() throws Exception {
             ResponseRecord response = new ResponseRecord(HttpStatus.OK.value(), "Password " +
-                                                                                         "changed successfully");
+                                                                                        "changed successfully");
             RecoveryRequest request = new RecoveryRequest("validToken", "newPassword");
 
             when(authenticationService.changeUserPassword(anyString(), anyString())).thenReturn(new com.dama.wanderwave.utils.ResponseRecord(HttpStatus.OK.value(), "Password changed successfully"));

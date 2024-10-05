@@ -2,7 +2,7 @@ package com.dama.wanderwave.message;
 
 import com.dama.wanderwave.chat.Chat;
 import com.dama.wanderwave.chat.ChatService;
-import com.dama.wanderwave.handler.ChatRoomNotFoundException;
+import com.dama.wanderwave.handler.chat.ChatRoomNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

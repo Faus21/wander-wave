@@ -1,7 +1,7 @@
 package com.dama.wanderwave.refreshToken;
 
 
-import com.dama.wanderwave.handler.TokenRefreshException;
+import com.dama.wanderwave.handler.token.TokenRefreshException;
 import com.dama.wanderwave.security.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;

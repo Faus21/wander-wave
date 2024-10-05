@@ -1,6 +1,6 @@
 package com.dama.wanderwave.refreshToken;
 
-import com.dama.wanderwave.handler.TokenRefreshException;
+import com.dama.wanderwave.handler.token.TokenRefreshException;
 import com.dama.wanderwave.security.JwtService;
 import com.dama.wanderwave.user.User;
 import org.junit.jupiter.api.BeforeEach;

@@ -1,9 +1,9 @@
 package com.dama.wanderwave.auth;
 
 import com.dama.wanderwave.email.EmailService;
-import com.dama.wanderwave.handler.TokenExpiredException;
-import com.dama.wanderwave.handler.TokenNotFoundException;
-import com.dama.wanderwave.handler.UniqueConstraintViolationException;
+import com.dama.wanderwave.handler.token.TokenExpiredException;
+import com.dama.wanderwave.handler.token.TokenNotFoundException;
+import com.dama.wanderwave.handler.user.UniqueConstraintViolationException;
 import com.dama.wanderwave.refreshToken.RefreshToken;
 import com.dama.wanderwave.refreshToken.RefreshTokenService;
 import com.dama.wanderwave.role.Role;
@@ -31,10 +31,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 import static org.hibernate.validator.internal.util.Contracts.assertNotNull;
 import static org.junit.jupiter.api.Assertions.*;
@@ -79,6 +76,7 @@ class AuthenticationServiceTest {
 		mockUser = new User();
 		mockUser.setEmail("test@example.com");
 		mockUser.setNickname("testUser");
+		mockUser.setImageUrl("http://example.com/image.jpg");
 
 		mockEmailToken = EmailToken.builder()
 				                 .content("mockToken")
@@ -86,6 +84,7 @@ class AuthenticationServiceTest {
 				                 .expiresAt(LocalDateTime.now().plusMinutes(15))
 				                 .user(mockUser)
 				                 .build();
+
 	}
 
 	@Nested
@@ -519,7 +518,12 @@ class AuthenticationServiceTest {
 			when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(auth);
 
 			Map<String, Object> claims = new HashMap<>();
-			claims.put("username", mockUser.getNickname());
+			claims.put("id", mockUser.getId());
+			claims.put("nickname", mockUser.getNickname());
+			claims.put("email", mockUser.getEmail());
+			claims.put("authorities", mockUser.getAuthorities());
+			claims.put("imgUrl", mockUser.getImageUrl());
+
 			String accessToken = "access";
 
 			when(jwtService.generateToken(claims, mockUser)).thenReturn(accessToken);
@@ -658,7 +662,6 @@ class AuthenticationServiceTest {
 			assertEquals("Token has expired. A new token has been sent to the same email address.", exception.getMessage());
 		}
 	}
-
 	@Nested
 	@DisplayName("createClaims Method")
 	class CreateClaimsTests {
@@ -666,10 +669,11 @@ class AuthenticationServiceTest {
 		@Test
 		@DisplayName("Should return correct claims")
 		void createClaimsShouldReturnCorrectClaims() {
+
 			Map<String, Object> claims = authenticationService.createClaims(mockUser);
 
 			assertNotNull(claims);
-			assertEquals("testUser", claims.get("username"));
+			assertEquals("testUser", claims.get("nickname"));
 		}
 	}
 }

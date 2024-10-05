@@ -1,4 +1,4 @@
-package com.dama.wanderwave.handler;
+package com.dama.wanderwave.handler.token;
 
 import lombok.*;
 @Data

@@ -1,7 +1,12 @@
 package com.dama.wanderwave.auth;
 
 import com.dama.wanderwave.email.EmailService;
-import com.dama.wanderwave.handler.*;
+import com.dama.wanderwave.handler.email.EmailSendingException;
+import com.dama.wanderwave.handler.email.EmailTemplateException;
+import com.dama.wanderwave.handler.role.RoleNotFoundException;
+import com.dama.wanderwave.handler.token.TokenExpiredException;
+import com.dama.wanderwave.handler.token.TokenNotFoundException;
+import com.dama.wanderwave.handler.user.UniqueConstraintViolationException;
 import com.dama.wanderwave.refreshToken.RefreshTokenService;
 import com.dama.wanderwave.role.RoleRepository;
 import com.dama.wanderwave.security.JwtService;
@@ -14,6 +19,7 @@ import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -143,7 +149,7 @@ public class AuthenticationService {
 	}
 
 	@Transactional
-	public ResponseRecord changeUserPassword( String token, String password) {
+	public ResponseRecord changeUserPassword(String token, String password) {
 		log.info("Attempting to change password using token: {}", token);
 		EmailToken savedEmailToken = findTokenOrThrow(token);
 		checkTokenExpiration(savedEmailToken, this::sendRecoveryEmail);
@@ -152,8 +158,9 @@ public class AuthenticationService {
 		markTokenAsValidated(savedEmailToken);
 
 		log.info("Password changed successfully for user: {}", savedEmailToken.getUser().getEmail());
-		return new ResponseRecord(202, "Password changed successfully");
+		return new ResponseRecord(HttpStatus.ACCEPTED.value(), "Password changed successfully");
 	}
+
 
 	protected void checkTokenExpiration( EmailToken emailToken, java.util.function.Consumer<User> resendAction ) {
 		if (LocalDateTime.now().isAfter(emailToken.getExpiresAt())) {

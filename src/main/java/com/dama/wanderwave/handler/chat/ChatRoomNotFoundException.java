@@ -1,4 +1,4 @@
-package com.dama.wanderwave.handler;
+package com.dama.wanderwave.handler.chat;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;

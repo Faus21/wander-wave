@@ -1,8 +1,8 @@
 package com.dama.wanderwave.chat;
 
-import com.dama.wanderwave.handler.ChatRoomException;
-import com.dama.wanderwave.handler.ChatRoomNotFoundException;
-import com.dama.wanderwave.handler.UserNotFoundException;
+import com.dama.wanderwave.handler.chat.ChatRoomException;
+import com.dama.wanderwave.handler.chat.ChatRoomNotFoundException;
+import com.dama.wanderwave.handler.user.UserNotFoundException;
 import com.dama.wanderwave.hash.HashUUIDGenerator;
 import com.dama.wanderwave.user.User;
 import com.dama.wanderwave.user.UserRepository;

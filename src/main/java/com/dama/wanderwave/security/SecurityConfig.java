@@ -12,7 +12,14 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import static com.dama.wanderwave.security.Roles.ADMIN;
 import static org.springframework.security.config.http.SessionCreationPolicy.STATELESS;
+
+enum Roles {
+    ADMIN("ADMIN"), USER("USER");
+
+    Roles(String name) {}
+}
 
 @Configuration
 @EnableWebSecurity
@@ -20,37 +27,39 @@ import static org.springframework.security.config.http.SessionCreationPolicy.STA
 @EnableMethodSecurity(securedEnabled = true)
 public class SecurityConfig {
 
-	private final AuthenticationProvider authenticationProvider;
+    private final AuthenticationProvider authenticationProvider;
 
-	private final JwtFilter jwtFilter;
-	@Bean
-	public SecurityFilterChain securityFilterChain( HttpSecurity http) throws Exception {
-		http
-				.cors(Customizer.withDefaults())
-				.csrf(AbstractHttpConfigurer::disable)
-				.authorizeHttpRequests(request -> {
-					request.requestMatchers(
-							"/api/auth/",
-							"/api/auth/*",
-							"/wander_wave_swagger",
-							"/api-docs",
-							"/v2/api-docs",
-							"/v3/api-docs",
-							"/v3/api-docs/**",
-							"/swagger-resources",
-							"/swagger-resources/**",
-							"/configuration/ui",
-							"/configuration/security",
-							"/swagger-ui/**",
-							"/webjars/**",
-							"/swagger-ui.html")
-							.permitAll()
-							.anyRequest().authenticated();
-				})
-				.sessionManagement(session -> session.sessionCreationPolicy(STATELESS))
-				.authenticationProvider(authenticationProvider)
-				.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+    private final JwtFilter jwtFilter;
 
-				return http.build();
-	}
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+                .cors(Customizer.withDefaults())
+                .csrf(AbstractHttpConfigurer::disable)
+                .authorizeHttpRequests(request -> request.requestMatchers(
+                                "/api/auth/",
+                                "/api/auth/*",
+                                "api/report/types",
+                                "/wander_wave_swagger",
+                                "/api-docs",
+                                "/v2/api-docs",
+                                "/v3/api-docs",
+                                "/v3/api-docs/**",
+                                "/swagger-resources",
+                                "/swagger-resources/**",
+                                "/configuration/ui",
+                                "/configuration/security",
+                                "/swagger-ui/**",
+                                "/webjars/**",
+                                "/swagger-ui.html").permitAll()
+                        .requestMatchers(
+                                "/api/reports/get",
+                                "/api/reports/review").hasRole(ADMIN.name())
+                        .anyRequest().authenticated())
+                .sessionManagement(session -> session.sessionCreationPolicy(STATELESS))
+                .authenticationProvider(authenticationProvider)
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
+    }
 }

@@ -21,7 +21,7 @@ public class RefreshToken {
 	@Id
 	@Column(name = "refresh_token_id")
 	@GeneratedValue(generator = "hash_generator")
-	@GenericGenerator(name = "hash_generator", strategy = "com.dama.wanderwave.hash.HashUUIDGenerator")
+	@GenericGenerator(name = "hash_generator", type = com.dama.wanderwave.hash.HashUUIDGenerator.class)
 	private String id;
 
 	@Column(nullable = false, unique = true)
