@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -39,15 +40,17 @@ public class ChatService {
                        });
     }
 
+    @Transactional
     Chat createNewChatRoom(String senderId, String recipientId) {
         log.info("Creating new chat room for senderId: {} and recipientId: {}", senderId, recipientId);
         String chatId = createChatId(senderId, recipientId);
+        String reversedChatId = createChatId(recipientId, senderId);
 
         User sender = getUserOrThrow(senderId);
         User recipient = getUserOrThrow(recipientId);
 
         Chat chat = createAndSaveChatRoom(chatId, sender, recipient);
-        createAndSaveChatRoom(chatId, recipient, sender);
+        createAndSaveChatRoom(reversedChatId, recipient, sender);
 
         log.info("New chat room created with ID: {}", chatId);
         return chat;
@@ -84,6 +87,7 @@ public class ChatService {
         return chatRepository.save(chat);
     }
 
+    @Transactional
     public void changeMuteState(String senderId, String recipientId, boolean muteState) {
         log.info("Changing mute state for chat between senderId: {} and recipientId: {} to {}", senderId, recipientId, muteState);
 
