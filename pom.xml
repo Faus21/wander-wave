@@ -26,6 +26,7 @@
         <jjwt.version>0.11.5</jjwt.version>
         <hibernate-types-60.version>2.21.1</hibernate-types-60.version>
         <guava.version>33.3.0-jre</guava.version>
+        <datafaker.version>2.4.0</datafaker.version>
     </properties>
     <dependencies>
         <!-- Spring Boot Starters -->
@@ -126,6 +127,11 @@
             <version>${guava.version}</version>
         </dependency>
         <dependency>
+            <groupId>net.datafaker</groupId>
+            <artifactId>datafaker</artifactId>
+            <version>${datafaker.version}</version>
+        </dependency>
+        <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
             <version>${jjwt.version}</version>
@@ -164,6 +170,11 @@
             <groupId>com.hazelcast</groupId>
             <artifactId>hazelcast</artifactId>
         </dependency>
+<!--        <dependency>-->
+<!--            <groupId>com.speedment.jpastreamer</groupId>-->
+<!--            <artifactId>jpastreamer-core</artifactId>-->
+<!--            <version>3.0.4</version>-->
+<!--        </dependency>-->
 
 
         <!-- Lombok -->
@@ -215,6 +226,26 @@
                     </excludes>
                 </configuration>
             </plugin>
+<!--            <plugin>-->
+<!--                <groupId>org.codehaus.mojo</groupId>-->
+<!--                <artifactId>build-helper-maven-plugin</artifactId>-->
+<!--                <version>3.2.0</version>-->
+<!--                <executions>-->
+<!--                    <execution>-->
+<!--                        <phase>generate-sources</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>add-source</goal>-->
+<!--                        </goals>-->
+<!--                        <configuration>-->
+<!--                            <sources>-->
+<!--                                <source>-->
+<!--                                    ${project.build.directory}/generated-sources/annotations-->
+<!--                                </source>-->
+<!--                            </sources>-->
+<!--                        </configuration>-->
+<!--                    </execution>-->
+<!--                </executions>-->
+<!--            </plugin>-->
         </plugins>
     </build>
 </project>

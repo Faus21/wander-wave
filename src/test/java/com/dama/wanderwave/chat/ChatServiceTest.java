@@ -63,11 +63,11 @@ class ChatServiceTest {
 
 	@Nested
 	@DisplayName("getChatRoom Method")
-	class GetChatRoomTests {
+	class FindOrCreateChatRoom {
 
 		@Test
 		@DisplayName("Should return existing chat when it exists")
-		void getChatRoom_ShouldReturnExistingChat_WhenExists() {
+		void findOrCreateChatRoom_ShouldReturnExistingChat_WhenExists() {
 			when(chatRepository.findBySenderIdAndRecipientId(sender.getId(), recipient.getId()))
 					.thenReturn(Optional.of(expectedChat));
 
@@ -85,17 +85,20 @@ class ChatServiceTest {
 			when(userRepository.findById(sender.getId())).thenReturn(Optional.of(sender));
 			when(userRepository.findById(recipient.getId())).thenReturn(Optional.of(recipient));
 			when(hashUUIDGenerator.encodeString(sender.getId() + recipient.getId())).thenReturn("chatId");
+			when(hashUUIDGenerator.encodeString(recipient.getId() + sender.getId())).thenReturn("reversedChatId");
 			when(chatRepository.save(any(Chat.class))).thenReturn(expectedChat);
 
 			Optional<Chat> actualChat = chatService.findOrCreateChatRoom(sender.getId(), recipient.getId(), true);
 
 			assertThat(actualChat).isPresent().contains(expectedChat);
 			verify(chatRepository, times(2)).save(any(Chat.class));
+			verify(hashUUIDGenerator).encodeString(sender.getId() + recipient.getId());
+			verify(hashUUIDGenerator).encodeString(recipient.getId() + sender.getId());
 		}
 
 		@Test
 		@DisplayName("Should not create new chat when not exists and createNewRoom flag is false")
-		void getChatRoom_ShouldNotCreateNewChat_WhenNotExistsAndCreateNewRoomFlagIsFalse() {
+		void findOrCreateChatRoom_ShouldNotCreateNewChat_WhenNotExistsAndCreateNewRoomFlagIsFalse() {
 			when(chatRepository.findBySenderIdAndRecipientId(sender.getId(), recipient.getId()))
 					.thenReturn(Optional.empty());
 
@@ -137,6 +140,7 @@ class ChatServiceTest {
 			when(userRepository.findById(sender.getId())).thenReturn(Optional.of(sender));
 			when(userRepository.findById(recipient.getId())).thenReturn(Optional.of(recipient));
 			when(hashUUIDGenerator.encodeString(sender.getId() + recipient.getId())).thenReturn("chatId");
+			when(hashUUIDGenerator.encodeString(recipient.getId() + sender.getId())).thenReturn("reversedChatId");
 			when(chatRepository.save(any(Chat.class))).thenReturn(expectedChat);
 
 			Chat actualChat = chatService.createNewChatRoom(sender.getId(), recipient.getId());
@@ -144,9 +148,13 @@ class ChatServiceTest {
 			assertThat(actualChat)
 					.isNotNull()
 					.extracting(Chat::getId, Chat::getSender, Chat::getRecipient)
-					.containsExactly(expectedChat.getId(), sender, recipient);
+					.containsExactly("chatId", sender, recipient);
 
 			verify(chatRepository, times(2)).save(any(Chat.class));
+			verify(userRepository).findById(sender.getId());
+			verify(userRepository).findById(recipient.getId());
+			verify(hashUUIDGenerator).encodeString(sender.getId() + recipient.getId());
+			verify(hashUUIDGenerator).encodeString(recipient.getId() + sender.getId());
 		}
 	}
 
