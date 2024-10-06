@@ -33,6 +33,7 @@ public class Chat {
 	@NotNull(message = "Recipiet must be specified")
 	private User recipient;
 
+	@Builder.Default
 	@Column( nullable = false)
 	private boolean muted = false;
 
