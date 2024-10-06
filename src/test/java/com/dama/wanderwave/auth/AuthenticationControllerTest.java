@@ -558,6 +558,10 @@ class AuthenticationControllerTest {
     }
 
     private RegistrationRequest createMockRequest() {
-        return RegistrationRequest.builder().username("username").password("password").email("email@gmail.com").build();
+        return RegistrationRequest.builder()
+                       .username("username")
+                       .password("Password1!")
+                       .email("email@gmail.com")
+                       .build();
     }
 }
