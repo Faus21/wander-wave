@@ -1,10 +1,11 @@
 package com.dama.wanderwave.auth;
 
-import com.dama.wanderwave.handler.TokenRefreshException;
-import com.dama.wanderwave.refresh_token.RefreshToken;
-import com.dama.wanderwave.refresh_token.RefreshTokenService;
-import com.dama.wanderwave.refresh_token.TokenRefreshRequest;
+import com.dama.wanderwave.handler.token.TokenRefreshException;
+import com.dama.wanderwave.refreshToken.RefreshToken;
+import com.dama.wanderwave.refreshToken.RefreshTokenService;
+import com.dama.wanderwave.refreshToken.TokenRefreshRequest;
 import com.dama.wanderwave.security.JwtService;
+import com.dama.wanderwave.utils.ResponseRecord;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -37,7 +38,7 @@ public class AuthenticationController {
 			@ApiResponse(responseCode = "400", description = "Invalid request parameters", content = @Content()),
 			@ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
 	})
-	public ResponseEntity<ResponseRecord> register(@RequestBody @Valid RegistrationRequest request) {
+	public ResponseEntity<ResponseRecord> register( @RequestBody @Valid RegistrationRequest request) {
 		String message = service.register(request);
 		return ResponseEntity.accepted().body(new ResponseRecord(HttpStatus.ACCEPTED.value(), message));
 	}

@@ -20,7 +20,7 @@ public class JwtService {
 	@Value("${application.security.jwt.secret-key}")
 	private String secretKey;
 
-	@Value("${application.security.jwt.expiration}")
+	@Value("${application.security.jwt.access-token.expiration}")
 	private long accessTokenExpiration;
 
 	@Value("${application.security.jwt.refresh-token.expiration}")
@@ -46,7 +46,8 @@ public class JwtService {
 
 	String buildToken(Map<String, Object> extraClaims, UserDetails userDetails, long expiration) {
 		var authorities = userDetails.getAuthorities()
-				                  .stream().map(GrantedAuthority::getAuthority)
+				                  .stream()
+				                  .map(GrantedAuthority::getAuthority)
 				                  .toList();
 		return Jwts.builder()
 				       .setClaims(extraClaims)

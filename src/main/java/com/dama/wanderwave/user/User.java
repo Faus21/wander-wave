@@ -2,7 +2,7 @@ package com.dama.wanderwave.user;
 
 import com.dama.wanderwave.report.general.UserReport;
 import com.dama.wanderwave.role.Role;
-import com.dama.wanderwave.token.EmailToken;
+import com.dama.wanderwave.emailToken.EmailToken;
 import com.dama.wanderwave.user.like.Like;
 import com.dama.wanderwave.user.saved_post.SavedPost;
 import com.dama.wanderwave.user.viewed_post.ViewedPost;

@@ -1,7 +1,14 @@
 package com.dama.wanderwave.report;
 
 import com.dama.wanderwave.comment.CommentRepository;
-import com.dama.wanderwave.handler.*;
+import com.dama.wanderwave.handler.comment.CommentNotFoundException;
+import com.dama.wanderwave.handler.post.PostNotFoundException;
+import com.dama.wanderwave.handler.report.DuplicateReportException;
+import com.dama.wanderwave.handler.report.ReportNotFoundException;
+import com.dama.wanderwave.handler.report.ReportStatusNotFoundException;
+import com.dama.wanderwave.handler.report.ReportTypeNotFoundException;
+import com.dama.wanderwave.handler.user.UnauthorizedActionException;
+import com.dama.wanderwave.handler.user.UserNotFoundException;
 import com.dama.wanderwave.post.PostRepository;
 import com.dama.wanderwave.report.comment.CommentReport;
 import com.dama.wanderwave.report.general.*;

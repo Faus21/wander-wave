@@ -4,6 +4,7 @@ import com.dama.wanderwave.auth.*;
 import com.dama.wanderwave.report.request.FilteredReportPageRequest;
 import com.dama.wanderwave.report.request.ReviewReportRequest;
 import com.dama.wanderwave.report.request.SendReportRequest;
+import com.dama.wanderwave.utils.ResponseRecord;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -40,13 +41,12 @@ public class ReportController {
             @ApiResponse(responseCode = "404", description = "Request parameters not found", content = @Content()),
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
-    public ResponseEntity<ResponseRecord> sendReport(@RequestBody @Valid SendReportRequest request) {
+    public ResponseEntity<ResponseRecord> sendReport( @RequestBody @Valid SendReportRequest request) {
         String message = service.sendReport(request);
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), message));
     }
 
     @GetMapping("/get")
-    @ResponseStatus(HttpStatus.OK)
     @Operation(summary = "Get reports", description = "Retrieve reports.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Reports retrieved successfully", content = @Content()),
@@ -63,7 +63,6 @@ public class ReportController {
     }
 
     @GetMapping("/user/{userId}")
-    @ResponseStatus(HttpStatus.OK)
     @Operation(summary = "Get user reports", description = "Get all reports for a specific user.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "All reports retrieved successfully", content = @Content()),
@@ -80,7 +79,6 @@ public class ReportController {
     }
 
     @PostMapping("/review")
-    @ResponseStatus(HttpStatus.OK)
     @Operation(summary = "Review a report", description = "Review a specific report by its ID.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Report reviewed successfully", content = @Content()),
@@ -93,7 +91,6 @@ public class ReportController {
     }
 
     @GetMapping("/get/{reportId}")
-    @ResponseStatus(HttpStatus.OK)
     @Operation(summary = "Returns report by id", description = "Get a specific report by its ID.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Report retrieved successfully", content = @Content()),

@@ -2,6 +2,8 @@ package com.dama.wanderwave.security;
 
 import com.dama.wanderwave.user.User;
 import com.dama.wanderwave.user.UserRepository;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -17,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("UserDetailsServiceImpl Tests")
 class UserDetailsServiceImplTest {
 
     @Mock
@@ -25,34 +28,38 @@ class UserDetailsServiceImplTest {
     @InjectMocks
     private UserDetailsServiceImpl userDetailsService;
 
-    @Test
-    void loadUserByUsernameShouldReturnUserDetailsWhenUserExists() {
+    @Nested
+    @DisplayName("loadUserByUsername Method")
+    class LoadUserByUsernameTests {
 
-        String username = "test@example.com";
-        User mockUser = new User();
-        mockUser.setEmail(username);
-        mockUser.setPassword("password");
-        mockUser.setEnabled(true);
+        @Test
+        @DisplayName("Should Return UserDetails When User Exists")
+        void loadUserByUsernameShouldReturnUserDetailsWhenUserExists() {
+            String username = "test@example.com";
+            User mockUser = new User();
+            mockUser.setEmail(username);
+            mockUser.setPassword("password");
+            mockUser.setEnabled(true);
 
-        when(userRepository.findByEmail(username)).thenReturn(Optional.of(mockUser));
+            when(userRepository.findByEmail(username)).thenReturn(Optional.of(mockUser));
 
-        UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-        assertThat(userDetails).isNotNull();
-        assertThat(userDetails.getUsername()).isEqualTo(username);
-        verify(userRepository, times(1)).findByEmail(username);
-    }
+            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+            assertThat(userDetails).isNotNull();
+            assertThat(userDetails.getUsername()).isEqualTo(username);
+            verify(userRepository, times(1)).findByEmail(username);
+        }
 
-    @Test
-    void loadUserByUsernameShouldThrowUsernameNotFoundExceptionWhenUserDoesNotExist() {
-        String username = "test@example.com";
+        @Test
+        @DisplayName("Should Throw UsernameNotFoundException When User Does Not Exist")
+        void loadUserByUsernameShouldThrowUsernameNotFoundExceptionWhenUserDoesNotExist() {
+            String username = "test@example.com";
 
-        when(userRepository.findByEmail(username)).thenReturn(Optional.empty());
+            when(userRepository.findByEmail(username)).thenReturn(Optional.empty());
 
-        UsernameNotFoundException thrownException = assertThrows(UsernameNotFoundException.class, () -> {
-            userDetailsService.loadUserByUsername(username);
-        });
+            UsernameNotFoundException thrownException = assertThrows(UsernameNotFoundException.class, () -> userDetailsService.loadUserByUsername(username));
 
-        assertThat(thrownException).hasMessageContaining("User not found");
-        verify(userRepository, times(1)).findByEmail(username);
+            assertThat(thrownException).hasMessageContaining("User not found");
+            verify(userRepository, times(1)).findByEmail(username);
+        }
     }
 }

@@ -13,7 +13,6 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import static com.dama.wanderwave.security.Roles.ADMIN;
-import static com.dama.wanderwave.security.Roles.USER;
 import static org.springframework.security.config.http.SessionCreationPolicy.STATELESS;
 
 enum Roles {
@@ -37,28 +36,26 @@ public class SecurityConfig {
         http
                 .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(request -> {
-                    request.requestMatchers(
-                                    "/api/auth/",
-                                    "/api/auth/*",
-                                    "api/report/types",
-                                    "/wander_wave_swagger",
-                                    "/api-docs",
-                                    "/v2/api-docs",
-                                    "/v3/api-docs",
-                                    "/v3/api-docs/**",
-                                    "/swagger-resources",
-                                    "/swagger-resources/**",
-                                    "/configuration/ui",
-                                    "/configuration/security",
-                                    "/swagger-ui/**",
-                                    "/webjars/**",
-                                    "/swagger-ui.html").permitAll()
-                            .requestMatchers(
-                                    "/api/reports/get",
-                                    "/api/reports/review").hasRole(ADMIN.name())
-                            .anyRequest().authenticated();
-                })
+                .authorizeHttpRequests(request -> request.requestMatchers(
+                                "/api/auth/",
+                                "/api/auth/*",
+                                "api/report/types",
+                                "/wander_wave_swagger",
+                                "/api-docs",
+                                "/v2/api-docs",
+                                "/v3/api-docs",
+                                "/v3/api-docs/**",
+                                "/swagger-resources",
+                                "/swagger-resources/**",
+                                "/configuration/ui",
+                                "/configuration/security",
+                                "/swagger-ui/**",
+                                "/webjars/**",
+                                "/swagger-ui.html").permitAll()
+                        .requestMatchers(
+                                "/api/reports/get",
+                                "/api/reports/review").hasRole(ADMIN.name())
+                        .anyRequest().authenticated())
                 .sessionManagement(session -> session.sessionCreationPolicy(STATELESS))
                 .authenticationProvider(authenticationProvider)
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

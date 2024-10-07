@@ -1,146 +1,70 @@
 package com.dama.wanderwave.handler;
 
-import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
+import lombok.Builder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(UserNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleUserNotFoundException(UserNotFoundException ex) {
-        return buildErrorResponse(ex.getMessage(), 404, HttpStatus.NOT_FOUND);
+    private static final String VALIDATION_FAILED_FORMAT = "Validation failed: %s";
+
+    @ExceptionHandler(Throwable.class)
+    public ResponseEntity<ErrorResponse> handleAllThrowables(Throwable throwable) {
+        Throwable rootCause = getRootCause(throwable);
+        return buildErrorResponse(rootCause);
     }
 
-    @ExceptionHandler(RoleNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleRoleNotFoundException(RoleNotFoundException ex) {
-        return buildErrorResponse(ex.getMessage(), 404, HttpStatus.NOT_FOUND);
+    private ResponseEntity<ErrorResponse> buildErrorResponse(Throwable throwable) {
+        HttpStatus status = ExceptionStatus.getStatusFor(throwable);
+        String message = resolveErrorMessage(throwable);
+        return ResponseEntity.status(status).body(ErrorResponse.builder()
+                                                          .errorCode(status.value())
+                                                          .message(message)
+                                                          .build());
     }
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleMethodArgumentNotValidException(MethodArgumentNotValidException ex) {
-        Map<String, String> fieldErrors = new HashMap<>();
-        for (FieldError error : ex.getBindingResult().getFieldErrors()) {
-            fieldErrors.put(error.getField(), error.getDefaultMessage());
+    private String resolveErrorMessage(Throwable throwable) {
+        if (throwable instanceof MethodArgumentNotValidException ex) {
+            return formatValidationErrors(
+                    ex.getBindingResult().getFieldErrors(),
+                    error -> formatErrorMessage(error.getField(), error.getDefaultMessage())
+            );
+        } else if (throwable instanceof ConstraintViolationException ex) {
+            return formatValidationErrors(
+                    ex.getConstraintViolations(),
+                    violation -> formatErrorMessage(violation.getPropertyPath().toString(), violation.getMessage())
+            );
         }
-        String message = "Validation failed for fields: " + fieldErrors;
-        return buildErrorResponse(message, 400, HttpStatus.BAD_REQUEST);
+        return throwable.getMessage();
     }
 
-    @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<ErrorResponse> handleConstraintViolationException(ConstraintViolationException ex) {
-        Map<String, String> violations = new HashMap<>();
-        for (ConstraintViolation<?> violation : ex.getConstraintViolations()) {
-            violations.put(violation.getPropertyPath().toString(), violation.getMessage());
+    private String formatErrorMessage(String field, String message) {
+        return field + ": " + message;
+    }
+
+    private <T> String formatValidationErrors(Iterable<T> errors, Function<T, String> mapper) {
+        String errorMessages = StreamSupport.stream(errors.spliterator(), false)
+                                       .map(mapper)
+                                       .collect(Collectors.joining(", "));
+        return String.format(VALIDATION_FAILED_FORMAT, errorMessages);
+    }
+
+    private Throwable getRootCause(Throwable throwable) {
+        while (throwable.getCause() != null && throwable.getCause() != throwable) {
+            throwable = throwable.getCause();
         }
-        String message = "Validation failed for parameters: " + violations;
-        return buildErrorResponse(message, 401, HttpStatus.UNAUTHORIZED);
+        return throwable;
     }
 
-    @ExceptionHandler(TokenInvalidException.class)
-    public ResponseEntity<ErrorResponse> handleTokenInvalidException(TokenInvalidException ex) {
-        return buildErrorResponse(ex.getMessage(), 400, HttpStatus.BAD_REQUEST);
-    }
-
-    @ExceptionHandler(TokenRefreshException.class)
-    public ResponseEntity<ErrorResponse> handleTokenRefreshException(TokenRefreshException ex) {
-        return buildErrorResponse(ex.getMessage(), 400, HttpStatus.BAD_REQUEST);
-    }
-
-    @ExceptionHandler(TokenExpiredException.class)
-    public ResponseEntity<ErrorResponse> handleTokenExpiredException(TokenExpiredException ex) {
-        return buildErrorResponse(ex.getMessage(), 400, HttpStatus.BAD_REQUEST);
-    }
-
-    @ExceptionHandler(WrongReportObjectException.class)
-    public ResponseEntity<ErrorResponse> handleWrongReportObjectException(WrongReportObjectException ex) {
-        return buildErrorResponse(ex.getMessage(), 400, HttpStatus.BAD_REQUEST);
-    }
-
-    @ExceptionHandler(DuplicateReportException.class)
-    public ResponseEntity<ErrorResponse> handleDuplicateReportException(DuplicateReportException ex) {
-        return buildErrorResponse(ex.getMessage(), 400, HttpStatus.BAD_REQUEST);
-    }
-
-    @ExceptionHandler(TokenNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleTokenNotFoundException(TokenNotFoundException ex) {
-        return buildErrorResponse(ex.getMessage(), 404, HttpStatus.NOT_FOUND);
-    }
-
-    @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<ErrorResponse> handleBadCredentialsException(BadCredentialsException ex) {
-        return buildErrorResponse(ex.getMessage(), 401, HttpStatus.UNAUTHORIZED);
-    }
-
-    @ExceptionHandler(UniqueConstraintViolationException.class)
-    public ResponseEntity<ErrorResponse> handleUniqueConstraintViolationException(UniqueConstraintViolationException ex) {
-        return buildErrorResponse(ex.getMessage(), 409, HttpStatus.CONFLICT);
-    }
-
-    @ExceptionHandler(EmailTemplateException.class)
-    public ResponseEntity<ErrorResponse> handleEmailTemplateException(EmailTemplateException ex) {
-        return buildErrorResponse(ex.getMessage(), 500, HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-
-    @ExceptionHandler(EmailSendingException.class)
-    public ResponseEntity<ErrorResponse> handleEmailSendingException(EmailSendingException ex) {
-        return buildErrorResponse(ex.getMessage(), 500, HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
-        return buildErrorResponse(ex.getMessage(), 500, HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-
-    @ExceptionHandler(InternalError.class)
-    public ResponseEntity<ErrorResponse> handleInternalError(InternalError ex) {
-        return buildErrorResponse(ex.getMessage(), 500, HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-
-    @ExceptionHandler(ReportTypeNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleReportTypeNotFoundException(ReportTypeNotFoundException ex) {
-        return buildErrorResponse(ex.getMessage(), 404, HttpStatus.NOT_FOUND);
-    }
-
-    @ExceptionHandler(ReportStatusNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleReportStatusNotFoundException(ReportStatusNotFoundException ex) {
-        return buildErrorResponse(ex.getMessage(), 404, HttpStatus.NOT_FOUND);
-    }
-
-    @ExceptionHandler(ReportNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleReportNotFoundException(ReportNotFoundException ex) {
-        return buildErrorResponse(ex.getMessage(), 404, HttpStatus.NOT_FOUND);
-    }
-
-    @ExceptionHandler(PostNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handlePostNotFoundException(PostNotFoundException ex) {
-        return buildErrorResponse(ex.getMessage(), 404, HttpStatus.NOT_FOUND);
-    }
-
-    @ExceptionHandler(CommentNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleCommentNotFoundException(CommentNotFoundException ex) {
-        return buildErrorResponse(ex.getMessage(), 404, HttpStatus.NOT_FOUND);
-    }
-
-    @ExceptionHandler(UnauthorizedActionException.class)
-    public ResponseEntity<ErrorResponse> handleUnauthorizedActionException(UnauthorizedActionException ex) {
-        return buildErrorResponse(ex.getMessage(), 403, HttpStatus.FORBIDDEN);
-    }
-
-    private ResponseEntity<ErrorResponse> buildErrorResponse(String message, int errorCode, HttpStatus status) {
-        ErrorResponse errorResponse = new ErrorResponse(errorCode, message);
-        return new ResponseEntity<>(errorResponse, status);
-    }
-
-    public record ErrorResponse(int errorCode, String message) {
-    }
+    @Builder
+    public record ErrorResponse(int errorCode, String message) {}
 }

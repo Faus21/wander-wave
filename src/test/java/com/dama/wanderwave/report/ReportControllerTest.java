@@ -1,6 +1,10 @@
 package com.dama.wanderwave.report;
 
 import com.dama.wanderwave.handler.*;
+import com.dama.wanderwave.handler.report.ReportNotFoundException;
+import com.dama.wanderwave.handler.report.ReportTypeNotFoundException;
+import com.dama.wanderwave.handler.user.UnauthorizedActionException;
+import com.dama.wanderwave.handler.user.UserNotFoundException;
 import com.dama.wanderwave.report.general.UserReport;
 import com.dama.wanderwave.report.request.ReportObjectType;
 import com.dama.wanderwave.report.request.ReviewReportRequest;
