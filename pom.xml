@@ -181,6 +181,13 @@
             <version>${assertj.version}</version>
             <scope>test</scope>
         </dependency>
+
+
+        <dependency>
+            <groupId>net.bytebuddy</groupId>
+            <artifactId>byte-buddy</artifactId>
+            <version>1.15.4</version>
+        </dependency>
     </dependencies>
 
     <build>

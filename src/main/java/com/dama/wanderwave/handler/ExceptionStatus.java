@@ -5,6 +5,7 @@ import com.dama.wanderwave.handler.chat.ChatRoomNotFoundException;
 import com.dama.wanderwave.handler.comment.CommentNotFoundException;
 import com.dama.wanderwave.handler.email.EmailSendingException;
 import com.dama.wanderwave.handler.email.EmailTemplateException;
+import com.dama.wanderwave.handler.post.CategoryTypeNotFoundException;
 import com.dama.wanderwave.handler.post.PostNotFoundException;
 import com.dama.wanderwave.handler.report.*;
 import com.dama.wanderwave.handler.role.RoleNotFoundException;
@@ -16,6 +17,10 @@ import com.dama.wanderwave.handler.user.BannedUserException;
 import com.dama.wanderwave.handler.user.UnauthorizedActionException;
 import com.dama.wanderwave.handler.user.UniqueConstraintViolationException;
 import com.dama.wanderwave.handler.user.UserNotFoundException;
+import com.dama.wanderwave.handler.user.like.IsLikedException;
+import com.dama.wanderwave.handler.user.like.LikeNotFoundException;
+import com.dama.wanderwave.handler.user.save.IsSavedException;
+import com.dama.wanderwave.handler.user.save.SavedPostNotFound;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.context.ApplicationContextException;
 import org.springframework.http.HttpStatus;
@@ -39,6 +44,9 @@ public enum ExceptionStatus {
     REPORT_NOT_FOUND(ReportNotFoundException.class, NOT_FOUND),
     REPORT_TYPE_NOT_FOUND(ReportTypeNotFoundException.class, NOT_FOUND),
     REPORT_STATUS_NOT_FOUND(ReportStatusNotFoundException.class, NOT_FOUND),
+    CATEGORY_TYPE_NOT_FOUND(CategoryTypeNotFoundException.class, NOT_FOUND),
+    LIKE_NOT_FOUND(LikeNotFoundException.class, NOT_FOUND),
+    SAVED_POST_NOT_FOUND(SavedPostNotFound.class, NOT_FOUND),
 
     // BAD_REQUEST
     METHOD_ARGUMENT_NOT_VALID(MethodArgumentNotValidException.class, BAD_REQUEST),
@@ -49,6 +57,9 @@ public enum ExceptionStatus {
     WRONG_REPORT_OBJECT(WrongReportObjectException.class, BAD_REQUEST),
     DUPLICATE_REPORT(DuplicateReportException.class, BAD_REQUEST),
     BANNED_USER(BannedUserException.class, BAD_REQUEST),
+    IS_LIKED(IsLikedException.class, BAD_REQUEST),
+    IS_SAVED(IsSavedException.class, BAD_REQUEST),
+
     // UNAUTHORIZED
     BAD_CREDENTIALS(BadCredentialsException.class, UNAUTHORIZED),
     UNAUTHORIZED_ACTION(UnauthorizedActionException.class, FORBIDDEN),

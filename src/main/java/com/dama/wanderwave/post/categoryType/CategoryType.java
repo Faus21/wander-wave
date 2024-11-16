@@ -1,4 +1,4 @@
-package com.dama.wanderwave.post;
+package com.dama.wanderwave.post.categoryType;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
