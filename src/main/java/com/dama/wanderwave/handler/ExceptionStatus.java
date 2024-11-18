@@ -1,5 +1,6 @@
 package com.dama.wanderwave.handler;
 
+import com.dama.wanderwave.handler.azure.FileTypeException;
 import com.dama.wanderwave.handler.chat.ChatRoomException;
 import com.dama.wanderwave.handler.chat.ChatRoomNotFoundException;
 import com.dama.wanderwave.handler.comment.CommentNotFoundException;
@@ -21,6 +22,8 @@ import org.springframework.context.ApplicationContextException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
 
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -49,6 +52,7 @@ public enum ExceptionStatus {
     WRONG_REPORT_OBJECT(WrongReportObjectException.class, BAD_REQUEST),
     DUPLICATE_REPORT(DuplicateReportException.class, BAD_REQUEST),
     BANNED_USER(BannedUserException.class, BAD_REQUEST),
+    FILE_TYPE_EXCEPTION(FileTypeException.class, BAD_REQUEST),
     // UNAUTHORIZED
     BAD_CREDENTIALS(BadCredentialsException.class, UNAUTHORIZED),
     UNAUTHORIZED_ACTION(UnauthorizedActionException.class, FORBIDDEN),

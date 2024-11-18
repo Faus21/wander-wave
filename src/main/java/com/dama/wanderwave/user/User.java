@@ -9,6 +9,7 @@ import com.dama.wanderwave.user.viewed_post.ViewedPost;
 import com.vladmihalcea.hibernate.type.json.JsonBinaryType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.*;
@@ -58,21 +59,29 @@ public class User implements UserDetails, Principal {
 
 	@Type(JsonBinaryType.class)
 	@Column(name = "black_list", columnDefinition = "jsonb")
-	private BlackList blackList ;
+	private BlackList blackList;
 	@Builder.Default
 	@ManyToMany(fetch = FetchType.EAGER)
 	@JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
 	private Set<Role> roles = new HashSet<>();
 	@Builder.Default
-	@ElementCollection(fetch = FetchType.EAGER)
+	@ElementCollection(fetch = FetchType.LAZY)
 	@CollectionTable(name = "subscribers", joinColumns = @JoinColumn(name = "follower_id"))
 	@Column(name = "followed_id")
 	private Set<String> subscriptions = new HashSet<>();
 	@Builder.Default
-	@ElementCollection(fetch = FetchType.EAGER)
+	@ElementCollection(fetch = FetchType.LAZY)
 	@CollectionTable(name = "subscribers", joinColumns = @JoinColumn(name = "followed_id"))
 	@Column(name = "follower_id")
 	private Set<String> subscribers = new HashSet<>();
+
+	@Min(0)
+	@Column(name = "subscriber_count")
+	private int subscriberCount;
+	@Min(0)
+	@Column(name = "subscriptions_count")
+	private int subscriptionsCount;
+
 	@Builder.Default
 	@OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
 	private Set<EmailToken> emailTokens = new HashSet<>();

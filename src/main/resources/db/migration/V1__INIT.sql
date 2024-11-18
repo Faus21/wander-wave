@@ -193,6 +193,14 @@ CREATE TABLE user_viewed_posts
     CONSTRAINT pk_user_viewed_posts PRIMARY KEY (user_id, post_id)
 );
 
+/*
+ @Min(0)
+	@Column(name = "subscriber_count")
+	private int subscriberCount;
+	@Min(0)
+	@Column(name = "subscriptions_count")
+	private int subscriptionsCount;
+ */
 CREATE TABLE users
 (
     user_id        VARCHAR(255) NOT NULL,
@@ -203,6 +211,8 @@ CREATE TABLE users
     black_list     JSONB,
     account_locked BOOLEAN      NOT NULL,
     enabled        BOOLEAN      NOT NULL,
+    subscriber_count INT NOT NULL,
+    subscriptions_count INT NOT NULL,
     image_url      TEXT,
     CONSTRAINT pk_users PRIMARY KEY (user_id)
 );

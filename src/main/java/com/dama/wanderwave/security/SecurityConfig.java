@@ -51,10 +51,13 @@ public class SecurityConfig {
                                 "/configuration/security",
                                 "/swagger-ui/**",
                                 "/webjars/**",
-                                "/swagger-ui.html").permitAll()
+                                "/swagger-ui.html",
+                                "/api/users/upload-avatar").permitAll()
                         .requestMatchers(
                                 "/api/reports/get",
-                                "/api/reports/review").hasRole(ADMIN.name())
+                                "/api/reports/review",
+                                "/api/users/ban/**",
+                                "/api/users/unban/**").hasRole(ADMIN.name())
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session.sessionCreationPolicy(STATELESS))
                 .authenticationProvider(authenticationProvider)

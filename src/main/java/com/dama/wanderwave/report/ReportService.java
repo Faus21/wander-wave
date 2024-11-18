@@ -18,6 +18,7 @@ import com.dama.wanderwave.report.request.ReviewReportRequest;
 import com.dama.wanderwave.report.request.SendReportRequest;
 import com.dama.wanderwave.user.User;
 import com.dama.wanderwave.user.UserRepository;
+import com.dama.wanderwave.user.UserService;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.Path;
 import jakarta.persistence.criteria.Predicate;
@@ -54,6 +55,7 @@ public class ReportService {
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
     private final ReportTypeRepository typeRepository;
+    private final UserService userService;
 
     @Transactional
     public String sendReport(SendReportRequest request) {
@@ -81,8 +83,8 @@ public class ReportService {
     }
 
     public Page<UserReport> getUserReports(Pageable pageRequest, String userId) {
-        User authenticatedUser = getAuthenticatedUser();
-        User user = verifyUserAccess(authenticatedUser, userId);
+        User authenticatedUser = userService.getAuthenticatedUser();
+        User user = userService.verifyUserAccess(authenticatedUser, userId);
 
         Page<UserReport> reports = reportRepository.findAllBySender(PageRequest.of(pageRequest.getPageNumber(), pageRequest.getPageSize()), user);
         isReportsEmpty(reports, "No reports found for user ID: " + user.getId());
@@ -95,7 +97,7 @@ public class ReportService {
         UserReport report = reportRepository.findById(reportId)
                 .orElseThrow(() -> new ReportNotFoundException("Report not found with ID: " + reportId));
 
-        verifyUserAccess(getAuthenticatedUser(), report.getSender().getId());
+        userService.verifyUserAccess(userService.getAuthenticatedUser(), report.getSender().getId());
 
         log.info("Successfully fetched report for report ID '{}'.", reportId);
         return report;
@@ -114,7 +116,7 @@ public class ReportService {
 
     @Transactional
     public String reviewReport(ReviewReportRequest request) {
-        User admin = getAuthenticatedUser();
+        User admin = userService.getAuthenticatedUser();
         UserReport report = reportRepository.findById(request.getReportId())
                 .orElseThrow(() -> new ReportNotFoundException("Report not found with ID: " + request.getReportId()));
 
@@ -145,18 +147,6 @@ public class ReportService {
                     log.warn("Unauthorized attempt by user {} to send a report on behalf of user {}", authenticatedEmail, senderId);
                     return new UnauthorizedActionException("Unauthorized action.");
                 });
-    }
-
-    private User getAuthenticatedUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        return userRepository.findByEmail(authentication.getName())
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
-    }
-
-    private User verifyUserAccess(User authenticatedUser, String userId) {
-        return userRepository.findById(userId)
-                .filter(user -> user.getEmail().equals(authenticatedUser.getEmail()))
-                .orElseThrow(() -> new UnauthorizedActionException("Unauthorized access to user data"));
     }
 
     private UserReport createReportByType(SendReportRequest request) {

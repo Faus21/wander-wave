@@ -4,7 +4,7 @@ import org.springframework.boot.autoconfigure.cache.CacheManagerCustomizer;
 import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
 import org.springframework.stereotype.Component;
 
-import static java.util.Arrays.asList;
+import java.util.List;
 
 @Component
 public class SimpleCacheCustomizer
@@ -12,6 +12,6 @@ public class SimpleCacheCustomizer
 
     @Override
     public void customize(ConcurrentMapCacheManager cacheManager) {
-        cacheManager.setCacheNames(asList("users", "transactions"));
+        cacheManager.setCacheNames(List.of("users"));
     }
 }

@@ -5,10 +5,10 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
-public class FileUploadException extends IllegalArgumentException {
+public class FileTypeException extends IllegalArgumentException {
     private final String message;
 
-    public FileUploadException(String message) {
+    public FileTypeException(String message) {
         super(message);
         this.message = message;
     }
