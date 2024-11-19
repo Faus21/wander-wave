@@ -24,10 +24,12 @@ public interface UserRepository extends JpaRepository<User, String> {
     @Query("select u from User u where u.nickname = :userData or u.email = :userData")
     Optional<User> loadByNicknameOrEmail(@Param("userData") String userData);
 
-    @Query("SELECT s FROM User u JOIN u.subscribers s WHERE u.id = :userId")
-    Page<User> findSubscribersByUserId(@Param("userId") String userId, Pageable pageable);
+    @Query("SELECT u.subscribers FROM User u WHERE u.id = :userId")
+    Page<String> findSubscribersIdsByUserId(@Param("userId") String userId, Pageable pageable);
 
-    @Query("SELECT s FROM User u JOIN u.subscriptions s WHERE u.id = :userId")
-    Page<User> findSubscriptionsByUserId(@Param("userId") String userId, Pageable pageable);
+    @Query("SELECT u.subscriptions FROM User u WHERE u.id = :userId")
+    Page<String> findSubscriptionsIdsByUserId(@Param("userId") String userId, Pageable pageable);
+
+    List<User> findAllByIdIn(List<String> ids);
 
 }

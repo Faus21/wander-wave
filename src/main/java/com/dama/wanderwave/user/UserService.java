@@ -4,6 +4,7 @@ import com.dama.wanderwave.handler.user.UnauthorizedActionException;
 import com.dama.wanderwave.handler.user.UserNotFoundException;
 import com.dama.wanderwave.user.request.BlockRequest;
 import com.dama.wanderwave.user.request.SubscribeRequest;
+import com.dama.wanderwave.user.response.UserResponse;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +17,11 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.function.BiFunction;
+
 @Service
 @Slf4j
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
@@ -24,52 +30,42 @@ public class UserService {
     private final UserRepository userRepository;
 
     @Cacheable(value = "users", key = "#id")
-    public User getUserById(String id) {
-        return userRepository.findById(id)
-                .orElseThrow(() -> new UserNotFoundException("User not found with id " + id));
+    public UserResponse getUserById(String id) {
+        var user = findUserById(id);
+        return userToUserResponse(user);
     }
 
     @Transactional
-    public String updateSubscription(SubscribeRequest request, int value) {
-        String followerId = request.getFollowerId();
-        String followedId = request.getFollowedId();
+    public String updateSubscription(SubscribeRequest request, boolean subscribe) {
+        var followerId = request.getFollowerId();
+        var followedId = request.getFollowedId();
 
-        User follower = userRepository.findById(followerId)
-                .orElseThrow(() -> new UserNotFoundException("User not found with id " + followerId));
+        User follower = findUserById(followerId);
 
-        verifyUserAccess(follower, followerId);
+        checkUserAccessRights(follower, followerId);
 
-        User followed = userRepository.findById(followedId)
-                .orElseThrow(() -> new UserNotFoundException("User not found with id " + followedId));
+        User followed = findUserById(followedId);
 
-        updateSubscriptionsAndSubscribers(follower, followed, followerId, followedId, value);
-
-        userRepository.save(follower);
-        userRepository.save(followed);
-
-        log.info("User {} {} successfully from user {}", followerId, (value == 1 ? "subscribed" : "unsubscribed"), followedId);
-        return value == 1 ? "User subscribed successfully" : "User unsubscribed successfully";
+        if (updateFollowStatus(follower, followed, followerId, followedId, subscribe)) {
+            updateFollowCounts(follower, followed, subscribe);
+            userRepository.save(follower);
+            userRepository.save(followed);
+            return subscribe ? "User subscribed successfully" : "User unsubscribed successfully";
+        } else {
+            return subscribe ? "Already subscribed" : "Not subscribed, cannot unsubscribe";
+        }
     }
 
-    private void updateSubscriptionsAndSubscribers(User follower, User followed, String followerId, String followedId, int value) {
-        if (value == 1) {
-            if (follower.getSubscriptions().contains(followedId)) {
-                log.warn("User with ID {} is already subscribed to user with ID {}", followerId, followedId);
-            } else {
-                follower.getSubscriptions().add(followedId);
-                followed.getSubscribers().add(followerId);
-                log.info("User with ID {} followed user with ID {}", followerId, followedId);
-            }
-        } else if (value == -1) {
-            if (!follower.getSubscriptions().contains(followedId)) {
-                log.warn("User with ID {} is not subscribed to user with ID {}, cannot unfollow", followerId, followedId);
-            } else {
-                follower.getSubscriptions().remove(followedId);
-                followed.getSubscribers().remove(followerId);
-                log.info("User with ID {} unfollowed user with ID {}", followerId, followedId);
-            }
+    private boolean updateFollowStatus(User follower, User followed, String followerId, String followedId, boolean subscribe) {
+        if (modifyUserConnection(followerId, follower.getSubscriptions(), followedId, subscribe, "subscriptions")) {
+            modifyUserConnection(followedId, followed.getSubscribers(), followerId, subscribe, "subscribers");
+            return true;
         }
+        return false;
+    }
 
+    public void updateFollowCounts(User follower, User followed, boolean subscribe) {
+        int value = subscribe ? 1 : -1;
         follower.setSubscriptionsCount(follower.getSubscriptionsCount() + value);
         followed.setSubscriberCount(followed.getSubscriberCount() + value);
     }
@@ -78,71 +74,78 @@ public class UserService {
         String blockerId = request.getBlockerId();
         String blockedId = request.getBlockedId();
 
-        User blocker = userRepository.findById(blockerId)
-                .orElseThrow(() -> new UserNotFoundException("User not found with id " + blockerId));
+        User blocker = findUserById(blockerId);
+        checkUserAccessRights(blocker, blockedId);
+        findUserById(blockedId);
 
-        verifyUserAccess(blocker, blockerId);
+        boolean success = modifyUserConnection(blockerId, blocker.getBlackList().userIds(), blockedId, add, "blacklist");
 
-        User blocked = userRepository.findById(blockedId)
-                .orElseThrow(() -> new UserNotFoundException("User not found with id " + blockedId));
-
-        updateBlacklist(blocker, blockedId, add);
-        userRepository.save(blocker);
-
-        String action = add ? "blocked" : "unblocked";
-        log.info("User with ID {} {} user with ID {}", blockerId, action, blockedId);
-
-        return add ? "User blocked successfully" : "User unblocked successfully";
-    }
-
-    private void updateBlacklist(User blocker, String blockedId, boolean add) {
-        if (add) {
-            blocker.getBlackList().addUser(blockedId);
+        if (success) {
+            userRepository.save(blocker);
+            String action = add ? "blocked" : "unblocked";
+            log.info("User with ID {} {} user with ID {}", blockerId, action, blockedId);
+            return add ? "User blocked successfully" : "User unblocked successfully";
         } else {
-            var success = blocker.getBlackList().removeUser(blockedId);
-            if (!success) {
-                log.warn("User with ID {} was not found in the blacklist of user ID {}", blockedId, blocker.getId());
-            }
+            String action = add ? "block" : "unblock";
+            log.warn("Failed to {} user with ID {} in blocker ID {}'s blacklist", action, blockedId, blockerId);
+            return add ? "Failed to block user" : "Failed to unblock user";
         }
     }
 
     public String updateBan(String id, boolean ban) {
-        User toBan = userRepository.findById(id)
-                .orElseThrow(() -> new UserNotFoundException("User not found with id " + id));
-
+        User toBan = findUserById(id);
         toBan.setAccountLocked(ban);
         userRepository.save(toBan);
 
-        if (ban) {
-            log.info("User with ID {} has been banned (account locked)", id);
-            return "User banned successfully";
+        String action = ban ? "banned" : "unbanned";
+        log.info("User with ID {} has been {} (account {})", id, action, ban ? "locked" : "unlocked");
+
+        return ban ? "User banned successfully" : "User unbanned successfully";
+    }
+
+    private boolean modifyUserConnection(String userId, Set<String> connections, String targetId, boolean add, String connectionType) {
+        if (add) {
+            if (!connections.contains(targetId)) {
+                connections.add(targetId);
+                log.info("User with ID {} added to {} for user ID {}", targetId, connectionType, userId);
+                return true;
+            } else {
+                log.warn("User with ID {} is already in {} for user ID {}", targetId, connectionType, userId);
+                return false;
+            }
         } else {
-            log.info("User with ID {} has been unbanned (account unlocked)", id);
-            return "User unbanned successfully";
+            if (connections.remove(targetId)) {
+                log.info("User with ID {} removed from {} for user ID {}", targetId, connectionType, userId);
+                return true;
+            } else {
+                log.warn("User with ID {} was not found in {} for user ID {}", targetId, connectionType, userId);
+                return false;
+            }
         }
     }
 
-    public Page<User> getUserSubscribers(String userId, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        Page<User> subscribers = userRepository.findSubscribersByUserId(userId, pageable);
-        if (subscribers.isEmpty()) {
-            log.info("No subscribers found for userId: {}", userId);
-        } else {
-            log.info("Fetched {} subscribers for userId: {}", subscribers.getTotalElements(), userId);
-        }
-        return subscribers;
+    public List<UserResponse> getUserSubscribers(String userId, int page, int size) {
+        return getUserConnections(userId, page, size, userRepository::findSubscribersIdsByUserId, "subscribers");
     }
 
-    public Page<User> getUserSubscriptions(String userId, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        Page<User> subscriptions = userRepository.findSubscriptionsByUserId(userId, pageable);
-        if (subscriptions.isEmpty()) {
-            log.info("No subscriptions found for userId: {}", userId);
-        } else {
-            log.info("Fetched {} subscriptions for userId: {}", subscriptions.getTotalElements(), userId);
-        }
-        return subscriptions;
+    public List<UserResponse> getUserSubscriptions(String userId, int page, int size) {
+        return getUserConnections(userId, page, size, userRepository::findSubscriptionsIdsByUserId, "subscriptions");
     }
+
+    private List<UserResponse> getUserConnections(String userId, int page, int size,
+                                                  BiFunction<String, Pageable, Page<String>> findMethod, String connectionType) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<String> connectionsPage = findMethod.apply(userId, pageable);
+        if (connectionsPage.isEmpty()) {
+            log.info("No {} found for userId: {}", connectionType, userId);
+            return Collections.emptyList();
+        }
+        log.info("Fetched {} {} for userId: {}", connectionsPage.getTotalElements(), connectionType, userId);
+        return userRepository.findAllByIdIn(connectionsPage.getContent()).stream()
+                .map(this::userToUserResponse)
+                .toList();
+    }
+
 
     public User getAuthenticatedUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -150,9 +153,27 @@ public class UserService {
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
     }
 
-    public User verifyUserAccess(User authenticatedUser, String userId) {
+    public User checkUserAccessRights(User authenticatedUser, String userId) {
         return userRepository.findById(userId)
                 .filter(user -> user.getEmail().equals(authenticatedUser.getEmail()))
                 .orElseThrow(() -> new UnauthorizedActionException("Unauthorized action from user"));
+    }
+
+    private User findUserById(String userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found with id " + userId));
+    }
+
+    private UserResponse userToUserResponse(User user) {
+        return UserResponse
+                .builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .nickname(user.getNickname())
+                .description(user.getDescription())
+                .avatarUrl(user.getImageUrl())
+                .subscriberCount(user.getSubscriberCount())
+                .subscriptionsCount(user.getSubscriptionsCount())
+                .build();
     }
 }

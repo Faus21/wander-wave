@@ -57,7 +57,7 @@ public class UserController {
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
     public ResponseEntity<ResponseRecord> subscribe(@RequestBody SubscribeRequest request) {
-        var res = userService.updateSubscription(request, 1);
+        var res = userService.updateSubscription(request, true);
         return ResponseEntity.ok(new ResponseRecord(HttpStatus.OK.value(), res));
     }
 
@@ -71,7 +71,7 @@ public class UserController {
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
     public ResponseEntity<ResponseRecord> unsubscribe(@RequestBody SubscribeRequest request) {
-        var res = userService.updateSubscription(request, -1);
+        var res = userService.updateSubscription(request, false);
         return ResponseEntity.ok(new ResponseRecord(HttpStatus.OK.value(), res));
     }
 
