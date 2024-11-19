@@ -31,7 +31,7 @@ public class UserService {
 
     @Cacheable(value = "users", key = "#id")
     public UserResponse getUserById(String id) {
-        var user = findUserById(id);
+        var user = findUserByIdOrThrow(id);
         return userToUserResponse(user);
     }
 
@@ -40,11 +40,11 @@ public class UserService {
         var followerId = request.getFollowerId();
         var followedId = request.getFollowedId();
 
-        User follower = findUserById(followerId);
+        User follower = findUserByIdOrThrow(followerId);
 
         checkUserAccessRights(follower, followerId);
 
-        User followed = findUserById(followedId);
+        User followed = findUserByIdOrThrow(followedId);
 
         if (updateFollowStatus(follower, followed, followerId, followedId, subscribe)) {
             updateFollowCounts(follower, followed, subscribe);
@@ -74,13 +74,13 @@ public class UserService {
         String blockerId = request.getBlockerId();
         String blockedId = request.getBlockedId();
 
-        User blocker = findUserById(blockerId);
+        User blocker = findUserByIdOrThrow(blockerId);
         checkUserAccessRights(blocker, blockedId);
-        findUserById(blockedId);
+        findUserByIdOrThrow(blockedId);
 
-        boolean success = modifyUserConnection(blockerId, blocker.getBlackList().userIds(), blockedId, add, "blacklist");
+        boolean isSuccess = modifyUserConnection(blockerId, blocker.getBlackList().userIds(), blockedId, add, "blacklist");
 
-        if (success) {
+        if (isSuccess) {
             userRepository.save(blocker);
             String action = add ? "blocked" : "unblocked";
             log.info("User with ID {} {} user with ID {}", blockerId, action, blockedId);
@@ -93,7 +93,7 @@ public class UserService {
     }
 
     public String updateBan(String id, boolean ban) {
-        User toBan = findUserById(id);
+        User toBan = findUserByIdOrThrow(id);
         toBan.setAccountLocked(ban);
         userRepository.save(toBan);
 
@@ -104,24 +104,19 @@ public class UserService {
     }
 
     private boolean modifyUserConnection(String userId, Set<String> connections, String targetId, boolean add, String connectionType) {
-        if (add) {
-            if (!connections.contains(targetId)) {
+        boolean isSuccess = add ? !connections.contains(targetId) : connections.remove(targetId);
+        if (isSuccess) {
+            if (add) {
                 connections.add(targetId);
                 log.info("User with ID {} added to {} for user ID {}", targetId, connectionType, userId);
-                return true;
             } else {
-                log.warn("User with ID {} is already in {} for user ID {}", targetId, connectionType, userId);
-                return false;
+                log.info("User with ID {} removed from {} for user ID {}", targetId, connectionType, userId);
             }
         } else {
-            if (connections.remove(targetId)) {
-                log.info("User with ID {} removed from {} for user ID {}", targetId, connectionType, userId);
-                return true;
-            } else {
-                log.warn("User with ID {} was not found in {} for user ID {}", targetId, connectionType, userId);
-                return false;
-            }
+            log.warn("User with ID {} {} in {} for user ID {}", targetId, add ? "is already" : "was not found", connectionType, userId);
         }
+
+        return isSuccess;
     }
 
     public List<UserResponse> getUserSubscribers(String userId, int page, int size) {
@@ -153,13 +148,13 @@ public class UserService {
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
     }
 
-    public User checkUserAccessRights(User authenticatedUser, String userId) {
-        return userRepository.findById(userId)
+    public void checkUserAccessRights(User authenticatedUser, String userId) {
+        userRepository.findById(userId)
                 .filter(user -> user.getEmail().equals(authenticatedUser.getEmail()))
                 .orElseThrow(() -> new UnauthorizedActionException("Unauthorized action from user"));
     }
 
-    private User findUserById(String userId) {
+    private User findUserByIdOrThrow(String userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found with id " + userId));
     }
