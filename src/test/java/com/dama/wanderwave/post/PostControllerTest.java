@@ -24,6 +24,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -86,67 +90,75 @@ public class PostControllerTest {
     @Nested
     class GetUserPostsTest {
         @Test
-        @DisplayName("Get user reports should return OK (200)")
-        void getUserReports_Success() throws Exception {
-            when(postService.getUserPosts(any(String.class))).thenReturn(
+        @DisplayName("Get user posts should return OK (200)")
+        void getUserPosts_Success() throws Exception {
+            when(postService.getUserPosts(any(Pageable.class), any(String.class))).thenReturn(
                     getUserPosts()
             );
 
             mockMvc.perform(get(ApiUrls.GET_USER_POSTS.getUrl(), getMockUser().getNickname())
+                            .param("pageNumber", "0")
+                            .param("pageSize", "2")
                             .contentType(CONTENT_TYPE)
                             .accept(ACCEPT_TYPE))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.code").value(HttpStatus.OK.value()))
-                    .andExpect(jsonPath("$.message").isArray())
-                    .andExpect(jsonPath("$.message[0].id").value("mockPost1"));
+                    .andExpect(jsonPath("$.message.content").isArray())
+                    .andExpect(jsonPath("$.message.content[0].id").value("mockPost1"));
 
-            verify(postService).getUserPosts(any(String.class));
+            verify(postService).getUserPosts(any(Pageable.class), any(String.class));
         }
 
         @Test
         @DisplayName("Get user reports should return exception - forbidden (403)")
-        void getUserReports_Forbidden() throws Exception {
+        void getUserPosts_Forbidden() throws Exception {
             PostControllerTest.ErrorResponse response = new PostControllerTest.ErrorResponse(HttpStatus.FORBIDDEN.value(), "Forbidden: Authenticated user is not authorized to perform this action");
 
-            when(postService.getUserPosts(any(String.class))).thenThrow(new UnauthorizedActionException(response.message));
+            when(postService.getUserPosts(any(Pageable.class), any(String.class))).thenThrow(new UnauthorizedActionException(response.message));
 
             mockMvc.perform(get(ApiUrls.GET_USER_POSTS.getUrl(), "mockNickname")
+                            .param("pageNumber", "0")
+                            .param("pageSize", "2")
                             .accept(ACCEPT_TYPE))
                     .andExpect(status().isForbidden())
                     .andExpect(jsonPath("$.message").value(response.message));
 
-            verify(postService).getUserPosts(any(String.class));
+            verify(postService).getUserPosts(any(Pageable.class), any(String.class));
         }
 
         @Test
-        @DisplayName("Get user reports should return exception - not found (404)")
-        void getUserReports_CategoryNotFound() throws Exception {
+        @DisplayName("Get user posts should return exception - not found (404)")
+        void  getUserPosts_CategoryNotFound() throws Exception {
             PostControllerTest.ErrorResponse response = new PostControllerTest.ErrorResponse(HttpStatus.NOT_FOUND.value(), "Category not found");
 
-            when(postService.getUserPosts(any(String.class))).thenThrow(new CategoryTypeNotFoundException(response.message));
+            when(postService.getUserPosts(any(Pageable.class), any(String.class))).thenThrow(new CategoryTypeNotFoundException(response.message));
 
             mockMvc.perform(get(ApiUrls.GET_USER_POSTS.getUrl(), "mockNickname")
+                            .param("pageNumber", "0")
+                            .param("pageSize", "2")
                             .accept(ACCEPT_TYPE))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.errorCode").value(response.errorCode))
                     .andExpect(jsonPath("$.message").value(response.message));
 
-            verify(postService).getUserPosts(any(String.class));
+            verify(postService).getUserPosts(any(Pageable.class), any(String.class));
         }
 
         @Test
-        @DisplayName("Get user reports should return exception - internal server error (500)")
-        void getUserReports_InternalServerError() throws Exception {
+        @DisplayName("Get user posts should return exception - internal server error (500)")
+        void  getUserPosts_InternalServerError() throws Exception {
             PostControllerTest.ErrorResponse response = new PostControllerTest.ErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Internal server error");
 
-            when(postService.getUserPosts(any(String.class))).thenThrow(new RuntimeException(response.message));
+            when(postService.getUserPosts(any(Pageable.class), any(String.class))).thenThrow(new RuntimeException(response.message));
 
             mockMvc.perform(get(ApiUrls.GET_USER_POSTS.getUrl(), "mockNickname")
+                            .param("pageNumber", "0")
+                            .param("pageSize", "2")
                             .accept(ACCEPT_TYPE))
                     .andExpect(status().isInternalServerError())
                     .andExpect(jsonPath("$.errorCode").value(response.errorCode));
 
-            verify(postService).getUserPosts(any(String.class));
+            verify(postService).getUserPosts(any(Pageable.class), any(String.class));
         }
     }
 
@@ -529,43 +541,49 @@ public class PostControllerTest {
         @Test
         @DisplayName("Get personal flow should return success (200) when the flow is fetched successfully")
         void getPersonalFlow_Success() throws Exception {
-            List<PostResponse> mockFlow = getUserPosts();
-            when(postService.personalFlow()).thenReturn(mockFlow);
+
+            when(postService.personalFlow(any(PageRequest.class))).thenReturn(getUserPosts());
 
             mockMvc.perform(get(ApiUrls.GET_PERSONAL_FLOW.getUrl())
+                            .param("pageNumber", "0")
+                            .param("pageSize", "2")
                             .contentType(CONTENT_TYPE)
                             .accept(ACCEPT_TYPE))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.code").value(HttpStatus.OK.value()))
-                    .andExpect(jsonPath("$.message").isArray());
+                    .andExpect(jsonPath("$.message.content").isArray());
 
-            verify(postService).personalFlow();
+            verify(postService).personalFlow(any(PageRequest.class));
         }
 
         @Test
         @DisplayName("Get personal flow should return not found (404) when user subscription is not found")
         void getPersonalFlow_UserSubscriptionNotFound() throws Exception {
-            when(postService.personalFlow()).thenThrow(new UserNotFoundException("User subscription not found"));
+            when(postService.personalFlow(any(PageRequest.class))).thenThrow(new UserNotFoundException("User subscription not found"));
 
             mockMvc.perform(get(ApiUrls.GET_PERSONAL_FLOW.getUrl())
+                            .param("pageNumber", "0")
+                            .param("pageSize", "2")
                             .contentType(CONTENT_TYPE)
                             .accept(ACCEPT_TYPE))
                     .andExpect(status().isNotFound());
 
-            verify(postService).personalFlow();
+            verify(postService).personalFlow(any(PageRequest.class));
         }
 
         @Test
         @DisplayName("Get personal flow should return internal server error (500) on unexpected errors")
         void getPersonalFlow_InternalServerError() throws Exception {
-            when(postService.personalFlow()).thenThrow(new RuntimeException("Internal server error"));
+            when(postService.personalFlow(any(PageRequest.class))).thenThrow(new RuntimeException("Internal server error"));
 
             mockMvc.perform(get(ApiUrls.GET_PERSONAL_FLOW.getUrl())
+                            .param("pageNumber", "0")
+                            .param("pageSize", "2")
                             .contentType(CONTENT_TYPE)
                             .accept(ACCEPT_TYPE))
                     .andExpect(status().isInternalServerError());
 
-            verify(postService).personalFlow();
+            verify(postService).personalFlow(any(PageRequest.class));
         }
     }
 
@@ -576,30 +594,34 @@ public class PostControllerTest {
         @Test
         @DisplayName("Get recommendations flow should return success (200) when the flow is fetched successfully")
         void getRecommendationsFlow_Success() throws Exception {
-            List<PostResponse> mockFlow = getUserPosts();
-            when(postService.recommendationFlow()).thenReturn(mockFlow);
+
+            when(postService.recommendationFlow(any(Pageable.class))).thenReturn(getUserPosts());
 
             mockMvc.perform(get(ApiUrls.GET_RECOMMENDATIONS_FLOW.getUrl())
+                            .param("pageNumber", "0")
+                            .param("pageSize", "2")
                             .contentType(CONTENT_TYPE)
                             .accept(ACCEPT_TYPE))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.code").value(HttpStatus.OK.value()))
-                    .andExpect(jsonPath("$.message").isArray());
+                    .andExpect(jsonPath("$.message.content").isArray());
 
-            verify(postService).recommendationFlow();
+            verify(postService).recommendationFlow(any(Pageable.class));
         }
 
         @Test
         @DisplayName("Get recommendations flow should return internal server error (500) on unexpected errors")
         void getRecommendationsFlow_InternalServerError() throws Exception {
-            when(postService.recommendationFlow()).thenThrow(new RuntimeException("Internal server error"));
+            when(postService.recommendationFlow(any(Pageable.class))).thenThrow(new RuntimeException("Internal server error"));
 
             mockMvc.perform(get(ApiUrls.GET_RECOMMENDATIONS_FLOW.getUrl())
+                            .param("pageNumber", "0")
+                            .param("pageSize", "2")
                             .contentType(CONTENT_TYPE)
                             .accept(ACCEPT_TYPE))
                     .andExpect(status().isInternalServerError());
 
-            verify(postService).recommendationFlow();
+            verify(postService).recommendationFlow(any(Pageable.class));
         }
     }
 
@@ -609,30 +631,33 @@ public class PostControllerTest {
         @Test
         @DisplayName("Get user likes should return success (200) when likes are fetched successfully")
         void getUserLikes_Success() throws Exception {
-            List<PostResponse> mockLikes = getUserPosts();
-            when(postService.getLikedPostsResponse()).thenReturn(mockLikes);
+            when(postService.getLikedPostsResponse(any(Pageable.class))).thenReturn(getUserPosts());
 
             mockMvc.perform(get(ApiUrls.GET_USER_LIKES.getUrl())
+                            .param("pageNumber", "0")
+                            .param("pageSize", "2")
                             .contentType(CONTENT_TYPE)
                             .accept(ACCEPT_TYPE))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.code").value(HttpStatus.OK.value()))
-                    .andExpect(jsonPath("$.message").isArray());
+                    .andExpect(jsonPath("$.message.content").isArray());
 
-            verify(postService).getLikedPostsResponse();
+            verify(postService).getLikedPostsResponse(any(Pageable.class));
         }
 
         @Test
         @DisplayName("Get user likes should return internal server error (500) on unexpected errors")
         void getUserLikes_InternalServerError() throws Exception {
-            when(postService.getLikedPostsResponse()).thenThrow(new RuntimeException("Internal server error"));
+            when(postService.getLikedPostsResponse(any(Pageable.class))).thenThrow(new RuntimeException("Internal server error"));
 
             mockMvc.perform(get(ApiUrls.GET_USER_LIKES.getUrl())
+                            .param("pageNumber", "0")
+                            .param("pageSize", "2")
                             .contentType(CONTENT_TYPE)
                             .accept(ACCEPT_TYPE))
                     .andExpect(status().isInternalServerError());
 
-            verify(postService).getLikedPostsResponse();
+            verify(postService).getLikedPostsResponse(any(Pageable.class));
         }
     }
 
@@ -643,30 +668,34 @@ public class PostControllerTest {
         @Test
         @DisplayName("Get user saved posts should return success (200) when saved posts are fetched successfully")
         void getUserSaved_Success() throws Exception {
-            List<PostResponse> mockSavedPosts = getUserPosts();
-            when(postService.getSavedPostsResponse()).thenReturn(mockSavedPosts);
+
+            when(postService.getSavedPostsResponse(any(Pageable.class))).thenReturn(getUserPosts());
 
             mockMvc.perform(get(ApiUrls.GET_USER_SAVED.getUrl())
+                            .param("pageNumber", "0")
+                            .param("pageSize", "2")
                             .contentType(CONTENT_TYPE)
                             .accept(ACCEPT_TYPE))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.code").value(HttpStatus.OK.value()))
-                    .andExpect(jsonPath("$.message").isArray());
+                    .andExpect(jsonPath("$.message.content").isArray());
 
-            verify(postService).getSavedPostsResponse();
+            verify(postService).getSavedPostsResponse(any(Pageable.class));
         }
 
         @Test
         @DisplayName("Get user saved posts should return internal server error (500) on unexpected errors")
         void getUserSaved_InternalServerError() throws Exception {
-            when(postService.getSavedPostsResponse()).thenThrow(new RuntimeException("Internal server error"));
+            when(postService.getSavedPostsResponse(any(Pageable.class))).thenThrow(new RuntimeException("Internal server error"));
 
             mockMvc.perform(get(ApiUrls.GET_USER_SAVED.getUrl())
+                            .param("pageNumber", "0")
+                            .param("pageSize", "2")
                             .contentType(CONTENT_TYPE)
                             .accept(ACCEPT_TYPE))
                     .andExpect(status().isInternalServerError());
 
-            verify(postService).getSavedPostsResponse();
+            verify(postService).getSavedPostsResponse(any(Pageable.class));
         }
     }
 
@@ -677,34 +706,36 @@ public class PostControllerTest {
         @Test
         @DisplayName("Get posts by category should return success (200) when posts are retrieved successfully")
         void getPostsByCategory_Success() throws Exception {
-            String category = "Technology";
-            List<PostResponse> mockPosts = getUserPosts();
-            when(postService.getPostsByCategory(category)).thenReturn(mockPosts);
+            when(postService.getPostsByCategory(any(Pageable.class), any(String.class))).thenReturn(getUserPosts());
 
             mockMvc.perform(get(ApiUrls.GET_POSTS_BY_CATEGORY.getUrl())
-                            .param("category", category)
+                            .param("pageNumber", "0")
+                            .param("pageSize", "2")
+                            .param("category", "category")
                             .contentType(CONTENT_TYPE)
                             .accept(ACCEPT_TYPE))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.code").value(HttpStatus.OK.value()))
-                    .andExpect(jsonPath("$.message").isArray());
+                    .andExpect(jsonPath("$.message.content").isArray());
 
-            verify(postService).getPostsByCategory(category);
+            verify(postService).getPostsByCategory(any(Pageable.class), any(String.class));
         }
 
         @Test
         @DisplayName("Get posts by category should return internal server error (500) on unexpected errors")
         void getPostsByCategory_InternalServerError() throws Exception {
-            String category = "Technology";
-            when(postService.getPostsByCategory(category)).thenThrow(new RuntimeException("Internal server error"));
+
+            when(postService.getPostsByCategory(any(Pageable.class), any(String.class))).thenThrow(new RuntimeException("Internal server error"));
 
             mockMvc.perform(get(ApiUrls.GET_POSTS_BY_CATEGORY.getUrl())
-                            .param("category", category)
+                            .param("pageNumber", "0")
+                            .param("pageSize", "2")
+                            .param("category", "category")
                             .contentType(CONTENT_TYPE)
                             .accept(ACCEPT_TYPE))
                     .andExpect(status().isInternalServerError());
 
-            verify(postService).getPostsByCategory(category);
+            verify(postService).getPostsByCategory(any(Pageable.class), any(String.class));
         }
     }
 
@@ -782,7 +813,7 @@ public class PostControllerTest {
                 .build();
     }
 
-    private List<PostResponse> getUserPosts(){
+    private Page<PostResponse> getUserPosts(){
         User user = getMockUser();
 
         var post1 = new PostResponse();
@@ -795,9 +826,13 @@ public class PostControllerTest {
         post2.setId("mockPost2");
         post2.setNickname(user.getNickname());
 
-        return List.of(
+        return new PageImpl<>(List.of(
                 post1, post2
-        );
+        ));
+    }
+
+    private PageRequest getPageRequest() {
+        return PageRequest.of(0, 10);
     }
 
 }

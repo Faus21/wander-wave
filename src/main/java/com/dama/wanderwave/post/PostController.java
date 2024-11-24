@@ -9,14 +9,17 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/posts")
@@ -25,6 +28,7 @@ import java.util.List;
 @Validated
 public class PostController {
     private final PostService postService;
+    private static final int MAX_PAGE_SIZE = 50;
 
     @GetMapping("/user/{nickname}")
     @Operation(summary = "Get user posts", description = "Get all posts for a specific user.")
@@ -34,9 +38,11 @@ public class PostController {
             @ApiResponse(responseCode = "404", description = "User not found", content = @Content()),
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
-    public ResponseEntity<ResponseRecord> getUserPosts(
-                                                         @PathVariable String nickname) {
-        List<PostResponse> posts = postService.getUserPosts(nickname);
+    public ResponseEntity<ResponseRecord> getUserPosts(@RequestParam int pageNumber,
+                                                       @RequestParam @Max(MAX_PAGE_SIZE) Integer pageSize,
+                                                       @PathVariable String nickname) {
+        Pageable page = PageRequest.of(pageNumber, pageSize);
+        Page<PostResponse> posts = postService.getUserPosts(page, nickname);
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), posts));
     }
 
@@ -136,8 +142,10 @@ public class PostController {
             @ApiResponse(responseCode = "404", description = "User subscription is not found", content = @Content()),
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
-    public ResponseEntity<ResponseRecord> getPersonalFlow(){
-        List<PostResponse> response = postService.personalFlow();
+    public ResponseEntity<ResponseRecord> getPersonalFlow(@RequestParam int pageNumber,
+                                                          @RequestParam @Max(MAX_PAGE_SIZE) Integer pageSize){
+        Pageable page = PageRequest.of(pageNumber, pageSize);
+        Page<PostResponse> response = postService.personalFlow(page);
 
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), response));
     }
@@ -149,8 +157,10 @@ public class PostController {
             @ApiResponse(responseCode = "200", description = "Flow is fetched successfully", content = @Content()),
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
-    public ResponseEntity<ResponseRecord> getRecommendationsFlow(){
-        List<PostResponse> response = postService.recommendationFlow();
+    public ResponseEntity<ResponseRecord> getRecommendationsFlow(@RequestParam int pageNumber,
+                                                                 @RequestParam @Max(MAX_PAGE_SIZE) Integer pageSize){
+        Pageable page = PageRequest.of(pageNumber, pageSize);
+        Page<PostResponse> response = postService.recommendationFlow(page);
 
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), response));
     }
@@ -162,8 +172,10 @@ public class PostController {
             @ApiResponse(responseCode = "200", description = "Likes are fetched successfully", content = @Content()),
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
-    public ResponseEntity<ResponseRecord> getUserLikes(){
-        List<PostResponse> response = postService.getLikedPostsResponse();
+    public ResponseEntity<ResponseRecord> getUserLikes(@RequestParam int pageNumber,
+                                                       @RequestParam @Max(MAX_PAGE_SIZE) Integer pageSize){
+        Pageable page = PageRequest.of(pageNumber, pageSize);
+        Page<PostResponse> response = postService.getLikedPostsResponse(page);
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), response));
     }
 
@@ -174,8 +186,10 @@ public class PostController {
             @ApiResponse(responseCode = "200", description = "Saved posts are fetched successfully", content = @Content()),
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
-    public ResponseEntity<ResponseRecord> getUserSaved(){
-        List<PostResponse> response = postService.getSavedPostsResponse();
+    public ResponseEntity<ResponseRecord> getUserSaved(@RequestParam int pageNumber,
+                                                       @RequestParam @Max(MAX_PAGE_SIZE) Integer pageSize){
+        Pageable page = PageRequest.of(pageNumber, pageSize);
+        Page<PostResponse> response = postService.getSavedPostsResponse(page);
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), response));
     }
 
@@ -187,8 +201,11 @@ public class PostController {
             @ApiResponse(responseCode = "200", description = "Saved posts retrieved successfully", content = @Content()),
             @ApiResponse(responseCode = "500", description = "An error occurred while retrieving saved posts", content = @Content())
     })
-    public ResponseEntity<ResponseRecord> getPostsByCategory(@RequestParam() String category) {
-        List<PostResponse> response = postService.getPostsByCategory(category);
+    public ResponseEntity<ResponseRecord> getPostsByCategory(@RequestParam int pageNumber,
+                                                             @RequestParam @Max(MAX_PAGE_SIZE) Integer pageSize,
+                                                             @RequestParam() String category) {
+        Pageable page = PageRequest.of(pageNumber, pageSize);
+        Page<PostResponse> response = postService.getPostsByCategory(page, category);
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), response));
     }
 

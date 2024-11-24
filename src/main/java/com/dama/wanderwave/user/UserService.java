@@ -9,7 +9,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
-@Slf4j
+
 @Service
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
 public class UserService {

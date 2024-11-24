@@ -9,6 +9,9 @@ import com.dama.wanderwave.handler.user.save.IsSavedException;
 import com.dama.wanderwave.handler.user.save.SavedPostNotFound;
 import com.dama.wanderwave.hashtag.HashTag;
 import com.dama.wanderwave.hashtag.HashTagRepository;
+import com.dama.wanderwave.place.Place;
+import com.dama.wanderwave.place.PlaceRepository;
+import com.dama.wanderwave.place.PlaceRequest;
 import com.dama.wanderwave.post.categoryType.CategoryType;
 import com.dama.wanderwave.post.categoryType.CategoryTypeRepository;
 import com.dama.wanderwave.post.request.CreatePostRequest;
@@ -30,11 +33,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.time.LocalDateTime;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -58,6 +64,8 @@ public class PostServiceTest {
     private LikeRepository likeRepository;
     @Mock
     private SavedPostRepository savedPostRepository;
+    @Mock
+    private PlaceRepository placeRepository;
 
     private Authentication authentication;
 
@@ -77,16 +85,16 @@ public class PostServiceTest {
             var mockPosts = getUserPosts();
 
             when(userRepository.findByNickname(mockUser.getNickname())).thenReturn(Optional.of(mockUser));
-            when(postRepository.findByUserWithHashtags(mockUser)).thenReturn(mockPosts);
+            when(postRepository.findByUserWithHashtags(mockUser, getPageRequest())).thenReturn(new PageImpl<>(mockPosts));
 
-            List<PostResponse> result = postService.getUserPosts(mockUser.getNickname());
+            Page<PostResponse> result = postService.getUserPosts(getPageRequest(), mockUser.getNickname());
 
             assertNotNull(result);
-            assertEquals(mockPosts.size(), result.size());
-            assertEquals(mockPosts.getFirst().getTitle(), result.getFirst().getTitle());
+            assertEquals(mockPosts.size(), result.getTotalElements());
+            assertEquals(mockPosts.getFirst().getTitle(), result.getContent().getFirst().getTitle());
 
             verify(userRepository).findByNickname(mockUser.getNickname());
-            verify(postRepository).findByUserWithHashtags(mockUser);
+            verify(postRepository).findByUserWithHashtags(mockUser, getPageRequest());
         }
 
         @Test
@@ -95,15 +103,15 @@ public class PostServiceTest {
             var mockUser = getMockUser();
 
             when(userRepository.findByNickname(mockUser.getNickname())).thenReturn(Optional.of(mockUser));
-            when(postRepository.findByUserWithHashtags(mockUser)).thenReturn(new ArrayList<>());
+            when(postRepository.findByUserWithHashtags(mockUser, getPageRequest())).thenReturn(new PageImpl<>(new ArrayList<>()));
 
-            List<PostResponse> result = postService.getUserPosts(mockUser.getNickname());
+            Page<PostResponse> result = postService.getUserPosts(getPageRequest(), mockUser.getNickname());
 
             assertNotNull(result);
-            assertEquals(0, result.size());
+            assertEquals(0, result.getTotalElements());
 
             verify(userRepository).findByNickname(mockUser.getNickname());
-            verify(postRepository).findByUserWithHashtags(mockUser);
+            verify(postRepository).findByUserWithHashtags(mockUser, getPageRequest());
         }
 
         @Test
@@ -113,10 +121,10 @@ public class PostServiceTest {
 
             when(userRepository.findByNickname(mockUser.getNickname())).thenReturn(Optional.empty());
 
-            assertThrows(UserNotFoundException.class, () -> postService.getUserPosts(mockUser.getNickname()));
+            assertThrows(UserNotFoundException.class, () -> postService.getUserPosts(getPageRequest(), mockUser.getNickname()));
 
             verify(userRepository).findByNickname(mockUser.getNickname());
-            verify(postRepository, never()).findByUserWithHashtags(any(User.class));
+            verify(postRepository, never()).findByUserWithHashtags(any(User.class), any(Pageable.class));
         }
     }
 
@@ -131,6 +139,7 @@ public class PostServiceTest {
             when(hashTagRepository.findByTitle(any(String.class))).thenReturn(Optional.of(getMockHashtag()));
             when(categoryTypeRepository.findByName(any(String.class))).thenReturn(Optional.of(getMockCategoryType()));
             when(postRepository.save(any(Post.class))).thenReturn(getUserPosts().getFirst());
+            when(placeRepository.save(any(Place.class))).thenReturn(new Place());
 
             var response = postService.createPost(getMockPostCreateRequest());
             assertNotNull(response);
@@ -140,6 +149,7 @@ public class PostServiceTest {
             verify(hashTagRepository).findByTitle(any(String.class));
             verify(categoryTypeRepository).findByName(any(String.class));
             verify(postRepository).save(any(Post.class));
+            verify(placeRepository).save(any(Place.class));
         }
 
         @Test
@@ -156,6 +166,7 @@ public class PostServiceTest {
             verify(hashTagRepository).findByTitle(any(String.class));
             verify(categoryTypeRepository).findByName(any(String.class));
             verify(postRepository, never()).save(any(Post.class));
+            verify(placeRepository, never()).save(any(Place.class));
         }
 
     }
@@ -452,13 +463,13 @@ public class PostServiceTest {
 
             when(userService.getAuthenticatedUser()).thenReturn(mockUser);
             when(userRepository.findById(mockSubscription.getId())).thenReturn(Optional.of(mockSubscription));
-            when(postRepository.findByUserWithHashtags(mockSubscription)).thenReturn(List.of(mockPost));
+            when(postRepository.findByUserWithHashtags(mockSubscription, getPageRequest())).thenReturn(new PageImpl<>(List.of(mockPost)));
 
-            List<PostResponse> result = postService.personalFlow();
+            Page<PostResponse> result = postService.personalFlow(getPageRequest());
 
             assertNotNull(result);
-            assertEquals(1, result.size());
-            verify(postRepository).findByUserWithHashtags(mockSubscription);
+            assertEquals(1, result.getTotalElements());
+            verify(postRepository).findByUserWithHashtags(mockSubscription, getPageRequest());
         }
     }
 
@@ -470,21 +481,19 @@ public class PostServiceTest {
             User mockUser = getMockUser();
             Post mockPost1 = getUserPosts().getFirst();
             HashTag mockHashTag = getMockHashtag();
-            Pageable page = Pageable.ofSize(50);
-
             when(userService.getAuthenticatedUser()).thenReturn(mockUser);
 
-            when(postRepository.findByUserWithLikes(any(User.class))).thenReturn(List.of(mockPost1));
-            when(postRepository.findByUserSaved(any())).thenReturn(new ArrayList<>());
+            when(postRepository.findByUserWithLikes(any(User.class), any(Pageable.class))).thenReturn(new PageImpl<>(List.of(mockPost1)));
+            when(postRepository.findByUserSaved(any(), any(Pageable.class))).thenReturn(new PageImpl<>(new ArrayList<>()));
 
-            when(postRepository.findByHashtag(mockHashTag.getId(), page))
+            when(postRepository.findByHashtag(mockHashTag.getId(), getPageRequest()))
                     .thenReturn(new PageImpl<>(List.of(mockPost1)));
-            when(postRepository.findMostPopularPostsByLikes(page)).thenReturn(new PageImpl<>(List.of(mockPost1)));
+            when(postRepository.findPopularPosts(any(Pageable.class), any(LocalDateTime.class))).thenReturn(new PageImpl<>(List.of(mockPost1)));
 
-            List<PostResponse> result = postService.recommendationFlow();
+            Page<PostResponse> result = postService.recommendationFlow(getPageRequest());
 
             assertNotNull(result);
-            assertEquals(2, result.size());
+            assertEquals(2, result.getTotalElements());
             verify(postRepository).findByHashtag(anyString(), any(Pageable.class));
         }
     }
@@ -494,17 +503,19 @@ public class PostServiceTest {
         @Test
         void getLikedPostsResponse_Success() {
             User mockUser = getMockUser();
+            List<Post> posts = getUserPosts();
 
             when(userService.getAuthenticatedUser()).thenReturn(mockUser);
-            when(postRepository.findByUserWithLikes(mockUser)).thenReturn(getUserPosts());
+            when(postRepository.findByUserWithLikes(mockUser, getPageRequest()))
+                    .thenReturn(new PageImpl<>(posts, getPageRequest(), posts.size()));
 
-            List<PostResponse> result = postService.getLikedPostsResponse();
+            Page<PostResponse> result = postService.getLikedPostsResponse(getPageRequest());
 
             assertNotNull(result);
-            assertEquals(2, result.size());
+            assertEquals(2, result.getTotalElements());
 
             verify(userService).getAuthenticatedUser();
-            verify(postRepository).findByUserWithLikes(mockUser);
+            verify(postRepository).findByUserWithLikes(mockUser, getPageRequest());
         }
     }
 
@@ -513,17 +524,19 @@ public class PostServiceTest {
         @Test
         void getSavedPostsResponse_Success() {
             User mockUser = getMockUser();
+            List<Post> posts = getUserPosts();
 
             when(userService.getAuthenticatedUser()).thenReturn(mockUser);
-            when(postRepository.findByUserSaved(mockUser)).thenReturn(getUserPosts());
+            when(postRepository.findByUserSaved(mockUser, getPageRequest()))
+                    .thenReturn(new PageImpl<>(posts, getPageRequest(), posts.size()));
 
-            List<PostResponse> result = postService.getSavedPostsResponse();
+            Page<PostResponse> result = postService.getSavedPostsResponse(getPageRequest());
 
             assertNotNull(result);
-            assertEquals(2, result.size());
+            assertEquals(2, result.getTotalElements());
 
             verify(userService).getAuthenticatedUser();
-            verify(postRepository).findByUserSaved(mockUser);
+            verify(postRepository).findByUserSaved(mockUser, getPageRequest());
         }
     }
 
@@ -535,9 +548,9 @@ public class PostServiceTest {
             when(postRepository.findByCategory(any(String.class), any(Pageable.class)))
                     .thenReturn(new PageImpl<>(getUserPosts()));
 
-            List<PostResponse> result = postService.getPostsByCategory("category");
+            Page<PostResponse> result = postService.getPostsByCategory(getPageRequest(), "category");
             assertNotNull(result);
-            assertEquals(2, result.size());
+            assertEquals(2, result.getTotalElements());
 
             verify(postRepository).findByCategory(anyString(), any(Pageable.class));
         }
@@ -599,6 +612,7 @@ public class PostServiceTest {
                 .categoryName(getMockCategoryType().getName())
                 .pros(List.of("Mock_pros"))
                 .cons(List.of("Mock_cons"))
+                .places(List.of(new PlaceRequest()))
                 .build();
     }
 
@@ -655,4 +669,9 @@ public class PostServiceTest {
         categoryType.setId("mockHashtag");
         return categoryType;
     }
+
+    private PageRequest getPageRequest() {
+        return PageRequest.of(0, 10);
+    }
+
 }

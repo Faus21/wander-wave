@@ -1,5 +1,6 @@
 package com.dama.wanderwave.post.request;
 
+import com.dama.wanderwave.place.PlaceRequest;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 import lombok.*;
@@ -21,7 +22,7 @@ public class CreatePostRequest {
     @NotEmpty(message = "User is mandatory")
     private String userNickname;
 
-    @Size(max = 2048, message = "Description length must be less than or equal to 1024 characters")
+    @Size(max = 1024, message = "Description length must be less than or equal to 1024 characters")
     private String description;
 
     @NotEmpty(message = "Category type is mandatory")
@@ -32,4 +33,6 @@ public class CreatePostRequest {
     private List<String> cons;
 
     private Set<String> hashtags;
+
+    private List<PlaceRequest> places;
 }
