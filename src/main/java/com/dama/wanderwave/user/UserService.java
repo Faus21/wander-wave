@@ -17,10 +17,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.function.BiFunction;
+import java.util.stream.Stream;
 
 @Service
 @Slf4j
@@ -28,6 +27,8 @@ import java.util.function.BiFunction;
 public class UserService {
 
     private final UserRepository userRepository;
+
+    private final static int SUBSCRIPTIONS_PAGE = 10;
 
     @Cacheable(value = "users", key = "#id")
     public UserResponse getUserById(String id) {
@@ -136,9 +137,7 @@ public class UserService {
             return Collections.emptyList();
         }
         log.info("Fetched {} {} for userId: {}", connectionsPage.getTotalElements(), connectionType, userId);
-        return userRepository.findAllByIdIn(connectionsPage.getContent()).stream()
-                .map(this::userToUserResponse)
-                .toList();
+        return allUsersToUserResponse(userRepository.findAllByIdIn(connectionsPage.getContent()));
     }
 
 
@@ -159,6 +158,12 @@ public class UserService {
                 .orElseThrow(() -> new UserNotFoundException("User not found with id " + userId));
     }
 
+    private List<UserResponse> allUsersToUserResponse(List<User> users) {
+        return users.stream()
+                .map(this::userToUserResponse)
+                .toList();
+    }
+
     private UserResponse userToUserResponse(User user) {
         return UserResponse
                 .builder()
@@ -170,5 +175,66 @@ public class UserService {
                 .subscriberCount(user.getSubscriberCount())
                 .subscriptionsCount(user.getSubscriptionsCount())
                 .build();
+    }
+
+    public List<UserResponse> getUserFriendshipRecommendations(String userId) {
+        User user = findUserByIdOrThrow(userId);
+
+        int subs = user.getSubscriptionsCount();
+        if (subs == 0) {
+            return allUsersToUserResponse(getRandomUsersFromDatabase(SUBSCRIPTIONS_PAGE));
+        }
+
+        int pages = Math.max(1, subs / SUBSCRIPTIONS_PAGE);
+        Pageable randomPage = PageRequest.of((int) (Math.random() * pages), SUBSCRIPTIONS_PAGE);
+
+        List<UserResponse> randomSubscriptions =
+                getUserSubscriptions(userId, randomPage.getPageNumber(), randomPage.getPageSize());
+
+        if (randomSubscriptions.size() > SUBSCRIPTIONS_PAGE) {
+            Collections.shuffle(randomSubscriptions);
+            randomSubscriptions = randomSubscriptions.subList(0, SUBSCRIPTIONS_PAGE);
+        }
+
+        List<String> nestedRandomSubscriptions = userRepository.findAllByIdIn(
+                        randomSubscriptions.stream()
+                                .map(UserResponse::getId)
+                                .toList()
+                )
+                .stream()
+                .map(u -> getRandomElement(u.getSubscriptions()))
+                .filter(Objects::nonNull)
+                .toList();
+
+
+        List<UserResponse> result = allUsersToUserResponse(userRepository.findAllByIdIn(nestedRandomSubscriptions));
+
+        if (result.size() < SUBSCRIPTIONS_PAGE) {
+            int size = SUBSCRIPTIONS_PAGE - result.size();
+            result.addAll(allUsersToUserResponse(getRandomUsersFromDatabase(size)));
+        }
+
+        return result;
+    }
+
+    private List<User> getRandomUsersFromDatabase(int count) {
+        Pageable pageable = PageRequest.of(0, count);
+        return userRepository.findAll(pageable).getContent();
+    }
+
+    private String getRandomElement(Set<String> set) {
+        if (set == null || set.isEmpty()) {
+            return null;
+        }
+
+        int size = set.size();
+        int item = new Random().nextInt(size);
+
+        Iterator<String> iterator = set.iterator();
+        for (int i = 0; i < item; i++) {
+            iterator.next();
+        }
+
+        return iterator.next();
     }
 }

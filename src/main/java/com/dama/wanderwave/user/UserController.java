@@ -175,8 +175,7 @@ public class UserController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Avatar uploaded successfully", content = @Content()),
             @ApiResponse(responseCode = "400", description = "Invalid file format", content = @Content()),
-            @ApiResponse(responseCode = "500", description = "Invalid file size", content = @Content()),
-            @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
+            @ApiResponse(responseCode = "500", description = "Invalid file size/Internal server error", content = @Content()),
     })
     public ResponseEntity<ResponseRecord> uploadImage(@RequestParam("file") MultipartFile file) throws IOException {
         String fileName = System.currentTimeMillis() + "-" + file.getOriginalFilename();
@@ -188,6 +187,18 @@ public class UserController {
                 file.getSize()
         );
         return ResponseEntity.ok(new ResponseRecord(HttpStatus.OK.value(), url));
+    }
+
+    @GetMapping("/recommendations/{userId}")
+    @Operation(summary = "Get friendship recommendations", description = "Retrieve list of friendship recommendations for user.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Recommendations retrieved successfully", content = @Content()),
+            @ApiResponse(responseCode = "404", description = "User not found", content = @Content()),
+            @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
+    })
+    public ResponseEntity<ResponseRecord> getUserFriendshipRecommendations(@PathVariable String userId) {
+        var res = userService.getUserFriendshipRecommendations(userId);
+        return ResponseEntity.ok(new ResponseRecord(HttpStatus.OK.value(), res));
     }
 
 }

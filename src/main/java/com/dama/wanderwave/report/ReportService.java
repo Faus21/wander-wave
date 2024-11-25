@@ -84,12 +84,12 @@ public class ReportService {
 
     public Page<UserReport> getUserReports(Pageable pageRequest, String userId) {
         User authenticatedUser = userService.getAuthenticatedUser();
-        User user = userService.verifyUserAccess(authenticatedUser, userId);
+        userService.checkUserAccessRights(authenticatedUser, userId);
 
-        Page<UserReport> reports = reportRepository.findAllBySender(PageRequest.of(pageRequest.getPageNumber(), pageRequest.getPageSize()), user);
-        isReportsEmpty(reports, "No reports found for user ID: " + user.getId());
+        Page<UserReport> reports = reportRepository.findAllBySender(PageRequest.of(pageRequest.getPageNumber(), pageRequest.getPageSize()), authenticatedUser);
+        isReportsEmpty(reports, "No reports found for user ID: " + userId);
 
-        log.info("Successfully fetched {} reports for user ID '{}'.", reports.getNumberOfElements(), user.getId());
+        log.info("Successfully fetched {} reports for user ID '{}'.", reports.getNumberOfElements(), userId);
         return reports;
     }
 
@@ -97,7 +97,7 @@ public class ReportService {
         UserReport report = reportRepository.findById(reportId)
                 .orElseThrow(() -> new ReportNotFoundException("Report not found with ID: " + reportId));
 
-        userService.verifyUserAccess(userService.getAuthenticatedUser(), report.getSender().getId());
+        userService.checkUserAccessRights(userService.getAuthenticatedUser(), report.getSender().getId());
 
         log.info("Successfully fetched report for report ID '{}'.", reportId);
         return report;
