@@ -13,24 +13,13 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class CreatePostRequest {
-
-    @Size(max = 100, message = "Title length must be less than or equal to 100 characters")
-    @NotEmpty(message = "Title is mandatory")
-    private String title;
+public class CreatePostRequest extends PostRequest{
 
     @NotEmpty(message = "User is mandatory")
     private String userNickname;
 
-    @Size(max = 1024, message = "Description length must be less than or equal to 1024 characters")
-    private String description;
-
     @NotEmpty(message = "Category type is mandatory")
     private String categoryName;
-
-    private List<String> pros;
-
-    private List<String> cons;
 
     private Set<String> hashtags;
 

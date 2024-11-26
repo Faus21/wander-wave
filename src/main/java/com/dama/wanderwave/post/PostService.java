@@ -14,6 +14,7 @@ import com.dama.wanderwave.place.PlaceRepository;
 import com.dama.wanderwave.post.categoryType.CategoryTypeRepository;
 import com.dama.wanderwave.post.request.CreatePostRequest;
 import com.dama.wanderwave.place.PlaceRequest;
+import com.dama.wanderwave.post.request.PostRequest;
 import com.dama.wanderwave.post.response.PostResponse;
 import com.dama.wanderwave.user.User;
 import com.dama.wanderwave.user.UserRepository;
@@ -63,6 +64,29 @@ public class PostService {
 
         log.info("getUserPosts returned {} posts for nickname: {}", postResponses.getSize(), nickname);
         return postResponses;
+    }
+
+    @Transactional
+    public String modifyPost(String postId, PostRequest request) {
+        log.info("modifyPost called with request: {}", request);
+
+        Post post = postRepository.findById(postId).orElseThrow(() -> new PostNotFoundException(postId));
+
+        if (Objects.nonNull(request.getTitle()))
+            post.setTitle(request.getTitle());
+
+        if (Objects.nonNull(request.getDescription()))
+            post.setDescription(request.getDescription());
+
+        if (!request.getPros().isEmpty())
+            post.setPros(request.getPros().toArray(new String[0]));
+
+        if (!request.getCons().isEmpty())
+            post.setCons(request.getCons().toArray(new String[0]));
+
+        postRepository.save(post);
+
+        return "Post modified successfully";
     }
 
     @Transactional
