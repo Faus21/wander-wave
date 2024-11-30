@@ -18,6 +18,7 @@ import com.dama.wanderwave.report.request.ReviewReportRequest;
 import com.dama.wanderwave.report.request.SendReportRequest;
 import com.dama.wanderwave.user.User;
 import com.dama.wanderwave.user.UserRepository;
+import com.dama.wanderwave.user.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -56,6 +57,8 @@ class ReportServiceTest {
     private UserRepository userRepository;
     @Mock
     private ReportTypeRepository typeRepository;
+    @Mock
+    private UserService userService;
 
     private Authentication authentication;
 
@@ -243,9 +246,7 @@ class ReportServiceTest {
         void getUserReports_Success() {
             var mockUser = getMockUser();
 
-            when(authentication.getName()).thenReturn(mockUser.getName());
-            when(userRepository.findById(anyString())).thenReturn(Optional.of(mockUser));
-            when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(mockUser));
+            when(userService.getAuthenticatedUser()).thenReturn(mockUser);
 
             var mockPage = getMockPage();
 
@@ -254,7 +255,6 @@ class ReportServiceTest {
 
             var result = reportService.getUserReports(PageRequest.of(0, 2), mockUser.getId());
 
-            verify(userRepository).findById(anyString());
             verify(reportRepository).findAllBySender(PageRequest.of(0, 2), mockUser);
             assertEquals(mockPage, result);
         }
@@ -264,17 +264,14 @@ class ReportServiceTest {
         void getUserReports_ReportNotFoundException() {
             var mockUser = getMockUser();
 
-            when(authentication.getName()).thenReturn(mockUser.getName());
-            when(userRepository.findById(anyString())).thenReturn(Optional.of(mockUser));
-            when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(mockUser));
+            when(userService.getAuthenticatedUser()).thenReturn(mockUser);
+
             when(reportRepository.findAllBySender(any(PageRequest.class), any(User.class))).thenReturn(
                     Page.empty()
             );
 
             assertThrows(ReportNotFoundException.class,
                     () -> reportService.getUserReports(PageRequest.of(0, 2), mockUser.getId()));
-
-            verify(userRepository).findById(anyString());
         }
 
         @Test
@@ -282,13 +279,12 @@ class ReportServiceTest {
         void getUserReports_UnauthorizedActionException() {
             var mockUser = getMockUser();
 
-            when(authentication.getName()).thenReturn(mockUser.getName());
-            when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(mockUser));
+            when(userService.getAuthenticatedUser()).thenReturn(mockUser);
+            doThrow(UnauthorizedActionException.class).when(userService).checkUserAccessRights(any(User.class), anyString());
 
             assertThrows(UnauthorizedActionException.class,
                     () -> reportService.getUserReports(PageRequest.of(0, 2), mockUser.getId()));
 
-            verify(userRepository).findById(anyString());
             verifyNoInteractions(reportRepository);
         }
 
@@ -297,13 +293,11 @@ class ReportServiceTest {
         void getUserReports_UserNotFoundException() {
             var mockUser = getMockUser();
 
-            when(authentication.getName()).thenReturn(mockUser.getName());
-            when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
+            when(userService.getAuthenticatedUser()).thenThrow(UserNotFoundException.class);
 
             assertThrows(UserNotFoundException.class,
                     () -> reportService.getUserReports(PageRequest.of(0, 2), mockUser.getId()));
 
-            verify(userRepository).findByEmail(anyString());
             verifyNoInteractions(reportRepository);
         }
     }
@@ -347,16 +341,13 @@ class ReportServiceTest {
             UserReport mockReport = getMockReport();
             User mockUser = mockReport.getSender();
 
-            when(authentication.getName()).thenReturn(mockUser.getName());
-            when(userRepository.findById(anyString())).thenReturn(Optional.of(mockUser));
-            when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(mockUser));
+            when(userService.getAuthenticatedUser()).thenReturn(mockUser);
             when(reportRepository.findById(anyString())).thenReturn(Optional.of(mockReport));
 
             var result = reportService.getReportById("reportId");
 
             assertEquals(mockReport, result);
             verify(reportRepository).findById(anyString());
-            verify(userRepository).findById(mockUser.getId());
         }
 
 
@@ -376,14 +367,11 @@ class ReportServiceTest {
         void getReportById_UserNotFoundException() {
             UserReport mockReport = getMockReport();
 
-            when(authentication.getName()).thenReturn(mockReport.getSender().getEmail());
+            when(userService.getAuthenticatedUser()).thenThrow(UserNotFoundException.class);
             when(reportRepository.findById(anyString())).thenReturn(Optional.of(mockReport));
-            when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
 
             assertThrows(UserNotFoundException.class, () -> reportService.getReportById("reportId"));
-
             verify(reportRepository).findById(anyString());
-            verify(userRepository).findByEmail(anyString());
         }
 
         @Test
@@ -391,15 +379,13 @@ class ReportServiceTest {
         void getReportById_UnauthorizedActionException() {
             UserReport mockReport = getMockReport();
 
-            when(authentication.getName()).thenReturn("wrong@mail.com");
-            when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(new User()));
+            when(userService.getAuthenticatedUser()).thenReturn(new User());
             when(reportRepository.findById(anyString())).thenReturn(Optional.of(mockReport));
-            when(userRepository.findById(mockReport.getSender().getId())).thenReturn(Optional.of(mockReport.getSender()));
+
+            doThrow(UnauthorizedActionException.class).when(userService).checkUserAccessRights(any(User.class), anyString());
 
             assertThrows(UnauthorizedActionException.class, () -> reportService.getReportById("reportId"));
-
             verify(reportRepository).findById(anyString());
-            verify(userRepository).findById(mockReport.getSender().getId());
         }
     }
 
@@ -412,8 +398,7 @@ class ReportServiceTest {
             UserReport mockReport = getMockReport();
             ReviewReportRequest request = getMockReviewRequest();
 
-            when(authentication.getName()).thenReturn(mockAdmin.getName());
-            when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(mockAdmin));
+            when(userService.getAuthenticatedUser()).thenReturn(mockAdmin);
 
             when(reportRepository.findAllByReported(any(User.class))).thenReturn(getMockPage().stream().toList());
 
@@ -424,7 +409,6 @@ class ReportServiceTest {
 
             assertEquals("Report reviewed", result);
 
-            verify(userRepository).findByEmail(anyString());
             verify(reportRepository).findById(anyString());
             verify(reportStatusRepository).findByName(anyString());
             verify(reportRepository).saveAll(any());
@@ -433,15 +417,12 @@ class ReportServiceTest {
         @Test
         @DisplayName("Review report by id should throw UserNotFoundException")
         void reviewReport_UserNotFound() {
-            User mockAdmin = getMockUser();
             ReviewReportRequest request = getMockReviewRequest();
 
-            when(authentication.getName()).thenReturn(mockAdmin.getName());
-            when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
+            when(userService.getAuthenticatedUser()).thenThrow(UserNotFoundException.class);
 
             assertThrows(UserNotFoundException.class, () -> reportService.reviewReport(request));
 
-            verify(userRepository).findByEmail(anyString());
             verifyNoInteractions(reportStatusRepository, reportRepository);
         }
 
@@ -451,8 +432,7 @@ class ReportServiceTest {
         void reviewReport_ReportNotFound() {
             User mockAdmin = getMockUser();
 
-            when(authentication.getName()).thenReturn(mockAdmin.getEmail());
-            when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(mockAdmin));
+            when(userService.getAuthenticatedUser()).thenReturn(mockAdmin);
 
             when(reportRepository.findById(anyString())).thenReturn(Optional.empty());
 
@@ -460,7 +440,6 @@ class ReportServiceTest {
 
             assertThrows(ReportNotFoundException.class, () -> reportService.reviewReport(request));
 
-            verify(userRepository).findByEmail(anyString());
             verify(reportRepository).findById(anyString());
             verifyNoInteractions(reportStatusRepository);
         }
@@ -471,14 +450,12 @@ class ReportServiceTest {
             User mockAdmin = getMockUser();
             ReviewReportRequest request = getMockReviewRequest();
 
-            when(authentication.getName()).thenReturn(mockAdmin.getName());
-            when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(mockAdmin));
+            when(userService.getAuthenticatedUser()).thenReturn(mockAdmin);
 
             when(reportRepository.findById(anyString())).thenReturn(Optional.of(getMockReport()));
 
             assertThrows(ReportStatusNotFoundException.class, () -> reportService.reviewReport(request));
 
-            verify(userRepository).findByEmail(anyString());
             verify(reportRepository).findById(anyString());
             verify(reportStatusRepository).findByName(anyString());
         }

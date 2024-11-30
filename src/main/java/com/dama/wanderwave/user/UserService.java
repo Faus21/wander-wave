@@ -76,10 +76,11 @@ public class UserService {
         String blockedId = request.getBlockedId();
 
         User blocker = findUserByIdOrThrow(blockerId);
-        checkUserAccessRights(blocker, blockedId);
+        checkUserAccessRights(blocker, blockerId);
         findUserByIdOrThrow(blockedId);
 
-        boolean isSuccess = modifyUserConnection(blockerId, blocker.getBlackList().userIds(), blockedId, add, "blacklist");
+        boolean isSuccess = modifyUserConnection(blockerId, blocker.getBlackList().userIds(),
+                blockedId, add, "blacklist");
 
         if (isSuccess) {
             userRepository.save(blocker);
@@ -132,7 +133,7 @@ public class UserService {
                                                   BiFunction<String, Pageable, Page<String>> findMethod, String connectionType) {
         Pageable pageable = PageRequest.of(page, size);
         Page<String> connectionsPage = findMethod.apply(userId, pageable);
-        if (connectionsPage.isEmpty()) {
+        if (connectionsPage == null || connectionsPage.isEmpty()) {
             log.info("No {} found for userId: {}", connectionType, userId);
             return Collections.emptyList();
         }
@@ -153,7 +154,7 @@ public class UserService {
                 .orElseThrow(() -> new UnauthorizedActionException("Unauthorized action from user"));
     }
 
-    private User findUserByIdOrThrow(String userId) {
+    public User findUserByIdOrThrow(String userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found with id " + userId));
     }
@@ -171,7 +172,7 @@ public class UserService {
                 .email(user.getEmail())
                 .nickname(user.getNickname())
                 .description(user.getDescription())
-                .avatarUrl(user.getImageUrl())
+                .avatarUrl(user.isAccountLocked() ? "" : user.getImageUrl())
                 .subscriberCount(user.getSubscriberCount())
                 .subscriptionsCount(user.getSubscriptionsCount())
                 .build();
@@ -236,5 +237,12 @@ public class UserService {
         }
 
         return iterator.next();
+    }
+
+    @Transactional
+    public void changeAvatar(String url) {
+        User user = getAuthenticatedUser();
+        user.setImageUrl(url);
+        userRepository.save(user);
     }
 }

@@ -21,7 +21,6 @@ public class AzureService {
 
     private final BlobServiceClient blobServiceClient;
 
-    private static final long MAX_FILE_SIZE = 2 * 1024 * 1024;
     private static final List<String> ALLOWED_CONTENT_TYPES = Arrays.asList(
             "image/jpeg",
             "image/png",

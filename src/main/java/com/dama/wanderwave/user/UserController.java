@@ -1,7 +1,6 @@
 package com.dama.wanderwave.user;
 
 
-import com.azure.storage.blob.BlobServiceClient;
 import com.dama.wanderwave.azure.AzureService;
 import com.dama.wanderwave.user.request.BlockRequest;
 import com.dama.wanderwave.user.request.SubscribeRequest;
@@ -186,6 +185,7 @@ public class UserController {
                 file.getContentType(),
                 file.getSize()
         );
+        userService.changeAvatar(url);
         return ResponseEntity.ok(new ResponseRecord(HttpStatus.OK.value(), url));
     }
 
