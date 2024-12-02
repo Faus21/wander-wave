@@ -19,7 +19,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.function.BiFunction;
-import java.util.stream.Stream;
 
 @Service
 @Slf4j
@@ -179,24 +178,34 @@ public class UserService {
     }
 
     public List<UserResponse> getUserFriendshipRecommendations(String userId) {
+        log.info("Fetching friendship recommendations for user with ID: {}", userId);
+
         User user = findUserByIdOrThrow(userId);
+        log.debug("User found: {}", user);
 
         int subs = user.getSubscriptionsCount();
+        log.debug("User has {} subscriptions", subs);
+
         if (subs == 0) {
+            log.info("No subscriptions found for user, returning random users.");
             return allUsersToUserResponse(getRandomUsersFromDatabase(SUBSCRIPTIONS_PAGE));
         }
 
         int pages = Math.max(1, subs / SUBSCRIPTIONS_PAGE);
         Pageable randomPage = PageRequest.of((int) (Math.random() * pages), SUBSCRIPTIONS_PAGE);
+        log.debug("Generated random page: {}", randomPage);
 
         List<UserResponse> randomSubscriptions =
                 getUserSubscriptions(userId, randomPage.getPageNumber(), randomPage.getPageSize());
+        log.debug("Random subscriptions fetched: {}", randomSubscriptions.size());
 
         if (randomSubscriptions.size() > SUBSCRIPTIONS_PAGE) {
+            log.debug("Shuffling subscriptions as their count is greater than the page size");
             Collections.shuffle(randomSubscriptions);
             randomSubscriptions = randomSubscriptions.subList(0, SUBSCRIPTIONS_PAGE);
         }
 
+        log.debug("Fetching nested random subscriptions for shuffled user responses");
         List<String> nestedRandomSubscriptions = userRepository.findAllByIdIn(
                         randomSubscriptions.stream()
                                 .map(UserResponse::getId)
@@ -206,21 +215,27 @@ public class UserService {
                 .map(u -> getRandomElement(u.getSubscriptions()))
                 .filter(Objects::nonNull)
                 .toList();
-
+        log.debug("Nested random subscriptions fetched: {}", nestedRandomSubscriptions.size());
 
         List<UserResponse> result = allUsersToUserResponse(userRepository.findAllByIdIn(nestedRandomSubscriptions));
+        log.debug("Initial result size after fetching nested random subscriptions: {}", result.size());
 
-        if (result.size() < SUBSCRIPTIONS_PAGE) {
-            int size = SUBSCRIPTIONS_PAGE - result.size();
-            result.addAll(allUsersToUserResponse(getRandomUsersFromDatabase(size)));
+        List<UserResponse> mutableResult = new ArrayList<>(result);
+
+        if (mutableResult.size() < SUBSCRIPTIONS_PAGE) {
+            int size = SUBSCRIPTIONS_PAGE - mutableResult.size();
+            log.info("Adding {} more random users to complete the required page size", size);
+            mutableResult.addAll(allUsersToUserResponse(getRandomUsersFromDatabase(size)));
         }
 
-        return result;
+        log.info("Returning final list of friendship recommendations with size: {}", mutableResult.size());
+        return mutableResult;
     }
 
     private List<User> getRandomUsersFromDatabase(int count) {
         Pageable pageable = PageRequest.of(0, count);
-        return userRepository.findAll(pageable).getContent();
+        Page<User> res = userRepository.findAll(pageable);
+        return !res.isEmpty() ? res.getContent() : Collections.emptyList();
     }
 
     private String getRandomElement(Set<String> set) {

@@ -12,16 +12,19 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
+
+    private final static int SUBSCRIPTIONS_PAGE = 10;
+    private static final int ID_LENGTH = 16;
 
     @Mock
     private UserRepository userRepository;
@@ -304,6 +307,81 @@ class UserServiceTest {
         }
     }
 
+    @Nested
+    class GetUserFriendshipRecommendationsTest {
+
+        @Test
+        @DisplayName("Should return random users when user has no subscriptions")
+        void noSubscriptions_ReturnsRandomUsers() {
+            String userId = "mockId";
+            User mockUser = getMockUser(userId, "mock@mail.com");
+            mockUser.setSubscriptionsCount(0);
+
+            when(userRepository.findAll(any(PageRequest.class)))
+                    .thenReturn(new PageImpl<>(getRandomUserList(SUBSCRIPTIONS_PAGE)));
+
+            when(userRepository.findById(userId))
+                    .thenReturn(Optional.of(mockUser));
+
+            List<UserResponse> result = userService.getUserFriendshipRecommendations(userId);
+
+            assertNotNull(result);
+            assertEquals(SUBSCRIPTIONS_PAGE, result.size());
+            verify(userRepository).findAll(any(PageRequest.class));
+        }
+
+        @Test
+        @DisplayName("Should fill result with random users if recommendations are less than SUBSCRIPTIONS_PAGE")
+        void subscriptionsLessThanPage_ReturnsSubscriptions() {
+            String userId = "mockId";
+            User mockUser = getMockUser(userId, "mock@mail.com");
+            int count = 5;
+            mockUser.setSubscriptionsCount(count);
+
+            when(userRepository.findById(userId))
+                    .thenReturn(Optional.of(mockUser));
+
+            when(userRepository.findAll(any(PageRequest.class)))
+                    .thenReturn(new PageImpl<>(getRandomUserList(count)));
+
+            when(userRepository.findAllByIdIn(ArgumentMatchers.anyList()))
+                    .thenReturn(getRandomUserList(count));
+
+            when(userRepository.findSubscriptionsIdsByUserId(eq(userId), any(PageRequest.class)))
+                    .thenReturn(new PageImpl<>(getRandomUserIdList(count)));
+
+            List<UserResponse> result = userService.getUserFriendshipRecommendations(userId);
+
+            assertNotNull(result);
+            assertEquals(SUBSCRIPTIONS_PAGE, result.size());
+            verify(userRepository).findSubscriptionsIdsByUserId(eq(userId), any(PageRequest.class));
+        }
+
+        @Test
+        @DisplayName("Should return shuffled subscriptions when user has more subscriptions than SUBSCRIPTIONS_PAGE")
+        void subscriptionsMoreThanPage_ReturnsShuffledSubscriptions() {
+            String userId = "mockId";
+            User mockUser = getMockUser(userId, "mock@mail.com");
+            int count = 100;
+            mockUser.setSubscriptionsCount(count);
+
+            when(userRepository.findById(userId)).thenReturn(Optional.of(mockUser));
+
+            when(userRepository.findAllByIdIn(ArgumentMatchers.anyList()))
+                    .thenReturn(getRandomUserList(SUBSCRIPTIONS_PAGE));
+
+            when(userRepository.findSubscriptionsIdsByUserId(eq(userId), any(PageRequest.class)))
+                    .thenReturn(new PageImpl<>(getRandomUserIdList(count)));
+
+            List<UserResponse> result = userService.getUserFriendshipRecommendations(userId);
+
+            assertNotNull(result);
+            assertEquals(SUBSCRIPTIONS_PAGE, result.size());
+            verify(userRepository).findSubscriptionsIdsByUserId(eq(userId), any(PageRequest.class));
+        }
+    }
+
+
     private User getMockUser(String id, String email) {
         return User.builder()
                 .id(id)
@@ -325,5 +403,33 @@ class UserServiceTest {
                 .email("mock@mail.com")
                 .nickname("Mock User")
                 .build();
+    }
+
+    private List<String> getRandomUserIdList(int count) {
+        List<String> res = new ArrayList<>(count);
+        for (int i = 0; i < count; i++) {
+            String uuid = UUID.randomUUID().toString();
+            res.add(encodeString(uuid));
+        }
+        return res;
+    }
+
+    private List<User> getRandomUserList(int count) {
+        List<User> res = new ArrayList<>(count);
+        for (int i = 0; i < count; i++) {
+            String uuid = UUID.randomUUID().toString();
+            res.add(User
+                    .builder()
+                    .id(encodeString(uuid))
+                    .build());
+        }
+        return res;
+    }
+
+
+    public String encodeString(String text) {
+        byte[] uuidBytes = text.getBytes(StandardCharsets.UTF_8);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(uuidBytes)
+                .substring(0, ID_LENGTH);
     }
 }
