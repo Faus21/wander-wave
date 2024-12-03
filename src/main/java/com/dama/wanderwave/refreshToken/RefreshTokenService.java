@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import com.dama.wanderwave.user.User;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Ref;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
@@ -33,6 +34,8 @@ public class RefreshTokenService {
     }
 
     public RefreshToken createRefreshToken(User user) {
+        deleteTokenByUser(user);
+
         RefreshToken refreshToken = new RefreshToken();
 
         refreshToken.setUser(user);

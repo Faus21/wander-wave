@@ -20,4 +20,5 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
     @Modifying
     @Transactional
     int deleteByExpiresAtBefore( Instant  now);
+
 }
