@@ -173,7 +173,7 @@ public class AuthenticationService {
 
 
 	protected void checkTokenExpiration( EmailToken emailToken, java.util.function.Consumer<User> resendAction ) {
-		if (LocalDateTime.now().isAfter(emailToken.getExpiresAt())) {
+		if (LocalDateTime.now().isAfter(emailToken.getExpiresAt()) || emailToken.getValidatedAt() != null) {
 			log.warn("Token expired for user: {}. Resending new token.", emailToken.getUser().getEmail());
 			resendAction.accept(emailToken.getUser());
 			throw new TokenExpiredException("Token has expired. A new token has been sent to the same email address.");

@@ -57,20 +57,20 @@ public class AuthenticationController {
         return ResponseEntity.ok(response);
     }
 
-	@PostMapping("/logout")
-	@ResponseStatus(HttpStatus.OK)
-	@Operation(summary = "Log out a user", description = "Logs out a user by invalidating their token.")
-	@ApiResponses(value = {
-			@ApiResponse(responseCode = "200", description = "Logout successful", content = @Content()),
-			@ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
-	})
-	public ResponseEntity<ResponseRecord> logout() {
-		var response = service.logout();
-		return ResponseEntity.ok(new ResponseRecord(HttpStatus.OK.value(), response));
-	}
+    @PostMapping("/logout")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Log out a user", description = "Logs out a user by invalidating their token.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Logout successful", content = @Content()),
+            @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
+    })
+    public ResponseEntity<ResponseRecord> logout() {
+        var response = service.logout();
+        return ResponseEntity.ok(new ResponseRecord(HttpStatus.OK.value(), response));
+    }
 
 
-	@GetMapping("/activate-account")
+    @GetMapping("/activate-account")
     @ResponseStatus(HttpStatus.ACCEPTED)
     @Operation(summary = "Activate user account", description = "Activates a user account using the provided token.")
     @ApiResponses(value = {
@@ -102,8 +102,10 @@ public class AuthenticationController {
             @ApiResponse(responseCode = "400", description = "Invalid or expired token", content = @Content()),
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
-    public ResponseEntity<ResponseRecord> changePassword(@RequestBody @Valid RecoveryRequest request) {
-        ResponseRecord responseRecord = service.changeUserPassword(request.getToken(), request.getPassword());
+    public ResponseEntity<ResponseRecord> changePassword(@RequestHeader("Authorization") String authorizationHeader,
+                                                         @RequestBody @Valid RecoveryRequest request) {
+        String token = authorizationHeader.replace("Bearer ", "").trim();
+        ResponseRecord responseRecord = service.changeUserPassword(token, request.getPassword());
         return ResponseEntity.ok().body(responseRecord);
     }
 
