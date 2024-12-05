@@ -1,5 +1,6 @@
 package com.dama.wanderwave.handler;
 
+import com.dama.wanderwave.handler.category_type.CategoryTypeNotFoundException;
 import com.dama.wanderwave.handler.chat.ChatRoomException;
 import com.dama.wanderwave.handler.chat.ChatRoomNotFoundException;
 import com.dama.wanderwave.handler.comment.CommentNotFoundException;
@@ -39,6 +40,7 @@ public enum ExceptionStatus {
     REPORT_NOT_FOUND(ReportNotFoundException.class, NOT_FOUND),
     REPORT_TYPE_NOT_FOUND(ReportTypeNotFoundException.class, NOT_FOUND),
     REPORT_STATUS_NOT_FOUND(ReportStatusNotFoundException.class, NOT_FOUND),
+    CATEGORY_TYPE_NOT_FOUND(CategoryTypeNotFoundException.class, NOT_FOUND),
 
     // BAD_REQUEST
     METHOD_ARGUMENT_NOT_VALID(MethodArgumentNotValidException.class, BAD_REQUEST),

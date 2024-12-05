@@ -1,13 +1,12 @@
 package com.dama.wanderwave.categoryType;
 
-import jakarta.persistence.EntityNotFoundException;
+import com.dama.wanderwave.handler.category_type.CategoryTypeNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 
 @Slf4j
 @Service
@@ -23,7 +22,7 @@ public class CategoryTypeService {
 		CategoryType categoryType = categoryTypeRepository.findById(id)
 				                            .orElseThrow(() -> {
 					                            log.error("CategoryType with ID: {} not found", id);
-					                            return new EntityNotFoundException("CategoryType not found with ID: " + id);
+					                            return new CategoryTypeNotFoundException("CategoryType not found with ID: " + id);
 				                            });
 
 
