@@ -7,9 +7,4 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = false)
 public class FileTypeException extends IllegalArgumentException {
     private final String message;
-
-    public FileTypeException(String message) {
-        super(message);
-        this.message = message;
-    }
 }

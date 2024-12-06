@@ -57,11 +57,8 @@ public class UserService {
     }
 
     private boolean updateFollowStatus(User follower, User followed, String followerId, String followedId, boolean subscribe) {
-        if (modifyUserConnection(followerId, follower.getSubscriptions(), followedId, subscribe, "subscriptions")) {
-            modifyUserConnection(followedId, followed.getSubscribers(), followerId, subscribe, "subscribers");
-            return true;
-        }
-        return false;
+        return modifyUserConnection(followerId, follower.getSubscriptions(), followedId, subscribe, "subscriptions")
+                && modifyUserConnection(followedId, followed.getSubscribers(), followerId, subscribe, "subscribers");
     }
 
     public void updateFollowCounts(User follower, User followed, boolean subscribe) {
@@ -93,16 +90,6 @@ public class UserService {
         }
     }
 
-    public String updateBan(String id, boolean ban) {
-        User toBan = findUserByIdOrThrow(id);
-        toBan.setAccountLocked(ban);
-        userRepository.save(toBan);
-
-        String action = ban ? "banned" : "unbanned";
-        log.info("User with ID {} has been {} (account {})", id, action, ban ? "locked" : "unlocked");
-
-        return ban ? "User banned successfully" : "User unbanned successfully";
-    }
 
     private boolean modifyUserConnection(String userId, Set<String> connections, String targetId, boolean add, String connectionType) {
         boolean isSuccess = add ? !connections.contains(targetId) : connections.remove(targetId);
