@@ -67,6 +67,15 @@ public class UserService {
         followed.setSubscriberCount(followed.getSubscriberCount() + value);
     }
 
+    public String updateBan(String id, boolean ban) {
+        User toBan = findUserByIdOrThrow(id);
+        toBan.setAccountLocked(ban);
+        userRepository.save(toBan);
+        String action = ban ? "banned" : "unbanned";
+        log.info("User with ID {} has been {} (account {})", id, action, ban ? "locked" : "unlocked");
+        return ban ? "User banned successfully" : "User unbanned successfully";
+    }
+
     public String updateBlacklist(BlockRequest request, boolean add) {
         String blockerId = request.getBlockerId();
         String blockedId = request.getBlockedId();
