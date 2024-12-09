@@ -1,5 +1,6 @@
 package com.dama.wanderwave.post;
 
+import com.dama.wanderwave.categoryType.CategoryType;
 import com.dama.wanderwave.report.post.PostReport;
 import com.dama.wanderwave.user.User;
 import com.dama.wanderwave.hashtag.HashTag;
