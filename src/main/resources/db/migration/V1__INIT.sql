@@ -2,6 +2,7 @@ CREATE TABLE category_types
 (
     category_type_id VARCHAR(255) NOT NULL,
     name             VARCHAR(50)  NOT NULL,
+    image_url        TEXT,
     CONSTRAINT pk_category_types PRIMARY KEY (category_type_id)
 );
 

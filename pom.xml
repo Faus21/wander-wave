@@ -193,6 +193,16 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-maven-plugin</artifactId>
+                <version>9.16.3</version>
+                <configuration>
+                    <url>jdbc:postgresql://dpg-ct2sdebqf0us73a1hh70-a.frankfurt-postgres.render.com:5432/wanderwave_db?sslmode=require</url>
+                    <user>dama_team</user>
+                    <password>dama_team_db</password>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
