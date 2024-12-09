@@ -57,8 +57,26 @@ public class UserService {
     }
 
     private boolean updateFollowStatus(User follower, User followed, String followerId, String followedId, boolean subscribe) {
-        return modifyUserConnection(followerId, follower.getSubscriptions(), followedId, subscribe, "subscriptions")
-                && modifyUserConnection(followedId, followed.getSubscribers(), followerId, subscribe, "subscribers");
+        boolean subscriptionUpdated = modifyUserConnection(
+                followerId,
+                follower.getSubscriptions(),
+                followedId,
+                subscribe,
+                "subscriptions"
+        );
+
+        if (subscriptionUpdated) {
+            modifyUserConnection(
+                    followedId,
+                    followed.getSubscribers(),
+                    followerId,
+                    subscribe,
+                    "subscribers"
+            );
+            return true;
+        }
+
+        return false;
     }
 
     public void updateFollowCounts(User follower, User followed, boolean subscribe) {
