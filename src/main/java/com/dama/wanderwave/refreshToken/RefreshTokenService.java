@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import com.dama.wanderwave.user.User;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Ref;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
@@ -28,11 +29,13 @@ public class RefreshTokenService {
     private final RefreshTokenRepository refreshTokenRepository;
 
 
-    public Optional<RefreshToken> findByToken( String token) {
+    public Optional<RefreshToken> findByToken(String token) {
         return refreshTokenRepository.findByToken(token);
     }
 
     public RefreshToken createRefreshToken(User user) {
+        deleteTokenByUser(user);
+
         RefreshToken refreshToken = new RefreshToken();
 
         refreshToken.setUser(user);
@@ -46,11 +49,15 @@ public class RefreshTokenService {
         return refreshToken;
     }
 
+    public void deleteTokenByUser(User user) {
+        refreshTokenRepository.deleteByUser(user);
+    }
+
     public RefreshToken verifyExpiration(RefreshToken token) {
         if (token.getExpiresAt().isBefore(Instant.now())) {
             refreshTokenRepository.delete(token);
             throw new TokenRefreshException("Refresh token was expired. Please make a new sign-in" +
-                                                    " request");
+                    " request");
         }
 
         return token;

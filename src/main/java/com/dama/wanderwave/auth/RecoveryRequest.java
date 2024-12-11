@@ -11,9 +11,6 @@ import lombok.*;
 @AllArgsConstructor
 public class RecoveryRequest {
 
-    @NotEmpty(message = "Token is mandatory")
-    private String token;
-
     @Size(max = 100, message = "Password length must be less than or equal to 100 characters")
     @NotEmpty(message = "Password is mandatory")
     @Size(min = 8, message = "Password should be 8 characters long minimum")

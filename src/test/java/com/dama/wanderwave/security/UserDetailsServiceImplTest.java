@@ -41,12 +41,12 @@ class UserDetailsServiceImplTest {
             mockUser.setPassword("password");
             mockUser.setEnabled(true);
 
-            when(userRepository.findByEmail(username)).thenReturn(Optional.of(mockUser));
+            when(userRepository.loadByNicknameOrEmail(username)).thenReturn(Optional.of(mockUser));
 
             UserDetails userDetails = userDetailsService.loadUserByUsername(username);
             assertThat(userDetails).isNotNull();
             assertThat(userDetails.getUsername()).isEqualTo(username);
-            verify(userRepository, times(1)).findByEmail(username);
+            verify(userRepository, times(1)).loadByNicknameOrEmail(username);
         }
 
         @Test
@@ -54,12 +54,12 @@ class UserDetailsServiceImplTest {
         void loadUserByUsernameShouldThrowUsernameNotFoundExceptionWhenUserDoesNotExist() {
             String username = "test@example.com";
 
-            when(userRepository.findByEmail(username)).thenReturn(Optional.empty());
+            when(userRepository.loadByNicknameOrEmail(username)).thenReturn(Optional.empty());
 
             UsernameNotFoundException thrownException = assertThrows(UsernameNotFoundException.class, () -> userDetailsService.loadUserByUsername(username));
 
             assertThat(thrownException).hasMessageContaining("User not found");
-            verify(userRepository, times(1)).findByEmail(username);
+            verify(userRepository, times(1)).loadByNicknameOrEmail(username);
         }
     }
 }

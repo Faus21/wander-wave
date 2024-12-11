@@ -1,4 +1,5 @@
-package com.dama.wanderwave.post.categoryType;
+package com.dama.wanderwave.categoryType;
+
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
@@ -25,4 +26,7 @@ public class CategoryType {
     @Size(max = 50, message = "Category name must be less than or equal to 50 characters")
     @Column(nullable = false, unique = true, length = 50)
     private String name;
+
+    @Column(name = "image_url", columnDefinition = "TEXT")
+    private String imageUrl;
 }

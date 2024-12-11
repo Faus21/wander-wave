@@ -71,9 +71,11 @@ class AuthenticationControllerTest {
     @Mock
     private JwtService jwtService;
 
-    public record ErrorResponse(int errorCode, String message) { }
+    public record ErrorResponse(int errorCode, String message) {
+    }
 
-    public record ResponseRecord(int code, String message) { }
+    public record ResponseRecord(int code, String message) {
+    }
 
     private static final String CONTENT_TYPE = MediaType.APPLICATION_JSON_VALUE;
     private static final MediaType ACCEPT_TYPE = MediaType.APPLICATION_JSON;
@@ -163,9 +165,9 @@ class AuthenticationControllerTest {
             when(authenticationService.authenticate(any(AuthenticationRequest.class))).thenReturn(response);
 
             mockMvc.perform(post(AUTHENTICATION.getUrl())
-                                    .contentType(CONTENT_TYPE)
-                                    .accept(ACCEPT_TYPE)
-                                    .content(mapToJson(request)))
+                            .contentType(CONTENT_TYPE)
+                            .accept(ACCEPT_TYPE)
+                            .content(mapToJson(request)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.accessToken").value(response.getAccessToken()))
                     .andExpect(jsonPath("$.refreshToken").value(response.getRefreshToken()));
@@ -182,9 +184,9 @@ class AuthenticationControllerTest {
             when(authenticationService.authenticate(any(AuthenticationRequest.class))).thenThrow(new BadCredentialsException(response.message));
 
             mockMvc.perform(post(AUTHENTICATION.getUrl())
-                                    .contentType(CONTENT_TYPE)
-                                    .accept(ACCEPT_TYPE)
-                                    .content(mapToJson(request)))
+                            .contentType(CONTENT_TYPE)
+                            .accept(ACCEPT_TYPE)
+                            .content(mapToJson(request)))
                     .andExpect(status().isUnauthorized())
                     .andExpect(jsonPath("$.errorCode").value(response.errorCode))
                     .andExpect(jsonPath("$.message").value(response.message));
@@ -199,9 +201,9 @@ class AuthenticationControllerTest {
             when(authenticationService.authenticate(any(AuthenticationRequest.class))).thenThrow(new RuntimeException(response.message));
 
             mockMvc.perform(post(AUTHENTICATION.getUrl())
-                                    .contentType(CONTENT_TYPE)
-                                    .accept(ACCEPT_TYPE)
-                                    .content(mapToJson(request)))
+                            .contentType(CONTENT_TYPE)
+                            .accept(ACCEPT_TYPE)
+                            .content(mapToJson(request)))
                     .andExpect(status().isInternalServerError())
                     .andExpect(jsonPath("$.errorCode").value(response.errorCode))
                     .andExpect(jsonPath("$.message").value(response.message));
@@ -215,9 +217,9 @@ class AuthenticationControllerTest {
             String invalidRequestJson = "{\"email\": \"tahiheb432@sigmazon.com\"}";
 
             mockMvc.perform(post(AUTHENTICATION.getUrl())
-                                    .contentType(CONTENT_TYPE)
-                                    .accept(ACCEPT_TYPE)
-                                    .content(invalidRequestJson))
+                            .contentType(CONTENT_TYPE)
+                            .accept(ACCEPT_TYPE)
+                            .content(invalidRequestJson))
                     .andExpect(status().isBadRequest());
 
             verify(authenticationService, never()).authenticate(any(AuthenticationRequest.class));
@@ -237,9 +239,9 @@ class AuthenticationControllerTest {
             when(authenticationService.activateAccount(testActivationToken)).thenReturn(response.message);
 
             mockMvc.perform(get(ACTIVE_ACCOUNT.getUrl())
-                                    .param("emailToken", testActivationToken)
-                                    .accept(ACCEPT_TYPE)
-                                    .content(CONTENT_TYPE))
+                            .param("emailToken", testActivationToken)
+                            .accept(ACCEPT_TYPE)
+                            .content(CONTENT_TYPE))
                     .andExpect(status().isAccepted())
                     .andExpect(jsonPath("$.code").value(response.code))
                     .andExpect(jsonPath("$.message").value(response.message));
@@ -256,9 +258,9 @@ class AuthenticationControllerTest {
             when(authenticationService.activateAccount(testActivationToken)).thenThrow(new TokenNotFoundException(response.message));
 
             mockMvc.perform(get(ACTIVE_ACCOUNT.getUrl())
-                                    .contentType(CONTENT_TYPE)
-                                    .accept(ACCEPT_TYPE)
-                                    .param("emailToken", testActivationToken))
+                            .contentType(CONTENT_TYPE)
+                            .accept(ACCEPT_TYPE)
+                            .param("emailToken", testActivationToken))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.errorCode").value(response.errorCode))
                     .andExpect(jsonPath("$.message").value(response.message));
@@ -275,9 +277,9 @@ class AuthenticationControllerTest {
             when(authenticationService.activateAccount(testActivationToken)).thenThrow(new TokenExpiredException(response.message));
 
             mockMvc.perform(get(ACTIVE_ACCOUNT.getUrl())
-                                    .accept(ACCEPT_TYPE)
-                                    .contentType(CONTENT_TYPE)
-                                    .param("emailToken", testActivationToken))
+                            .accept(ACCEPT_TYPE)
+                            .contentType(CONTENT_TYPE)
+                            .param("emailToken", testActivationToken))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.errorCode").value(response.errorCode))
                     .andExpect(jsonPath("$.message").value(response.message));
@@ -294,9 +296,9 @@ class AuthenticationControllerTest {
             when(authenticationService.activateAccount(testActivationToken)).thenThrow(new UserNotFoundException(response.message));
 
             mockMvc.perform(get(ACTIVE_ACCOUNT.getUrl())
-                                    .accept(ACCEPT_TYPE)
-                                    .contentType(CONTENT_TYPE)
-                                    .param("emailToken", testActivationToken))
+                            .accept(ACCEPT_TYPE)
+                            .contentType(CONTENT_TYPE)
+                            .param("emailToken", testActivationToken))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.errorCode").value(response.errorCode))
                     .andExpect(jsonPath("$.message").value(response.message));
@@ -313,9 +315,9 @@ class AuthenticationControllerTest {
             when(authenticationService.activateAccount(testActivationToken)).thenThrow(new InternalError(response.message));
 
             mockMvc.perform(get(ACTIVE_ACCOUNT.getUrl())
-                                    .accept(ACCEPT_TYPE)
-                                    .contentType(CONTENT_TYPE)
-                                    .param("emailToken", testActivationToken))
+                            .accept(ACCEPT_TYPE)
+                            .contentType(CONTENT_TYPE)
+                            .param("emailToken", testActivationToken))
                     .andExpect(status().isInternalServerError())
                     .andExpect(jsonPath("$.errorCode").value(response.errorCode))
                     .andExpect(jsonPath("$.message").value(response.message));
@@ -333,14 +335,14 @@ class AuthenticationControllerTest {
         void recoverByEmailShouldReturnOk() throws Exception {
             String email = "temp@mail.com";
             ResponseRecord response = new ResponseRecord(HttpStatus.ACCEPTED.value(), "Message have " +
-                                                                                              "sent!");
+                    "sent!");
 
             when(authenticationService.recoverAccount(email)).thenReturn(response.message);
 
             mockMvc.perform(MockMvcRequestBuilders.get(RECOVER_ACCOUNT.getUrl())
-                                    .accept(ACCEPT_TYPE)
-                                    .contentType(CONTENT_TYPE)
-                                    .param("email", email))
+                            .accept(ACCEPT_TYPE)
+                            .contentType(CONTENT_TYPE)
+                            .param("email", email))
                     .andExpect(status().isAccepted())
                     .andExpect(jsonPath("$.code").value(response.code))
                     .andExpect(jsonPath("$.message").value(response.message));
@@ -357,9 +359,9 @@ class AuthenticationControllerTest {
             when(authenticationService.recoverAccount(email)).thenThrow(new RuntimeException("Internal Server Error"));
 
             mockMvc.perform(MockMvcRequestBuilders.get(RECOVER_ACCOUNT.getUrl())
-                                    .accept(ACCEPT_TYPE)
-                                    .contentType(CONTENT_TYPE)
-                                    .param("email", email))
+                            .accept(ACCEPT_TYPE)
+                            .contentType(CONTENT_TYPE)
+                            .param("email", email))
                     .andExpect(status().isInternalServerError())
                     .andExpect(jsonPath("$.errorCode").value(errorResponse.errorCode))
                     .andExpect(jsonPath("$.message").value(errorResponse.message));
@@ -376,9 +378,9 @@ class AuthenticationControllerTest {
             when(authenticationService.recoverAccount(email)).thenThrow(new EmailTemplateException(errorResponse.message));
 
             mockMvc.perform(MockMvcRequestBuilders.get(RECOVER_ACCOUNT.getUrl())
-                                    .accept(ACCEPT_TYPE)
-                                    .contentType(CONTENT_TYPE)
-                                    .param("email", email))
+                            .accept(ACCEPT_TYPE)
+                            .contentType(CONTENT_TYPE)
+                            .param("email", email))
                     .andExpect(status().isInternalServerError())
                     .andExpect(jsonPath("$.errorCode").value(errorResponse.errorCode))
                     .andExpect(jsonPath("$.message").value(errorResponse.message));
@@ -395,15 +397,16 @@ class AuthenticationControllerTest {
         @DisplayName("Should change password successfully")
         void changePasswordShouldReturnOk() throws Exception {
             ResponseRecord response = new ResponseRecord(HttpStatus.OK.value(), "Password " +
-                                                                                        "changed successfully");
-            RecoveryRequest request = new RecoveryRequest("validToken", "newPassword");
+                    "changed successfully");
+            RecoveryRequest request = new RecoveryRequest("new_Password");
 
             when(authenticationService.changeUserPassword(anyString(), anyString())).thenReturn(new com.dama.wanderwave.utils.ResponseRecord(HttpStatus.OK.value(), "Password changed successfully"));
 
             mockMvc.perform(MockMvcRequestBuilders.post(CHANGE_PASSWORD.getUrl())
-                                    .accept(MediaType.APPLICATION_JSON)
-                                    .contentType(MediaType.APPLICATION_JSON)
-                                    .content(new ObjectMapper().writeValueAsString(request)))
+                            .accept(MediaType.APPLICATION_JSON)
+                            .header("Authorization", "Bearer sigma-tkn")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(new ObjectMapper().writeValueAsString(request)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.code").value(response.code))
                     .andExpect(jsonPath("$.message").value(response.message));
@@ -415,43 +418,48 @@ class AuthenticationControllerTest {
         @DisplayName("Should throw token not found exception")
         void changePasswordShouldThrowTokenNotFoundException() throws Exception {
             ErrorResponse response = new ErrorResponse(404, "User not found");
-            var mockRecoveryRequest = RecoveryRequest
-                                              .builder()
-                                              .password("password")
-                                              .token("sigma-tkn")
-                                              .build();
 
-            doThrow(new TokenNotFoundException(response.message)).when(authenticationService).changeUserPassword(anyString(), anyString());
+            var mockRecoveryRequest = RecoveryRequest
+                    .builder()
+                    .password("password")
+                    .build();
+
+            doThrow(new TokenNotFoundException(response.message))
+                    .when(authenticationService).changeUserPassword(anyString(), anyString());
 
             mockMvc.perform(post(CHANGE_PASSWORD.getUrl())
-                                    .contentType(CONTENT_TYPE)
-                                    .accept(ACCEPT_TYPE)
-                                    .content(mapToJson(mockRecoveryRequest)))
+                            .contentType(CONTENT_TYPE)
+                            .accept(ACCEPT_TYPE)
+                            .content(mapToJson(mockRecoveryRequest))
+                            .header("Authorization", "Bearer sigma-tkn"))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.errorCode").value(response.errorCode))
                     .andExpect(jsonPath("$.message").value(response.message));
 
-            verify(authenticationService, times(1)).changeUserPassword(anyString(), anyString());
+            verify(authenticationService, times(1)).changeUserPassword(eq("sigma-tkn"), anyString());
         }
+
 
         @Test
         @DisplayName("Should throw when exception occurs")
         void changePasswordShouldThrowWhenExceptionOccurs() throws Exception {
             var mockRecoveryRequest = RecoveryRequest
-                                              .builder()
-                                              .password("password")
-                                              .token("sigma-tkn")
-                                              .build();
+                    .builder()
+                    .password("password")
+                    .build();
 
-            doThrow(new RuntimeException()).when(authenticationService).changeUserPassword(anyString(), anyString());
+            doThrow(new RuntimeException())
+                    .when(authenticationService).changeUserPassword(anyString(), anyString());
 
             mockMvc.perform(post(CHANGE_PASSWORD.getUrl())
-                                    .contentType(MediaType.APPLICATION_JSON)
-                                    .content(mapToJson(mockRecoveryRequest)))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(mapToJson(mockRecoveryRequest))
+                            .header("Authorization", "Bearer sigma-tkn"))
                     .andExpect(status().isInternalServerError());
 
-            verify(authenticationService, times(1)).changeUserPassword(anyString(), anyString());
+            verify(authenticationService, times(1)).changeUserPassword(eq("sigma-tkn"), anyString());
         }
+
     }
 
     @Nested
@@ -475,9 +483,9 @@ class AuthenticationControllerTest {
             when(jwtService.generateToken(anyMap(), eq(user))).thenReturn(newAccessToken);
 
             mockMvc.perform(post(REFRESH_TOKEN.getUrl())
-                                    .contentType(CONTENT_TYPE)
-                                    .accept(ACCEPT_TYPE)
-                                    .content(mapToJson(request)))
+                            .contentType(CONTENT_TYPE)
+                            .accept(ACCEPT_TYPE)
+                            .content(mapToJson(request)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.code").value(response.code))
                     .andExpect(jsonPath("$.message").value(response.message));
@@ -496,9 +504,9 @@ class AuthenticationControllerTest {
             when(refreshTokenService.findByToken(refreshToken)).thenReturn(Optional.empty());
 
             mockMvc.perform(post(REFRESH_TOKEN.getUrl())
-                                    .contentType(CONTENT_TYPE)
-                                    .accept(ACCEPT_TYPE)
-                                    .content(mapToJson(request)))
+                            .contentType(CONTENT_TYPE)
+                            .accept(ACCEPT_TYPE)
+                            .content(mapToJson(request)))
                     .andExpect(status().isBadRequest())
                     .andExpect(result -> assertTrue(result.getResolvedException() instanceof TokenRefreshException))
                     .andExpect(result -> assertEquals("Refresh token is invalid!", Objects.requireNonNull(result.getResolvedException()).getMessage()));
@@ -519,9 +527,9 @@ class AuthenticationControllerTest {
             when(refreshTokenService.verifyExpiration(refreshTokenEntity)).thenThrow(new TokenRefreshException("Refresh token is expired!"));
 
             mockMvc.perform(post(REFRESH_TOKEN.getUrl())
-                                    .contentType(CONTENT_TYPE)
-                                    .accept(ACCEPT_TYPE)
-                                    .content(mapToJson(request)))
+                            .contentType(CONTENT_TYPE)
+                            .accept(ACCEPT_TYPE)
+                            .content(mapToJson(request)))
                     .andExpect(status().isBadRequest())
                     .andExpect(result -> assertTrue(result.getResolvedException() instanceof TokenRefreshException))
                     .andExpect(result -> assertEquals("Refresh token is expired!", result.getResolvedException().getMessage()));
@@ -542,9 +550,9 @@ class AuthenticationControllerTest {
             when(refreshTokenService.verifyExpiration(refreshTokenEntity)).thenThrow(new RuntimeException("Internal server error"));
 
             mockMvc.perform(post(REFRESH_TOKEN.getUrl())
-                                    .contentType(CONTENT_TYPE)
-                                    .accept(ACCEPT_TYPE)
-                                    .content(mapToJson(request)))
+                            .contentType(CONTENT_TYPE)
+                            .accept(ACCEPT_TYPE)
+                            .content(mapToJson(request)))
                     .andExpect(status().isInternalServerError());
 
             verify(refreshTokenService, times(1)).findByToken(refreshToken);
@@ -559,9 +567,9 @@ class AuthenticationControllerTest {
 
     private RegistrationRequest createMockRequest() {
         return RegistrationRequest.builder()
-                       .username("username")
-                       .password("Password1!")
-                       .email("email@gmail.com")
-                       .build();
+                .username("username")
+                .password("Password1!")
+                .email("email@gmail.com")
+                .build();
     }
 }

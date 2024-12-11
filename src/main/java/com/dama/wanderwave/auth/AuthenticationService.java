@@ -14,6 +14,7 @@ import com.dama.wanderwave.emailToken.EmailToken;
 import com.dama.wanderwave.emailToken.EmailTokenRepository;
 import com.dama.wanderwave.user.User;
 import com.dama.wanderwave.user.UserRepository;
+import com.dama.wanderwave.user.UserService;
 import com.dama.wanderwave.utils.ResponseRecord;
 import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
@@ -53,6 +54,8 @@ public class AuthenticationService {
 	private final EmailService emailService;
 	private final SecureRandom secureRandom = new SecureRandom();
 	private final RefreshTokenService refreshTokenService;
+	private final UserService userService;
+
 	@Transactional
 	public String register(RegistrationRequest request) {
 		log.info("Starting registration process for user with username: {} and email: {}", request.getUsername(), request.getEmail());
@@ -95,6 +98,13 @@ public class AuthenticationService {
 				       .enabled(false)
 				       .roles(Set.of(userRole))
 				       .build();
+	}
+
+	public String logout() {
+		User user = userService.getAuthenticatedUser();
+		refreshTokenService.deleteTokenByUser(user);
+		log.info("User has successfully logged out: {}", user.getEmail());
+		return "Logout success";
 	}
 
 	public AuthenticationResponse authenticate(AuthenticationRequest request) {
@@ -163,7 +173,7 @@ public class AuthenticationService {
 
 
 	protected void checkTokenExpiration( EmailToken emailToken, java.util.function.Consumer<User> resendAction ) {
-		if (LocalDateTime.now().isAfter(emailToken.getExpiresAt())) {
+		if (LocalDateTime.now().isAfter(emailToken.getExpiresAt()) || emailToken.getValidatedAt() != null) {
 			log.warn("Token expired for user: {}. Resending new token.", emailToken.getUser().getEmail());
 			resendAction.accept(emailToken.getUser());
 			throw new TokenExpiredException("Token has expired. A new token has been sent to the same email address.");

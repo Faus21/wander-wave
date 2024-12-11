@@ -11,7 +11,6 @@ import com.dama.wanderwave.hashtag.HashTag;
 import com.dama.wanderwave.hashtag.HashTagRepository;
 import com.dama.wanderwave.place.Place;
 import com.dama.wanderwave.place.PlaceRepository;
-import com.dama.wanderwave.post.categoryType.CategoryTypeRepository;
 import com.dama.wanderwave.post.request.CreatePostRequest;
 import com.dama.wanderwave.place.PlaceRequest;
 import com.dama.wanderwave.post.request.PostRequest;

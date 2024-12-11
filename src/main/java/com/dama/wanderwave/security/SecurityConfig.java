@@ -13,6 +13,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import static com.dama.wanderwave.security.Roles.ADMIN;
+import static com.dama.wanderwave.security.Roles.USER;
 import static org.springframework.security.config.http.SessionCreationPolicy.STATELESS;
 
 enum Roles {
@@ -51,10 +52,14 @@ public class SecurityConfig {
                                 "/configuration/security",
                                 "/swagger-ui/**",
                                 "/webjars/**",
-                                "/swagger-ui.html").permitAll()
+                                "/swagger-ui.html",
+                                "/api/users/upload-avatar").permitAll()
                         .requestMatchers(
                                 "/api/reports/get",
-                                "/api/reports/review").hasRole(ADMIN.name())
+                                "/api/reports/review",
+                                "/api/users/ban/**",
+                                "/api/users/unban/**").hasRole(ADMIN.name())
+                        .requestMatchers("api/auth/logout").hasRole(USER.name())
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session.sessionCreationPolicy(STATELESS))
                 .authenticationProvider(authenticationProvider)

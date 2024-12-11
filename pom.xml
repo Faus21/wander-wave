@@ -26,6 +26,7 @@
         <datafaker.version>2.4.0</datafaker.version>
         <dotenv-java.version>3.0.0</dotenv-java.version>
         <assertj.version>3.26.0</assertj.version>
+        <modelmapper.version>3.2.1</modelmapper.version>
     </properties>
 
     <dependencyManagement>
@@ -157,6 +158,12 @@
             <groupId>com.hazelcast</groupId>
             <artifactId>hazelcast</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.modelmapper</groupId>
+            <artifactId>modelmapper</artifactId>
+            <version>${modelmapper.version}</version>
+        </dependency>
+
         <!-- API Documentation -->
         <dependency>
             <groupId>org.springdoc</groupId>
@@ -199,6 +206,16 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-maven-plugin</artifactId>
+                <version>9.16.3</version>
+                <configuration>
+                    <url>jdbc:postgresql://dpg-ct2sdebqf0us73a1hh70-a.frankfurt-postgres.render.com:5432/wanderwave_db?sslmode=require</url>
+                    <user>dama_team</user>
+                    <password>dama_team_db</password>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
@@ -209,6 +226,19 @@
                         </exclude>
                     </excludes>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.12</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

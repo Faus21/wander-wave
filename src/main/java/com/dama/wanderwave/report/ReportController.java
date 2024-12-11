@@ -41,7 +41,7 @@ public class ReportController {
             @ApiResponse(responseCode = "404", description = "Request parameters not found", content = @Content()),
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
-    public ResponseEntity<ResponseRecord> sendReport( @RequestBody @Valid SendReportRequest request) {
+    public ResponseEntity<ResponseRecord> sendReport(@RequestBody @Valid SendReportRequest request) {
         String message = service.sendReport(request);
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), message));
     }
@@ -71,7 +71,7 @@ public class ReportController {
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
     public ResponseEntity<ResponseRecord> getUserReports(@RequestParam int pageNumber,
-                                                         @RequestParam @Max(MAX_PAGE_SIZE) int pageSize,
+                                                         @RequestParam @Max(MAX_PAGE_SIZE) Integer pageSize,
                                                          @PathVariable String userId) {
         Pageable page = PageRequest.of(pageNumber, pageSize);
         var reports = service.getUserReports(page, userId);
