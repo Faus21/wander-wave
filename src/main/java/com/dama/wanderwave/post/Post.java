@@ -1,6 +1,7 @@
 package com.dama.wanderwave.post;
 
 import com.dama.wanderwave.categoryType.CategoryType;
+import com.dama.wanderwave.comment.Comment;
 import com.dama.wanderwave.report.post.PostReport;
 import com.dama.wanderwave.user.User;
 import com.dama.wanderwave.hashtag.HashTag;
@@ -21,6 +22,7 @@ import org.springframework.data.annotation.CreatedDate;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Getter
@@ -85,4 +87,7 @@ public class Post {
 
 	@OneToMany(mappedBy = "post", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
 	private Set<PostReport> reports;
+
+	@OneToMany(mappedBy = "post", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+	private List<Comment> comments;
 }

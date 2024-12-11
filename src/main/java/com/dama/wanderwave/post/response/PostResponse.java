@@ -1,7 +1,5 @@
 package com.dama.wanderwave.post.response;
 
-import com.dama.wanderwave.hashtag.HashTag;
-import com.dama.wanderwave.post.categoryType.CategoryType;
 import lombok.Data;
 
 import java.time.LocalDateTime;

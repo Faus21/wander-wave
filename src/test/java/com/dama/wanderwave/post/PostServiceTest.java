@@ -1,5 +1,7 @@
 package com.dama.wanderwave.post;
 
+import com.dama.wanderwave.categoryType.CategoryType;
+import com.dama.wanderwave.categoryType.CategoryTypeRepository;
 import com.dama.wanderwave.handler.post.CategoryTypeNotFoundException;
 import com.dama.wanderwave.handler.post.PostNotFoundException;
 import com.dama.wanderwave.handler.user.UserNotFoundException;
@@ -12,7 +14,6 @@ import com.dama.wanderwave.hashtag.HashTagRepository;
 import com.dama.wanderwave.place.Place;
 import com.dama.wanderwave.place.PlaceRepository;
 import com.dama.wanderwave.place.PlaceRequest;
-import com.dama.wanderwave.post.categoryType.CategoryType;
 import com.dama.wanderwave.post.request.CreatePostRequest;
 import com.dama.wanderwave.post.response.PostResponse;
 import com.dama.wanderwave.user.User;
@@ -555,6 +556,86 @@ public class PostServiceTest {
         }
     }
 
+    @Nested
+    class GetPostById {
+
+        @Test
+        @DisplayName("Get post by ID should return post successfully")
+        void getPostById_Success() {
+            var postId = "12345";
+            var mockPost = getMockPost(postId);
+            when(postRepository.findById(postId)).thenReturn(Optional.of(mockPost));
+            PostResponse result = postService.getPostById(postId);
+
+            assertNotNull(result);
+            assertEquals(mockPost.getId(), result.getId());
+            assertEquals(mockPost.getTitle(), result.getTitle());
+
+            verify(postRepository).findById(postId);
+        }
+
+        @Test
+        @DisplayName("Get post by ID should throw exception when post is not found")
+        void getPostById_PostNotFound() {
+            var postId = "12345";
+            when(postRepository.findById(postId)).thenReturn(Optional.empty());
+
+            assertThrows(PostNotFoundException.class, () -> postService.getPostById(postId));
+
+            verify(postRepository).findById(postId);
+        }
+
+    }
+
+    @Nested
+    class ModifyPost {
+
+        @Test
+        @DisplayName("Modify post should update fields successfully")
+        void modifyPost_Success() {
+            var postId = "12345";
+            var mockPost = getMockPost(postId);
+            var request = getMockPostCreateRequest();
+
+            when(postRepository.findById(postId)).thenReturn(Optional.of(mockPost));
+            String result = postService.modifyPost(postId, request);
+
+            assertEquals("Post modified successfully", result);
+            assertEquals(request.getTitle(), mockPost.getTitle());
+            assertEquals(request.getDescription(), mockPost.getDescription());
+            assertArrayEquals(request.getPros().toArray(new String[0]), mockPost.getPros());
+            assertArrayEquals(request.getCons().toArray(new String[0]), mockPost.getCons());
+
+            verify(postRepository).findById(postId);
+            verify(postRepository).save(mockPost);
+        }
+
+        @Test
+        @DisplayName("Modify post should throw exception when post not found")
+        void modifyPost_PostNotFound() {
+            var postId = "12345";
+            var request = getMockPostCreateRequest();
+
+            when(postRepository.findById(postId)).thenReturn(Optional.empty());
+
+            assertThrows(PostNotFoundException.class, () -> postService.modifyPost(postId, request));
+
+            verify(postRepository).findById(postId);
+            verify(postRepository, never()).save(any(Post.class));
+        }
+
+    }
+
+    private Post getMockPost(String postId) {
+        Post mockPost = new Post();
+        mockPost.setId(postId);
+        mockPost.setTitle("mock");
+        mockPost.setHashtags(new HashSet<>());
+        mockPost.setUser(new User());
+        mockPost.setCategoryType(new CategoryType());
+        return mockPost;
+    }
+
 
     private User getMockUser() {
         return User.builder()
@@ -605,14 +686,16 @@ public class PostServiceTest {
     }
 
     private CreatePostRequest getMockPostCreateRequest(){
-        return CreatePostRequest.builder()
-                .title("title1")
+        CreatePostRequest pr = CreatePostRequest.builder()
                 .hashtags(Set.of(getMockHashtag().getTitle()))
                 .categoryName(getMockCategoryType().getName())
-                .pros(List.of("Mock_pros"))
-                .cons(List.of("Mock_cons"))
                 .places(List.of(new PlaceRequest()))
                 .build();
+        pr.setTitle("title1");
+        pr.setPros(List.of("pros"));
+        pr.setCons(List.of("cons"));
+        pr.setDescription("description1");
+        return pr;
     }
 
     private Post getLikedPost(){

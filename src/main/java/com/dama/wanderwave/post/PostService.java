@@ -1,5 +1,6 @@
 package com.dama.wanderwave.post;
 
+import com.dama.wanderwave.categoryType.CategoryTypeRepository;
 import com.dama.wanderwave.handler.post.CategoryTypeNotFoundException;
 import com.dama.wanderwave.handler.post.PostNotFoundException;
 import com.dama.wanderwave.handler.user.UserNotFoundException;
@@ -336,6 +337,15 @@ public class PostService {
         return "Deleted successfully!";
     }
 
+    public PostResponse getPostById(String postId) {
+        log.info("getPostById called with postId: {}", postId);
+        Post p = postRepository.findById(postId)
+                .orElseThrow(() -> new PostNotFoundException(postId));
+
+        log.info("getPostById successfully returned post: {}", postId);
+        return getPostResponseFromPost(p);
+    }
+
     private Page<Post> getLikedPosts(Pageable pageRequest, User user) {
         log.info("getLikedPosts called for user: {}", user.getId());
         Page<Post> likedPosts = postRepository.findByUserWithLikes(user, pageRequest);
@@ -350,21 +360,27 @@ public class PostService {
         return savedPosts;
     }
 
-    public Page<PostResponse> getPostResponseListFromPostList(Pageable pageRequest, Page<Post> posts) {
+    private PostResponse getPostResponseFromPost(Post p){
+        log.info("getPostResponseFromPost from post: {}", p.getId());
+        PostResponse postResponse = new PostResponse();
+        postResponse.setTitle(p.getTitle());
+        postResponse.setDescription(p.getDescription());
+        postResponse.setId(p.getId());
+        postResponse.setCreatedAt(p.getCreatedAt());
+        postResponse.setHashtags(p.getHashtags().stream().map(HashTag::getTitle).collect(Collectors.toSet()));
+        postResponse.setNickname(p.getUser().getNickname());
+        postResponse.setCons(p.getCons());
+        postResponse.setPros(p.getPros());
+        postResponse.setCategoryType(p.getCategoryType().getName());
+
+        return postResponse;
+    }
+
+    private Page<PostResponse> getPostResponseListFromPostList(Pageable pageRequest, Page<Post> posts) {
         log.info("getPostResponseListFromPostList called for {} posts", posts.getSize());
         List<PostResponse> response = new ArrayList<>();
         for (Post p : posts) {
-            PostResponse postResponse = new PostResponse();
-            postResponse.setTitle(p.getTitle());
-            postResponse.setDescription(p.getDescription());
-            postResponse.setId(p.getId());
-            postResponse.setCreatedAt(p.getCreatedAt());
-            postResponse.setHashtags(p.getHashtags().stream().map(HashTag::getTitle).collect(Collectors.toSet()));
-            postResponse.setNickname(p.getUser().getNickname());
-            postResponse.setCons(p.getCons());
-            postResponse.setPros(p.getPros());
-            postResponse.setCategoryType(p.getCategoryType().getName());
-            response.add(postResponse);
+            response.add(getPostResponseFromPost(p));
         }
         log.info("getPostResponseListFromPostList returned {} responses", response.size());
         return new PageImpl<>(response, pageRequest, response.size());

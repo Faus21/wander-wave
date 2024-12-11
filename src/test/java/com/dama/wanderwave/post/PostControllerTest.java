@@ -10,6 +10,7 @@ import com.dama.wanderwave.handler.user.like.LikeNotFoundException;
 import com.dama.wanderwave.handler.user.save.IsSavedException;
 import com.dama.wanderwave.handler.user.save.SavedPostNotFound;
 import com.dama.wanderwave.post.request.CreatePostRequest;
+import com.dama.wanderwave.post.request.PostRequest;
 import com.dama.wanderwave.post.response.PostResponse;
 import com.dama.wanderwave.user.User;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -36,8 +37,8 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -57,7 +58,9 @@ enum ApiUrls {
     GET_USER_SAVED("/api/posts/user/saved"),
     GET_POSTS_BY_CATEGORY("/api/posts/"),
     DELETE_POST("/api/posts/{postId}"),
-    GET_USER_POSTS("/api/posts/user/{nickname}");
+    GET_USER_POSTS("/api/posts/user/{nickname}"),
+    MODIFY_POST("/api/posts/{postId}"),
+    GET_POST_BY_ID("/api/posts/{postId}");
 
     private final String url;
 }
@@ -789,6 +792,83 @@ public class PostControllerTest {
         }
     }
 
+    @Nested
+    class ModifyPostTest {
+
+        @Test
+        @DisplayName("Modify post should return OK (200)")
+        void modifyPost_Success() throws Exception {
+            var postId = "12345";
+            var request = objectMapper.writeValueAsString(getMockPostSuccess());
+            var responseMessage = "Post modified successfully";
+
+            when(postService.modifyPost(eq(postId), any(PostRequest.class))).thenReturn(responseMessage);
+
+            mockMvc.perform(put(ApiUrls.MODIFY_POST.getUrl(), postId)
+                            .content(request)
+                            .contentType(CONTENT_TYPE)
+                            .accept(ACCEPT_TYPE))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.code").value(HttpStatus.OK.value()))
+                    .andExpect(jsonPath("$.message").value(responseMessage));
+
+            verify(postService).modifyPost(eq(postId), any(PostRequest.class));
+        }
+
+        @Test
+        @DisplayName("Modify post should return NOT FOUND (404)")
+        void modifyPost_PostNotFound() throws Exception {
+            var postId = "12345";
+            var request = objectMapper.writeValueAsString(getMockPostSuccess());
+
+            when(postService.modifyPost(eq(postId), any(PostRequest.class))).thenThrow(new PostNotFoundException(postId));
+
+            mockMvc.perform(put(ApiUrls.MODIFY_POST.getUrl(), postId)
+                            .content(request)
+                            .contentType(CONTENT_TYPE)
+                            .accept(ACCEPT_TYPE))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.errorCode").value(HttpStatus.NOT_FOUND.value()));
+
+            verify(postService).modifyPost(eq(postId), any(PostRequest.class));
+        }
+
+        @Test
+        @DisplayName("Modify post should return BAD REQUEST (400)")
+        void modifyPost_InvalidRequest() throws Exception {
+            var postId = "12345";
+            var request = objectMapper.writeValueAsString(new PostRequest());
+
+            mockMvc.perform(put(ApiUrls.MODIFY_POST.getUrl(), postId)
+                            .content(request)
+                            .contentType(CONTENT_TYPE)
+                            .accept(ACCEPT_TYPE))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.errorCode").value(HttpStatus.BAD_REQUEST.value()));
+
+            verify(postService, never()).modifyPost(anyString(), any(PostRequest.class));
+        }
+
+        @Test
+        @DisplayName("Modify post should return INTERNAL SERVER ERROR (500)")
+        void modifyPost_InternalServerError() throws Exception {
+            var postId = "12345";
+            var request = objectMapper.writeValueAsString(getMockPostSuccess());
+
+            when(postService.modifyPost(eq(postId), any(PostRequest.class))).thenThrow(new RuntimeException("Internal server error"));
+
+            mockMvc.perform(put(ApiUrls.MODIFY_POST.getUrl(), postId)
+                            .content(request)
+                            .contentType(CONTENT_TYPE)
+                            .accept(ACCEPT_TYPE))
+                    .andExpect(status().isInternalServerError())
+                    .andExpect(jsonPath("$.errorCode").value(HttpStatus.INTERNAL_SERVER_ERROR.value()));
+
+            verify(postService).modifyPost(eq(postId), any(PostRequest.class));
+        }
+
+    }
+
 
     private User getMockUser() {
         return User.builder()
@@ -799,18 +879,18 @@ public class PostControllerTest {
     }
 
     private CreatePostRequest getMockPostSuccess() {
-        return CreatePostRequest.builder()
-                .title("mockPost")
-                .categoryName("mockCategory")
-                .userNickname("mockNickname")
-                .build();
+        CreatePostRequest p = new CreatePostRequest();
+        p.setTitle("mockPost");
+        p.setCategoryName("mockCategory");
+        p.setUserNickname("mockNickname");
+        return p;
     }
 
     private CreatePostRequest getMockPostBadRequest() {
-        return CreatePostRequest.builder()
-                .title("mockPost")
-                .categoryName("mockCategory")
-                .build();
+        CreatePostRequest p = new CreatePostRequest();
+        p.setTitle("mockPost");
+        p.setCategoryName("mockCategory");
+        return p;
     }
 
     private Page<PostResponse> getUserPosts(){

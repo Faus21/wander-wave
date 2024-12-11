@@ -93,6 +93,19 @@ public class PostController {
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), response));
     }
 
+    @GetMapping("/{postId}")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Get likes", description = "Get all likes for post")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Likes is retrieved successfully", content = @Content()),
+            @ApiResponse(responseCode = "404", description = "Post not found", content = @Content()),
+            @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
+    })
+    public ResponseEntity<ResponseRecord> getPost(@PathVariable String postId){
+        PostResponse response = postService.getPostById(postId);
+        return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), response));
+    }
+
 
 
     @PostMapping("/{postId}/like")
