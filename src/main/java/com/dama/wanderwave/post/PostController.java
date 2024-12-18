@@ -95,9 +95,9 @@ public class PostController {
 
     @GetMapping("/{postId}")
     @ResponseStatus(HttpStatus.OK)
-    @Operation(summary = "Get likes", description = "Get all likes for post")
+    @Operation(summary = "Get post by ID", description = "Get post by ID")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Likes is retrieved successfully", content = @Content()),
+            @ApiResponse(responseCode = "200", description = "Post is retrieved successfully", content = @Content()),
             @ApiResponse(responseCode = "404", description = "Post not found", content = @Content()),
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })

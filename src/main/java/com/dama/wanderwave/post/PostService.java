@@ -232,6 +232,7 @@ public class PostService {
         return "Post is unsaved successfully!";
     }
 
+    @Transactional
     public Page<PostResponse> personalFlow(Pageable pageRequest) {
         log.info("personalFlow called");
         User user = userService.getAuthenticatedUser();
@@ -337,6 +338,7 @@ public class PostService {
         return "Deleted successfully!";
     }
 
+    @Transactional
     public PostResponse getPostById(String postId) {
         log.info("getPostById called with postId: {}", postId);
         Post p = postRepository.findById(postId)
