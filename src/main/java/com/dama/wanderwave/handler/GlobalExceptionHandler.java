@@ -1,5 +1,6 @@
 package com.dama.wanderwave.handler;
 
+import com.dama.wanderwave.handler.category_type.CategoryTypeNotFoundException;
 import jakarta.validation.ConstraintViolationException;
 import lombok.Builder;
 import org.springframework.http.HttpStatus;
@@ -16,6 +17,16 @@ import java.util.stream.StreamSupport;
 public class GlobalExceptionHandler {
 
     private static final String VALIDATION_FAILED_FORMAT = "Validation failed: %s";
+
+    @ExceptionHandler(CategoryTypeNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleCategoryTypeNotFoundException(CategoryTypeNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                ErrorResponse.builder()
+                        .errorCode(HttpStatus.NOT_FOUND.value())
+                        .message(ex.getMessage())
+                        .build()
+        );
+    }
 
     @ExceptionHandler(Throwable.class)
     public ResponseEntity<ErrorResponse> handleAllThrowables(Throwable throwable) {

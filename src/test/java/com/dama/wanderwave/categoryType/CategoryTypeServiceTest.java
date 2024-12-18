@@ -1,5 +1,6 @@
 package com.dama.wanderwave.categoryType;
 
+import com.dama.wanderwave.handler.category_type.CategoryTypeNotFoundException;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -68,7 +69,7 @@ class CategoryTypeServiceTest {
 			when(categoryTypeRepository.findById("1")).thenReturn(Optional.empty());
 
 			assertThatThrownBy(() -> categoryTypeService.getCategoryTypeById("1"))
-					.isInstanceOf(EntityNotFoundException.class)
+					.isInstanceOf(CategoryTypeNotFoundException.class)
 					.hasMessageContaining("CategoryType not found with ID: 1");
 
 			verify(categoryTypeRepository).findById("1");

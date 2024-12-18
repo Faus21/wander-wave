@@ -83,7 +83,7 @@ public class AuthenticationService {
 
 	private User createUser(RegistrationRequest request) {
 		log.debug("Creating new user with username: {}", request.getUsername());
-		var userRole = roleRepository.findByName("USER")
+		var userRole = roleRepository.findByName("ROLE_USER")
 				               .orElseThrow(() -> {
 					               log.error("ROLE USER not found in the database");
 					               return new RoleNotFoundException("ROLE USER was not initiated");

@@ -70,7 +70,7 @@ public class AuthenticationController {
     }
 
 
-    @GetMapping("/activate-account")
+    @PostMapping("/activate-account")
     @ResponseStatus(HttpStatus.ACCEPTED)
     @Operation(summary = "Activate user account", description = "Activates a user account using the provided token.")
     @ApiResponses(value = {
@@ -133,6 +133,4 @@ public class AuthenticationController {
                 })
                 .orElseThrow(() -> new TokenRefreshException("Refresh token is invalid!"));
     }
-
-
 }

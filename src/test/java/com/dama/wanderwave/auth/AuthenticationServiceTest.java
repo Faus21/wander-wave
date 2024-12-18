@@ -438,7 +438,7 @@ class AuthenticationServiceTest {
 			Role role = Role.builder().name("USER").build();
 
 			when(userRepository.findByNicknameOrEmail(anyString(), anyString())).thenReturn(Optional.empty());
-			when(roleRepository.findByName("USER")).thenReturn(Optional.of(role));
+			when(roleRepository.findByName("ROLE_USER")).thenReturn(Optional.of(role));
 			when(userRepository.save(any(User.class))).thenAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
 
 			String result = authenticationService.register(registrationRequest);

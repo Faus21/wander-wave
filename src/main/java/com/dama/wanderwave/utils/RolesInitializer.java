@@ -14,8 +14,8 @@ public class RolesInitializer implements CommandLineRunner {
 
 	@Override
 	public void run(String... args) {
-		createRoleIfNotExists("USER");
-		createRoleIfNotExists("ADMIN");
+		createRoleIfNotExists("ROLE_USER");
+		createRoleIfNotExists("ROLE_ADMIN");
 	}
 
 	private void createRoleIfNotExists(String roleName) {

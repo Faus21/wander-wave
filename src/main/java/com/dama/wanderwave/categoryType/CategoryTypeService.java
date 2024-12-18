@@ -22,7 +22,7 @@ public class CategoryTypeService {
 		CategoryType categoryType = categoryTypeRepository.findById(id)
 				                            .orElseThrow(() -> {
 					                            log.error("CategoryType with ID: {} not found", id);
-					                            return new CategoryTypeNotFoundException("CategoryType not found with ID: " + id);
+                                                return new CategoryTypeNotFoundException("CategoryType not found with ID: " + id);
 				                            });
 
 

@@ -238,7 +238,7 @@ class AuthenticationControllerTest {
 
             when(authenticationService.activateAccount(testActivationToken)).thenReturn(response.message);
 
-            mockMvc.perform(get(ACTIVE_ACCOUNT.getUrl())
+            mockMvc.perform(post(ACTIVE_ACCOUNT.getUrl())
                             .param("emailToken", testActivationToken)
                             .accept(ACCEPT_TYPE)
                             .content(CONTENT_TYPE))
@@ -257,7 +257,7 @@ class AuthenticationControllerTest {
 
             when(authenticationService.activateAccount(testActivationToken)).thenThrow(new TokenNotFoundException(response.message));
 
-            mockMvc.perform(get(ACTIVE_ACCOUNT.getUrl())
+            mockMvc.perform(post(ACTIVE_ACCOUNT.getUrl())
                             .contentType(CONTENT_TYPE)
                             .accept(ACCEPT_TYPE)
                             .param("emailToken", testActivationToken))
@@ -276,7 +276,7 @@ class AuthenticationControllerTest {
 
             when(authenticationService.activateAccount(testActivationToken)).thenThrow(new TokenExpiredException(response.message));
 
-            mockMvc.perform(get(ACTIVE_ACCOUNT.getUrl())
+            mockMvc.perform(post(ACTIVE_ACCOUNT.getUrl())
                             .accept(ACCEPT_TYPE)
                             .contentType(CONTENT_TYPE)
                             .param("emailToken", testActivationToken))
@@ -295,7 +295,7 @@ class AuthenticationControllerTest {
 
             when(authenticationService.activateAccount(testActivationToken)).thenThrow(new UserNotFoundException(response.message));
 
-            mockMvc.perform(get(ACTIVE_ACCOUNT.getUrl())
+            mockMvc.perform(post(ACTIVE_ACCOUNT.getUrl())
                             .accept(ACCEPT_TYPE)
                             .contentType(CONTENT_TYPE)
                             .param("emailToken", testActivationToken))
@@ -314,7 +314,7 @@ class AuthenticationControllerTest {
 
             when(authenticationService.activateAccount(testActivationToken)).thenThrow(new InternalError(response.message));
 
-            mockMvc.perform(get(ACTIVE_ACCOUNT.getUrl())
+            mockMvc.perform(post(ACTIVE_ACCOUNT.getUrl())
                             .accept(ACCEPT_TYPE)
                             .contentType(CONTENT_TYPE)
                             .param("emailToken", testActivationToken))

@@ -115,7 +115,7 @@ CREATE TABLE posts
 CREATE TABLE refresh_tokens
 (
     refresh_token_id VARCHAR(255)                NOT NULL,
-    token            VARCHAR(255)                NOT NULL,
+    token            TEXT                NOT NULL,
     user_id          VARCHAR(255),
     expires_at       TIMESTAMP WITHOUT TIME ZONE NOT NULL,
     CONSTRAINT pk_refresh_tokens PRIMARY KEY (refresh_token_id)
