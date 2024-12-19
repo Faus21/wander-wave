@@ -32,5 +32,6 @@ public interface UserRepository extends JpaRepository<User, String> {
 
     List<User> findAllByIdIn(List<String> ids);
 
-
+    @Query("SELECT u.subscriptions FROM User u WHERE u.id = :id")
+    List<String> findByIdAndFetchSubscriptions(@Param("id") String id);
 }

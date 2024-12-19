@@ -45,4 +45,6 @@ public interface PostRepository extends JpaRepository<Post, String> {
             "WHERE p.createdAt >= :lastWeek")
     Page<Post> findPopularPosts(Pageable pageable, @Param("lastWeek") LocalDateTime lastWeek);
 
+    @Query("SELECT p FROM Post p JOIN FETCH p.hashtags WHERE p.id = (:id)")
+    Optional<Post> findByIdAndFetchHashtags(@Param("id") String id);
 }

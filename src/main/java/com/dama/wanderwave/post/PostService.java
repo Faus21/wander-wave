@@ -232,13 +232,14 @@ public class PostService {
         return "Post is unsaved successfully!";
     }
 
-    @Transactional
     public Page<PostResponse> personalFlow(Pageable pageRequest) {
         log.info("personalFlow called");
         User user = userService.getAuthenticatedUser();
 
+        List<String> subscriptions = userRepository.findByIdAndFetchSubscriptions(user.getId());
+
         List<PostResponse> response = new ArrayList<>();
-        for (String us : user.getSubscriptions()) {
+        for (String us : subscriptions) {
             User subscription = userRepository.findById(us).get();
 
             Page<Post> posts = postRepository.findByUserWithHashtags(subscription, pageRequest);
@@ -338,10 +339,9 @@ public class PostService {
         return "Deleted successfully!";
     }
 
-    @Transactional
     public PostResponse getPostById(String postId) {
         log.info("getPostById called with postId: {}", postId);
-        Post p = postRepository.findById(postId)
+        Post p = postRepository.findByIdAndFetchHashtags(postId)
                 .orElseThrow(() -> new PostNotFoundException(postId));
 
         log.info("getPostById successfully returned post: {}", postId);
