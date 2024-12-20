@@ -15,6 +15,7 @@ import com.dama.wanderwave.place.PlaceRepository;
 import com.dama.wanderwave.post.request.CreatePostRequest;
 import com.dama.wanderwave.place.PlaceRequest;
 import com.dama.wanderwave.post.request.PostRequest;
+import com.dama.wanderwave.post.response.AccountInfo;
 import com.dama.wanderwave.post.response.PostResponse;
 import com.dama.wanderwave.user.User;
 import com.dama.wanderwave.user.UserRepository;
@@ -38,6 +39,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Slf4j
 @Service
@@ -45,7 +47,7 @@ import java.util.stream.Collectors;
 public class PostService {
     private final Integer PAGE_SIZE = 50;
 
-    private final PostRepository  postRepository;
+    private final PostRepository postRepository;
     private final UserService userService;
     private final UserRepository userRepository;
     private final HashTagRepository hashTagRepository;
@@ -94,46 +96,22 @@ public class PostService {
         log.info("createPost called with request: {}", createPostRequest);
         User user = userService.getAuthenticatedUser();
 
-        Post post = new Post();
-        post.setTitle(createPostRequest.getTitle());
-        post.setDescription(createPostRequest.getDescription());
-        post.setUser(user);
-        post.setCreatedAt(LocalDateTime.now());
-        post.setPros(createPostRequest.getPros().toArray(new String[0]));
-        post.setCons(createPostRequest.getCons().toArray(new String[0]));
-
-        Set<HashTag> hashTags = new HashSet<>();
-        for (String hashtag : createPostRequest.getHashtags()) {
-            HashTag hashTag = hashTagRepository.findByTitle(hashtag)
-                    .orElseGet(() -> {
-                        HashTag newHashtag = new HashTag();
-                        newHashtag.setTitle(hashtag);
-                        return hashTagRepository.save(newHashtag);
-                    });
-
-            hashTags.add(hashTag);
-        }
-
-        post.setHashtags(hashTags);
-        post.setCategoryType(categoryTypeRepository.findByName(createPostRequest.getCategoryName())
-                .orElseThrow(() -> new CategoryTypeNotFoundException("CategoryType is not found!")));
-
+        Post post = mapToPost(createPostRequest, user);
         postRepository.save(post);
 
-        for (PlaceRequest placeRequest : createPostRequest.getPlaces()) {
-            Place place = new Place();
-            place.setDescription(placeRequest.getDescription());
-            place.setLongitude(placeRequest.getLongitude());
-            place.setLatitude(placeRequest.getLatitude());
-            place.setRating(placeRequest.getRating());
-            place.setImageUrl(placeRequest.getImageUrl());
-            place.setPost(post);
-
-            placeRepository.save(place);
-        }
+        createPostRequest.getPlaces().stream()
+                .map(placeRequest -> mapToPlace(placeRequest, post))
+                .forEach(placeRepository::save);
 
         log.info("createPost successfully created post with title: {}", createPostRequest.getTitle());
         return "Post is created successfully!";
+    }
+
+    private Set<HashTag> createHashTags(Set<String> hashtags) {
+        return hashtags.stream()
+                .map(hashtag -> hashTagRepository.findByTitle(hashtag)
+                        .orElseGet(() -> hashTagRepository.save(HashTag.builder().title(hashtag).build())))
+                .collect(Collectors.toSet());
     }
 
     @Transactional
@@ -144,24 +122,37 @@ public class PostService {
         Post post = postRepository.findByIdWithLikes(postId)
                 .orElseThrow(() -> new PostNotFoundException("Post with id " + postId + " is not found!"));
 
-        boolean isLiked = post.getLikes().stream().anyMatch(e -> e.getUser().getId().equals(user.getId()));
-
-        if (isLiked)
+        if (isPostAlreadyLikedByUser(post, user)) {
             throw new IsLikedException("Post is already liked by user!");
+        }
 
-        LikeId likeId = new LikeId();
-        likeId.setUser_id(user.getId());
-        likeId.setPost_id(post.getId());
-
-        Like like = new Like();
-        like.setId(likeId);
-        like.setUser(user);
-        like.setPost(post);
-        like.setCreatedAt(LocalDateTime.now());
-
+        Like like = createLike(post, user);
         likeRepository.save(like);
+
+        post.setLikesCount(post.getLikesCount() + 1);
+        postRepository.save(post);
+
         log.info("likePost successfully liked post with id: {}", postId);
         return "Liked successfully!";
+    }
+
+    private boolean isPostAlreadyLikedByUser(Post post, User user) {
+        return post.getLikes().stream()
+                .anyMatch(like -> like.getUser().getId().equals(user.getId()));
+    }
+
+    private Like createLike(Post post, User user) {
+        LikeId likeId = LikeId.builder()
+                .user_id(user.getId())
+                .post_id(post.getId())
+                .build();
+
+        return Like.builder()
+                .id(likeId)
+                .user(user)
+                .post(post)
+                .createdAt(LocalDateTime.now())
+                .build();
     }
 
     @Transactional
@@ -175,6 +166,9 @@ public class PostService {
         Like like = likeRepository.findByUserAndPost(user, post)
                 .orElseThrow(() -> new LikeNotFoundException("This post isn't liked by user!"));
 
+        post.setLikesCount(post.getLikesCount() - 1);
+
+        postRepository.save(post);
         likeRepository.delete(like);
         log.info("unlikePost successfully unliked post with id: {}", postId);
         return "Post is unliked successfully!";
@@ -185,9 +179,8 @@ public class PostService {
         Post post = postRepository.findByIdWithLikes(postId)
                 .orElseThrow(() -> new PostNotFoundException("Post with id " + postId + " is not found!"));
 
-        int count = post.getLikes().size();
+        int count = post.getLikesCount();
         log.info("getPostLikesCount returned count: {} for postId: {}", count, postId);
-
         return count;
     }
 
@@ -240,13 +233,21 @@ public class PostService {
 
         List<PostResponse> response = new ArrayList<>();
         for (String us : subscriptions) {
-            User subscription = userRepository.findById(us).get();
+            User subscription = userRepository.findById(us)
+                    .orElseGet(() -> {
+                        log.warn("User with ID {} not found. Skipping this subscription.", us);
+                        return null;
+                    });
+
+            if (subscription == null) {
+                continue;
+            }
 
             Page<Post> posts = postRepository.findByUserWithHashtags(subscription, pageRequest);
             response.addAll(getPostResponseListFromPostList(pageRequest, posts).getContent());
         }
 
-        response = response.stream().sorted(Comparator.comparing(PostResponse::getCreatedAt)).toList();
+        response = response.stream().sorted(Comparator.comparing(PostResponse::getCreationDate)).toList();
         log.info("personalFlow returned {} posts", response.size());
         return new PageImpl<>(response, pageRequest, response.size());
     }
@@ -255,39 +256,40 @@ public class PostService {
         log.info("recommendationFlow called");
         User user = userService.getAuthenticatedUser();
 
-        List<PostResponse> response = new ArrayList<>();
-        Page<Post> likedPosts = getLikedPosts(pageRequest, user);
-        Page<Post> savedPosts = getSavedPosts(pageRequest, user);
+        List<Post> combinedPosts = Stream.concat(
+                        getLikedPosts(pageRequest, user).getContent().stream(),
+                        getSavedPosts(pageRequest, user).getContent().stream())
+                .toList();
 
-        List<HashTag> hashtags = new ArrayList<>();
-        int maxLikesIndex = Math.min(likedPosts.getSize(), PAGE_SIZE);
-        List<Post> likedPostSubList = likedPosts.getContent().subList(0, Math.min(likedPosts.getContent().size(), maxLikesIndex));
-        for (Post post : likedPostSubList) {
-            hashtags.addAll(post.getHashtags());
-        }
+        Set<HashTag> uniqueHashtags = combinedPosts.stream()
+                .flatMap(post -> post.getHashtags().stream())
+                .collect(Collectors.toSet());
 
-        int maxSavedIndex = Math.min(savedPosts.getSize(), PAGE_SIZE);
-        List<Post> savedPostSubList = savedPosts.getContent().subList(0, Math.min(savedPosts.getContent().size(), maxSavedIndex));
-        for (Post post : savedPostSubList) {
-            hashtags.addAll(post.getHashtags());
-        }
-
-        List<Post> posts = new ArrayList<>();
-        for (HashTag h : hashtags) {
-            Page<Post> resp = postRepository.findByHashtag(h.getId(), pageRequest);
-            posts.addAll(resp.getContent());
+        List<Post> hashtagPosts = new ArrayList<>();
+        if (!uniqueHashtags.isEmpty()) {
+            hashtagPosts = uniqueHashtags.stream()
+                    .flatMap(h -> postRepository.findByHashtag(h.getId(), pageRequest).getContent().stream())
+                    .toList();
         }
 
         Page<Post> mostPopularPosts = getRandomPopularPosts();
-        Page<Post> postsPage = new PageImpl<>(posts, pageRequest, posts.size());
 
-        response.addAll(getPostResponseListFromPostList(pageRequest, postsPage).getContent());
-        response.addAll(getPostResponseListFromPostList(pageRequest, mostPopularPosts).getContent());
+        List<Post> allPosts = new ArrayList<>();
+        allPosts.addAll(hashtagPosts);
+        allPosts.addAll(mostPopularPosts.getContent());
 
-        Collections.shuffle(response);
+        Collections.shuffle(allPosts);
 
-        log.info("recommendationFlow returned {} posts", response.size());
-        return new PageImpl<>(response, pageRequest, response.size());
+        List<PostResponse> response = new ArrayList<>(
+                getPostResponseListFromPostList(
+                        pageRequest, new PageImpl<>(allPosts, pageRequest, allPosts.size())
+                ).getContent()
+        );
+
+        Page<PostResponse> finalPage = new PageImpl<>(response, pageRequest, response.size());
+
+        log.info("recommendationFlow returned {} posts", finalPage.getTotalElements());
+        return finalPage;
     }
 
     public Page<PostResponse> getLikedPostsResponse(Pageable pageRequest) {
@@ -304,7 +306,7 @@ public class PostService {
         log.info("getSavedPostsResponse called");
         User user = userService.getAuthenticatedUser();
 
-        Page<PostResponse> response = getPostResponseListFromPostList(pageRequest, getSavedPosts(pageRequest,user));
+        Page<PostResponse> response = getPostResponseListFromPostList(pageRequest, getSavedPosts(pageRequest, user));
         log.info("getSavedPostsResponse returned {} posts", response.getSize());
         return response;
     }
@@ -318,7 +320,6 @@ public class PostService {
         log.info("getPostsByCategory returned {} posts for category: {}", response.getSize(), category);
         return response;
     }
-
 
 
     @Transactional
@@ -362,20 +363,28 @@ public class PostService {
         return savedPosts;
     }
 
-    private PostResponse getPostResponseFromPost(Post p){
+    private PostResponse getPostResponseFromPost(Post p) {
         log.info("getPostResponseFromPost from post: {}", p.getId());
-        PostResponse postResponse = new PostResponse();
-        postResponse.setTitle(p.getTitle());
-        postResponse.setDescription(p.getDescription());
-        postResponse.setId(p.getId());
-        postResponse.setCreatedAt(p.getCreatedAt());
-        postResponse.setHashtags(p.getHashtags().stream().map(HashTag::getTitle).collect(Collectors.toSet()));
-        postResponse.setNickname(p.getUser().getNickname());
-        postResponse.setCons(p.getCons());
-        postResponse.setPros(p.getPros());
-        postResponse.setCategoryType(p.getCategoryType().getName());
 
-        return postResponse;
+        AccountInfo accountInfo = AccountInfo.builder()
+                .nickname(p.getUser().getNickname())
+                .imageUrl(p.getUser().getImageUrl())
+                .build();
+
+        return PostResponse.builder()
+                .id(p.getId())
+                .title(p.getTitle())
+                .text(p.getDescription())
+                .creationDate(p.getCreatedAt())
+                .hashtags(p.getHashtags().stream().map(HashTag::getTitle).collect(Collectors.toSet()))
+                .accountInfo(accountInfo)
+                .isLiked(isPostLikedByUser(p, userService.getAuthenticatedUser()))
+                .isSaved(isPostSavedByUser(p, userService.getAuthenticatedUser()))
+                .likes(p.getLikesCount())
+                .cons(p.getCons())
+                .pros(p.getPros())
+                .category(p.getCategoryType().getName())
+                .build();
     }
 
     private Page<PostResponse> getPostResponseListFromPostList(Pageable pageRequest, Page<Post> posts) {
@@ -393,5 +402,37 @@ public class PostService {
         return postRepository.findPopularPosts(PageRequest.of(0, PAGE_SIZE), lastWeek);
     }
 
+    private boolean isPostLikedByUser(Post post, User user) {
+        return likeRepository.findByUserAndPost(user, post).isPresent();
+    }
+
+    private boolean isPostSavedByUser(Post post, User user) {
+        return savedPostRepository.findByUserAndPost(user, post).isPresent();
+    }
+
+    private Post mapToPost(CreatePostRequest createPostRequest, User user) {
+        return Post.builder()
+                .title(createPostRequest.getTitle())
+                .description(createPostRequest.getDescription())
+                .user(user)
+                .createdAt(LocalDateTime.now())
+                .pros(createPostRequest.getPros().toArray(new String[0]))
+                .cons(createPostRequest.getCons().toArray(new String[0]))
+                .hashtags(createHashTags(createPostRequest.getHashtags()))
+                .categoryType(categoryTypeRepository.findByName(createPostRequest.getCategoryName())
+                        .orElseThrow(() -> new CategoryTypeNotFoundException("CategoryType is not found!")))
+                .build();
+    }
+
+    private Place mapToPlace(PlaceRequest placeRequest, Post post) {
+        return Place.builder()
+                .description(placeRequest.getDescription())
+                .longitude(placeRequest.getLongitude())
+                .latitude(placeRequest.getLatitude())
+                .rating(placeRequest.getRating())
+                .imageUrl(placeRequest.getImageUrl())
+                .post(post)
+                .build();
+    }
 }
 

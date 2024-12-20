@@ -10,12 +10,10 @@ import com.dama.wanderwave.user.saved_post.SavedPost;
 import com.dama.wanderwave.user.viewed_post.ViewedPost;
 import com.vladmihalcea.hibernate.type.array.StringArrayType;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.annotations.Type;
 import org.springframework.data.annotation.CreatedDate;
@@ -31,6 +29,7 @@ import java.util.Set;
 @AllArgsConstructor
 @Entity
 @Table(name = "posts" )
+@Builder
 public class Post {
 
 	@Id
@@ -81,6 +80,11 @@ public class Post {
 
 	@OneToMany(mappedBy = "post", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
 	private Set<SavedPost> savedPosts = new HashSet<>();
+
+	@Min(value = 0, message = "Likes count must be non-negative")
+	@Column(name = "post_likes")
+	@Builder.Default
+	private Integer likesCount = 0;
 
 	@OneToMany(mappedBy = "post", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
 	private Set<Like> likes = new HashSet<>();

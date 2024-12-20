@@ -3,10 +3,7 @@ package com.dama.wanderwave.hashtag;
 import com.dama.wanderwave.post.Post;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.GenericGenerator;
 
 import java.util.Set;
@@ -17,6 +14,7 @@ import java.util.Set;
 @NoArgsConstructor
 @Entity
 @Table(name = "hashtags")
+@Builder
 public class HashTag {
 
 	@Id

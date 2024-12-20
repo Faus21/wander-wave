@@ -3,12 +3,14 @@ package com.dama.wanderwave.user.like;
 import java.io.Serializable;
 import java.util.Objects;
 import jakarta.persistence.Embeddable;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 @Getter
 @Setter
 @Embeddable
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class LikeId implements Serializable {
 
     private String user_id;

@@ -109,13 +109,14 @@ CREATE TABLE posts
     category_type_id VARCHAR(255)                NOT NULL,
     pros             TEXT[],
     cons             TEXT[],
+    post_likes       INT                         NOT NULL,
     CONSTRAINT pk_posts PRIMARY KEY (post_id)
 );
 
 CREATE TABLE refresh_tokens
 (
     refresh_token_id VARCHAR(255)                NOT NULL,
-    token            TEXT                NOT NULL,
+    token            TEXT                        NOT NULL,
     user_id          VARCHAR(255),
     expires_at       TIMESTAMP WITHOUT TIME ZONE NOT NULL,
     CONSTRAINT pk_refresh_tokens PRIMARY KEY (refresh_token_id)
@@ -204,17 +205,17 @@ CREATE TABLE user_viewed_posts
  */
 CREATE TABLE users
 (
-    user_id        VARCHAR(255) NOT NULL,
-    nickname       VARCHAR(50)  NOT NULL,
-    email          VARCHAR(255) NOT NULL,
-    password       VARCHAR(100) NOT NULL,
-    description    VARCHAR(255) NOT NULL,
-    black_list     JSONB,
-    account_locked BOOLEAN      NOT NULL,
-    enabled        BOOLEAN      NOT NULL,
-    subscriber_count INT NOT NULL,
-    subscriptions_count INT NOT NULL,
-    image_url      TEXT,
+    user_id             VARCHAR(255) NOT NULL,
+    nickname            VARCHAR(50)  NOT NULL,
+    email               VARCHAR(255) NOT NULL,
+    password            VARCHAR(100) NOT NULL,
+    description         VARCHAR(255) NOT NULL,
+    black_list          JSONB,
+    account_locked      BOOLEAN      NOT NULL,
+    enabled             BOOLEAN      NOT NULL,
+    subscriber_count    INT          NOT NULL,
+    subscriptions_count INT          NOT NULL,
+    image_url           TEXT,
     CONSTRAINT pk_users PRIMARY KEY (user_id)
 );
 

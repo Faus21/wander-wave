@@ -11,6 +11,7 @@ import com.dama.wanderwave.handler.user.save.IsSavedException;
 import com.dama.wanderwave.handler.user.save.SavedPostNotFound;
 import com.dama.wanderwave.post.request.CreatePostRequest;
 import com.dama.wanderwave.post.request.PostRequest;
+import com.dama.wanderwave.post.response.AccountInfo;
 import com.dama.wanderwave.post.response.PostResponse;
 import com.dama.wanderwave.user.User;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -896,15 +897,20 @@ public class PostControllerTest {
     private Page<PostResponse> getUserPosts(){
         User user = getMockUser();
 
+        AccountInfo accountInfo = AccountInfo
+                .builder()
+                .nickname(user.getNickname())
+                .build();
+
         var post1 = new PostResponse();
         post1.setTitle("title1");
         post1.setId("mockPost1");
-        post1.setNickname(user.getNickname());
+        post1.setAccountInfo(accountInfo);
 
         var post2 = new PostResponse();
         post2.setTitle("title2");
         post2.setId("mockPost2");
-        post2.setNickname(user.getNickname());
+        post2.setAccountInfo(accountInfo);
 
         return new PageImpl<>(List.of(
                 post1, post2

@@ -4,7 +4,10 @@ import com.dama.wanderwave.post.Post;
 import com.dama.wanderwave.user.User;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
 
 import java.time.LocalDateTime;
@@ -12,6 +15,9 @@ import java.time.LocalDateTime;
 @Data
 @Entity
 @Table(name = "user_likes")
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class Like {
 
 	@EmbeddedId

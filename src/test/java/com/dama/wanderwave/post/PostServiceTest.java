@@ -277,7 +277,9 @@ public class PostServiceTest {
     class GetPostLikes{
         @Test
         void getPostLikes_Success(){
-            when(postRepository.findByIdWithLikes(any(String.class))).thenReturn(Optional.of(getLikedPost()));
+            Post post = getLikedPost();
+            post.setLikesCount(1);
+            when(postRepository.findByIdWithLikes(any(String.class))).thenReturn(Optional.of(post));
 
             Integer result = postService.getPostLikesCount(getLikedPost().getId());
 
@@ -461,9 +463,14 @@ public class PostServiceTest {
             mockUser.setSubscriptions(Set.of(mockSubscription.getId()));
             Post mockPost = getUserPosts().getFirst();
 
-            when(userService.getAuthenticatedUser()).thenReturn(mockUser);
-            when(userRepository.findById(mockSubscription.getId())).thenReturn(Optional.of(mockSubscription));
-            when(postRepository.findByUserWithHashtags(mockSubscription, getPageRequest())).thenReturn(new PageImpl<>(List.of(mockPost)));
+            when(userService.getAuthenticatedUser())
+                    .thenReturn(mockUser);
+            when(userRepository.findByIdAndFetchSubscriptions(mockUser.getId()))
+                    .thenReturn(List.of(mockSubscription.getId()));
+            when(userRepository.findById(mockSubscription.getId()))
+                    .thenReturn(Optional.of(mockSubscription));
+            when(postRepository.findByUserWithHashtags(mockSubscription, getPageRequest()))
+                    .thenReturn(new PageImpl<>(List.of(mockPost)));
 
             Page<PostResponse> result = postService.personalFlow(getPageRequest());
 
@@ -564,25 +571,25 @@ public class PostServiceTest {
         void getPostById_Success() {
             var postId = "12345";
             var mockPost = getMockPost(postId);
-            when(postRepository.findById(postId)).thenReturn(Optional.of(mockPost));
+            when(postRepository.findByIdAndFetchHashtags(postId)).thenReturn(Optional.of(mockPost));
             PostResponse result = postService.getPostById(postId);
 
             assertNotNull(result);
             assertEquals(mockPost.getId(), result.getId());
             assertEquals(mockPost.getTitle(), result.getTitle());
 
-            verify(postRepository).findById(postId);
+            verify(postRepository).findByIdAndFetchHashtags(postId);
         }
 
         @Test
         @DisplayName("Get post by ID should throw exception when post is not found")
         void getPostById_PostNotFound() {
             var postId = "12345";
-            when(postRepository.findById(postId)).thenReturn(Optional.empty());
+            when(postRepository.findByIdAndFetchHashtags(postId)).thenReturn(Optional.empty());
 
             assertThrows(PostNotFoundException.class, () -> postService.getPostById(postId));
 
-            verify(postRepository).findById(postId);
+            verify(postRepository).findByIdAndFetchHashtags(postId);
         }
 
     }

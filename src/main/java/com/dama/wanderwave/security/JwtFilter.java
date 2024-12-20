@@ -44,7 +44,8 @@ public class JwtFilter extends OncePerRequestFilter {
 	}
 
 	private boolean isAuthenticationPath(HttpServletRequest request) {
-		return request.getServletPath().contains("/api/auth");
+		return request.getServletPath().contains("/api/auth") &&
+				!request.getRequestURI().contains("logout");
 	}
 
 	private String getJwtFromRequest(HttpServletRequest request) {
