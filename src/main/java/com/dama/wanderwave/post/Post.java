@@ -19,6 +19,7 @@ import org.hibernate.annotations.Type;
 import org.springframework.data.annotation.CreatedDate;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -73,12 +74,15 @@ public class Post {
 			joinColumns = @JoinColumn(name = "post_id"),
 			inverseJoinColumns = @JoinColumn(name = "hashtag_id")
 	)
-	private Set<HashTag> hashtags;
+	@Builder.Default
+	private Set<HashTag> hashtags = new HashSet<>();
 
 	@OneToMany(mappedBy = "post", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+	@Builder.Default
 	private Set<ViewedPost> viewedPosts = new HashSet<>();
 
 	@OneToMany(mappedBy = "post", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+	@Builder.Default
 	private Set<SavedPost> savedPosts = new HashSet<>();
 
 	@Min(value = 0, message = "Likes count must be non-negative")
@@ -87,11 +91,14 @@ public class Post {
 	private Integer likesCount = 0;
 
 	@OneToMany(mappedBy = "post", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+	@Builder.Default
 	private Set<Like> likes = new HashSet<>();
 
 	@OneToMany(mappedBy = "post", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-	private Set<PostReport> reports;
+	@Builder.Default
+	private Set<PostReport> reports = new HashSet<>();
 
 	@OneToMany(mappedBy = "post", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-	private List<Comment> comments;
+	@Builder.Default
+	private List<Comment> comments = new ArrayList<>();
 }
