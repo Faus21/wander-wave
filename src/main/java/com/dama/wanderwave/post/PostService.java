@@ -15,8 +15,10 @@ import com.dama.wanderwave.place.PlaceRepository;
 import com.dama.wanderwave.post.request.CreatePostRequest;
 import com.dama.wanderwave.place.PlaceRequest;
 import com.dama.wanderwave.post.request.PostRequest;
-import com.dama.wanderwave.post.response.AccountInfo;
 import com.dama.wanderwave.post.response.PostResponse;
+import com.dama.wanderwave.post.response.dto.AccountInfoResponse;
+import com.dama.wanderwave.post.response.dto.CategoryResponse;
+import com.dama.wanderwave.post.response.dto.PlaceResponse;
 import com.dama.wanderwave.user.User;
 import com.dama.wanderwave.user.UserRepository;
 import com.dama.wanderwave.user.UserService;
@@ -28,6 +30,7 @@ import com.dama.wanderwave.user.saved_post.SavedPostId;
 import com.dama.wanderwave.user.saved_post.SavedPostRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -55,6 +58,7 @@ public class PostService {
     private final LikeRepository likeRepository;
     private final SavedPostRepository savedPostRepository;
     private final PlaceRepository placeRepository;
+    private final ModelMapper modelMapper;
 
     public Page<PostResponse> getUserPosts(Pageable pageRequest, String nickname) {
         log.info("getUserPosts called with nickname: {}", nickname);
@@ -192,8 +196,9 @@ public class PostService {
         Post post = postRepository.findByIdSaved(postId)
                 .orElseThrow(() -> new PostNotFoundException("Post with id " + postId + " is not found!"));
 
-        if (post.getSavedPosts().stream().anyMatch(e -> e.getUser().getId().equals(user.getId())))
+        if (post.getSavedPosts().stream().anyMatch(e -> e.getUser().getId().equals(user.getId()))) {
             throw new IsSavedException("Post is already saved by user!");
+        }
 
         SavedPostId savedPostId = new SavedPostId();
         savedPostId.setUser_id(user.getId());
@@ -343,7 +348,7 @@ public class PostService {
     public PostResponse getPostById(String postId) {
         log.info("getPostById called with postId: {}", postId);
         Post p = postRepository.findByIdAndFetchHashtags(postId)
-                .orElseThrow(() -> new PostNotFoundException(postId));
+                .orElseThrow(() -> new PostNotFoundException("Post with id + " + postId + " +  not found"));
 
         log.info("getPostById successfully returned post: {}", postId);
         return getPostResponseFromPost(p);
@@ -365,11 +370,23 @@ public class PostService {
 
     private PostResponse getPostResponseFromPost(Post p) {
         log.info("getPostResponseFromPost from post: {}", p.getId());
+        User user = userService.getAuthenticatedUser();
 
-        AccountInfo accountInfo = AccountInfo.builder()
+        AccountInfoResponse accountInfo = AccountInfoResponse.builder()
                 .nickname(p.getUser().getNickname())
                 .imageUrl(p.getUser().getImageUrl())
                 .build();
+
+        CategoryResponse category = CategoryResponse.builder()
+                .name(p.getCategoryType().getName())
+                .imageUrl(p.getCategoryType().getImageUrl())
+                .build();
+
+        List<PlaceResponse> places = placeRepository.findAllByPost(p)
+                .stream()
+                .map(place -> modelMapper.map(place, PlaceResponse.class))
+                .toList();
+
 
         return PostResponse.builder()
                 .id(p.getId())
@@ -378,21 +395,22 @@ public class PostService {
                 .creationDate(p.getCreatedAt())
                 .hashtags(p.getHashtags().stream().map(HashTag::getTitle).collect(Collectors.toSet()))
                 .accountInfo(accountInfo)
-                .isLiked(isPostLikedByUser(p, userService.getAuthenticatedUser()))
-                .isSaved(isPostSavedByUser(p, userService.getAuthenticatedUser()))
+                .places(places)
+                .isLiked(isPostLikedByUser(p, user))
+                .isSaved(isPostSavedByUser(p, user))
                 .likes(p.getLikesCount())
                 .cons(p.getCons())
                 .pros(p.getPros())
-                .category(p.getCategoryType().getName())
+                .category(category)
                 .build();
     }
 
     private Page<PostResponse> getPostResponseListFromPostList(Pageable pageRequest, Page<Post> posts) {
         log.info("getPostResponseListFromPostList called for {} posts", posts.getSize());
         List<PostResponse> response = new ArrayList<>();
-        for (Post p : posts) {
-            response.add(getPostResponseFromPost(p));
-        }
+
+        posts.forEach(post -> response.add(getPostResponseFromPost(post)));
+
         log.info("getPostResponseListFromPostList returned {} responses", response.size());
         return new PageImpl<>(response, pageRequest, response.size());
     }
@@ -430,7 +448,7 @@ public class PostService {
                 .longitude(placeRequest.getLongitude())
                 .latitude(placeRequest.getLatitude())
                 .rating(placeRequest.getRating())
-                .imageUrl(placeRequest.getImageUrl())
+                .imgUrl(placeRequest.getImageUrl())
                 .post(post)
                 .build();
     }

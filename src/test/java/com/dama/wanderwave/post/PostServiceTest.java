@@ -521,7 +521,7 @@ public class PostServiceTest {
             assertNotNull(result);
             assertEquals(2, result.getTotalElements());
 
-            verify(userService).getAuthenticatedUser();
+            verify(userService, times(3)).getAuthenticatedUser();
             verify(postRepository).findByUserWithLikes(mockUser, getPageRequest());
         }
     }
@@ -542,7 +542,7 @@ public class PostServiceTest {
             assertNotNull(result);
             assertEquals(2, result.getTotalElements());
 
-            verify(userService).getAuthenticatedUser();
+            verify(userService, times(3)).getAuthenticatedUser();
             verify(postRepository).findByUserSaved(mockUser, getPageRequest());
         }
     }

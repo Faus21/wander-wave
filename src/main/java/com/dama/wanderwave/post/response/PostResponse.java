@@ -1,7 +1,9 @@
 package com.dama.wanderwave.post.response;
 
 import com.dama.wanderwave.comment.Comment;
-import com.dama.wanderwave.place.Place;
+import com.dama.wanderwave.post.response.dto.AccountInfoResponse;
+import com.dama.wanderwave.post.response.dto.CategoryResponse;
+import com.dama.wanderwave.post.response.dto.PlaceResponse;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,21 +21,17 @@ public class PostResponse {
 
     private String id;
 
-    private List<String> images;
-
     private LocalDateTime creationDate;
 
-    private String category;
+    private CategoryResponse category;
 
     private String title;
 
     private String text;
 
-    private AccountInfo accountInfo;
+    private AccountInfoResponse accountInfo;
 
-    private String postImage;
-
-    private List<Place> places;
+    private List<PlaceResponse> places;
 
     private Integer likes;
 

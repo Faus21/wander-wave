@@ -1,6 +1,5 @@
 package com.dama.wanderwave.post.request;
 
-import com.dama.wanderwave.place.PlaceRequest;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 import lombok.*;

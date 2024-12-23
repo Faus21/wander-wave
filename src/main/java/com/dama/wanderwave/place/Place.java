@@ -41,8 +41,8 @@ public class Place {
 	@Column(columnDefinition = "Numeric(9,6)", nullable = false)
 	private BigDecimal latitude;
 
-	@Column(columnDefinition = "TEXT")
-	private String imageUrl;
+	@Column(columnDefinition = "TEXT", name = "image_url")
+	private String imgUrl;
 
 	@ManyToOne
 	@JoinColumn(name = "post_id",

@@ -1,5 +1,8 @@
 package com.dama.wanderwave.post;
 
+import com.dama.wanderwave.comment.Comment;
+import com.dama.wanderwave.comment.CommentService;
+import com.dama.wanderwave.post.request.CreateCommentRequest;
 import com.dama.wanderwave.post.request.CreatePostRequest;
 import com.dama.wanderwave.post.request.PostRequest;
 import com.dama.wanderwave.post.response.PostResponse;
@@ -21,6 +24,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 
 @RestController
 @RequestMapping("/api/posts")
@@ -29,6 +34,7 @@ import org.springframework.web.bind.annotation.*;
 @Validated
 public class PostController {
     private final PostService postService;
+    private final CommentService commentService;
     private static final int MAX_PAGE_SIZE = 50;
 
     @GetMapping("/user/{nickname}")
@@ -58,7 +64,7 @@ public class PostController {
     })
     public ResponseEntity<ResponseRecord> createPost(
             @RequestBody @Valid CreatePostRequest request
-    ){
+    ) {
         String response = postService.createPost(request);
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), response));
     }
@@ -75,7 +81,7 @@ public class PostController {
     public ResponseEntity<ResponseRecord> modifyPost(
             @PathVariable String postId,
             @RequestBody @Valid PostRequest request
-    ){
+    ) {
         String response = postService.modifyPost(postId, request);
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), response));
     }
@@ -88,7 +94,7 @@ public class PostController {
             @ApiResponse(responseCode = "404", description = "Post not found", content = @Content()),
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
-    public ResponseEntity<ResponseRecord> getPostLikes(@PathVariable String postId){
+    public ResponseEntity<ResponseRecord> getPostLikes(@PathVariable String postId) {
         Integer response = postService.getPostLikesCount(postId);
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), response));
     }
@@ -101,11 +107,10 @@ public class PostController {
             @ApiResponse(responseCode = "404", description = "Post not found", content = @Content()),
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
-    public ResponseEntity<ResponseRecord> getPost(@PathVariable String postId){
+    public ResponseEntity<ResponseRecord> getPost(@PathVariable String postId) {
         PostResponse response = postService.getPostById(postId);
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), response));
     }
-
 
 
     @PostMapping("/{postId}/like")
@@ -117,7 +122,7 @@ public class PostController {
             @ApiResponse(responseCode = "404", description = "Like not found", content = @Content()),
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
-    public ResponseEntity<ResponseRecord> likePost(@PathVariable String postId){
+    public ResponseEntity<ResponseRecord> likePost(@PathVariable String postId) {
         String response = postService.likePost(postId);
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), response));
     }
@@ -131,7 +136,7 @@ public class PostController {
             @ApiResponse(responseCode = "404", description = "Like not found", content = @Content()),
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
-    public ResponseEntity<ResponseRecord> unlikePost(@PathVariable String postId){
+    public ResponseEntity<ResponseRecord> unlikePost(@PathVariable String postId) {
         String response = postService.unlikePost(postId);
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), response));
     }
@@ -145,7 +150,7 @@ public class PostController {
             @ApiResponse(responseCode = "404", description = "Post not found", content = @Content()),
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
-    public ResponseEntity<ResponseRecord> savePost(@PathVariable String postId){
+    public ResponseEntity<ResponseRecord> savePost(@PathVariable String postId) {
         String response = postService.savePost(postId);
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), response));
     }
@@ -159,7 +164,7 @@ public class PostController {
             @ApiResponse(responseCode = "404", description = "Saved post not found", content = @Content()),
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
-    public ResponseEntity<ResponseRecord> unsavePost(@PathVariable String postId){
+    public ResponseEntity<ResponseRecord> unsavePost(@PathVariable String postId) {
         String response = postService.unsavePost(postId);
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), response));
     }
@@ -174,7 +179,7 @@ public class PostController {
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
     public ResponseEntity<ResponseRecord> getPersonalFlow(@RequestParam int pageNumber,
-                                                          @RequestParam @Max(MAX_PAGE_SIZE) Integer pageSize){
+                                                          @RequestParam @Max(MAX_PAGE_SIZE) Integer pageSize) {
         Pageable page = PageRequest.of(pageNumber, pageSize);
         Page<PostResponse> response = postService.personalFlow(page);
 
@@ -189,7 +194,7 @@ public class PostController {
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
     public ResponseEntity<ResponseRecord> getRecommendationsFlow(@RequestParam int pageNumber,
-                                                                 @RequestParam @Max(MAX_PAGE_SIZE) Integer pageSize){
+                                                                 @RequestParam @Max(MAX_PAGE_SIZE) Integer pageSize) {
         Pageable page = PageRequest.of(pageNumber, pageSize);
         Page<PostResponse> response = postService.recommendationFlow(page);
 
@@ -204,7 +209,7 @@ public class PostController {
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
     public ResponseEntity<ResponseRecord> getUserLikes(@RequestParam int pageNumber,
-                                                       @RequestParam @Max(MAX_PAGE_SIZE) Integer pageSize){
+                                                       @RequestParam @Max(MAX_PAGE_SIZE) Integer pageSize) {
         Pageable page = PageRequest.of(pageNumber, pageSize);
         Page<PostResponse> response = postService.getLikedPostsResponse(page);
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), response));
@@ -218,7 +223,7 @@ public class PostController {
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
     public ResponseEntity<ResponseRecord> getUserSaved(@RequestParam int pageNumber,
-                                                       @RequestParam @Max(MAX_PAGE_SIZE) Integer pageSize){
+                                                       @RequestParam @Max(MAX_PAGE_SIZE) Integer pageSize) {
         Pageable page = PageRequest.of(pageNumber, pageSize);
         Page<PostResponse> response = postService.getSavedPostsResponse(page);
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), response));
@@ -254,6 +259,70 @@ public class PostController {
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), response));
     }
 
+    @PostMapping("/{postId}/comments")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Create comment", description = "Create a comment for a specific post.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Comment created successfully", content = @Content()),
+            @ApiResponse(responseCode = "400", description = "Invalid request", content = @Content()),
+            @ApiResponse(responseCode = "404", description = "Post not found", content = @Content()),
+            @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
+    })
+    public ResponseEntity<ResponseRecord> createComment(
+            @RequestBody CreateCommentRequest createCommentRequest
+    ) {
+        Comment comment = commentService.createComment(createCommentRequest);
+        return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), comment));
+    }
 
+    @PutMapping("/comments/{commentId}")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Modify comment", description = "Modify an existing comment.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Comment modified successfully", content = @Content()),
+            @ApiResponse(responseCode = "400", description = "Invalid request", content = @Content()),
+            @ApiResponse(responseCode = "404", description = "Comment not found", content = @Content()),
+            @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
+    })
+    public ResponseEntity<ResponseRecord> modifyComment(
+            @PathVariable String commentId,
+            @RequestParam String content
+    ) {
+        Comment updatedComment = commentService.updateComment(commentId, content);
+        return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), updatedComment));
+    }
+
+    @DeleteMapping("/comments/{commentId}")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Delete comment", description = "Delete an existing comment.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Comment deleted successfully", content = @Content()),
+            @ApiResponse(responseCode = "404", description = "Comment not found", content = @Content()),
+            @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
+    })
+    public ResponseEntity<ResponseRecord> deleteComment(
+            @PathVariable String commentId
+    ) {
+        String result = commentService.deleteComment(commentId);
+        return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), result));
+    }
+
+    @GetMapping("/{postId}/comments")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Get comments for a post", description = "Get all comments for a specific post.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Comments retrieved successfully", content = @Content()),
+            @ApiResponse(responseCode = "404", description = "Post not found", content = @Content()),
+            @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
+    })
+    public ResponseEntity<ResponseRecord> getCommentsForPost(
+            @PathVariable String postId,
+            @RequestParam int pageNumber,
+            @RequestParam @Max(MAX_PAGE_SIZE) Integer pageSize
+    ) {
+        Pageable pageable = PageRequest.of(pageNumber, pageSize);
+        List<Comment> comments = commentService.getAllCommentsForPost(pageable, postId);
+        return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), comments));
+    }
 
 }
