@@ -13,6 +13,7 @@ import com.dama.wanderwave.post.request.CreatePostRequest;
 import com.dama.wanderwave.post.request.PostRequest;
 import com.dama.wanderwave.post.response.PostResponse;
 import com.dama.wanderwave.post.response.AccountInfoResponse;
+import com.dama.wanderwave.post.response.ShortPostResponse;
 import com.dama.wanderwave.user.User;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -97,7 +98,7 @@ public class PostControllerTest {
         @DisplayName("Get user posts should return OK (200)")
         void getUserPosts_Success() throws Exception {
             when(postService.getUserPosts(any(Pageable.class), any(String.class))).thenReturn(
-                    getUserPosts()
+                    getShortUserPosts()
             );
 
             mockMvc.perform(get(ApiUrls.GET_USER_POSTS.getUrl(), getMockUser().getNickname())
@@ -546,7 +547,7 @@ public class PostControllerTest {
         @DisplayName("Get personal flow should return success (200) when the flow is fetched successfully")
         void getPersonalFlow_Success() throws Exception {
 
-            when(postService.personalFlow(any(PageRequest.class))).thenReturn(getUserPosts());
+            when(postService.personalFlow(any(PageRequest.class))).thenReturn(getShortUserPosts());
 
             mockMvc.perform(get(ApiUrls.GET_PERSONAL_FLOW.getUrl())
                             .param("pageNumber", "0")
@@ -908,6 +909,29 @@ public class PostControllerTest {
         post1.setAccountInfo(accountInfo);
 
         var post2 = new PostResponse();
+        post2.setTitle("title2");
+        post2.setId("mockPost2");
+        post2.setAccountInfo(accountInfo);
+
+        return new PageImpl<>(List.of(
+                post1, post2
+        ));
+    }
+
+    private Page<ShortPostResponse> getShortUserPosts(){
+        User user = getMockUser();
+
+        AccountInfoResponse accountInfo = AccountInfoResponse
+                .builder()
+                .nickname(user.getNickname())
+                .build();
+
+        var post1 = new ShortPostResponse();
+        post1.setTitle("title1");
+        post1.setId("mockPost1");
+        post1.setAccountInfo(accountInfo);
+
+        var post2 = new ShortPostResponse();
         post2.setTitle("title2");
         post2.setId("mockPost2");
         post2.setAccountInfo(accountInfo);

@@ -408,7 +408,7 @@ public class PostService {
 
         List<PlaceResponse> places = fetchAndMapPlaces(p);
 
-        PlaceResponse first = places.getFirst();
+        PlaceResponse first = !places.isEmpty() ? places.getFirst() : null;
 
         return ShortPostResponse.builder()
                 .id(p.getId())

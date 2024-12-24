@@ -17,6 +17,7 @@ import com.dama.wanderwave.place.PlaceRepository;
 import com.dama.wanderwave.place.PlaceRequest;
 import com.dama.wanderwave.post.request.CreatePostRequest;
 import com.dama.wanderwave.post.response.PostResponse;
+import com.dama.wanderwave.post.response.ShortPostResponse;
 import com.dama.wanderwave.user.User;
 import com.dama.wanderwave.user.UserRepository;
 import com.dama.wanderwave.user.UserService;
@@ -90,7 +91,7 @@ public class PostServiceTest {
             when(userRepository.findByNickname(mockUser.getNickname())).thenReturn(Optional.of(mockUser));
             when(postRepository.findByUserWithHashtags(mockUser, getPageRequest())).thenReturn(new PageImpl<>(mockPosts));
 
-            Page<PostResponse> result = postService.getUserPosts(getPageRequest(), mockUser.getNickname());
+            Page<ShortPostResponse> result = postService.getUserPosts(getPageRequest(), mockUser.getNickname());
 
             assertNotNull(result);
             assertEquals(mockPosts.size(), result.getTotalElements());
@@ -108,7 +109,7 @@ public class PostServiceTest {
             when(userRepository.findByNickname(mockUser.getNickname())).thenReturn(Optional.of(mockUser));
             when(postRepository.findByUserWithHashtags(mockUser, getPageRequest())).thenReturn(new PageImpl<>(new ArrayList<>()));
 
-            Page<PostResponse> result = postService.getUserPosts(getPageRequest(), mockUser.getNickname());
+            Page<ShortPostResponse> result = postService.getUserPosts(getPageRequest(), mockUser.getNickname());
 
             assertNotNull(result);
             assertEquals(0, result.getTotalElements());
@@ -475,7 +476,7 @@ public class PostServiceTest {
             when(postRepository.findByUserWithHashtags(mockSubscription, getPageRequest()))
                     .thenReturn(new PageImpl<>(List.of(mockPost)));
 
-            Page<PostResponse> result = postService.personalFlow(getPageRequest());
+            Page<ShortPostResponse> result = postService.personalFlow(getPageRequest());
 
             assertNotNull(result);
             assertEquals(1, result.getTotalElements());
