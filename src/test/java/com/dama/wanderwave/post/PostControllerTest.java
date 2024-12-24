@@ -12,7 +12,7 @@ import com.dama.wanderwave.handler.user.save.SavedPostNotFound;
 import com.dama.wanderwave.post.request.CreatePostRequest;
 import com.dama.wanderwave.post.request.PostRequest;
 import com.dama.wanderwave.post.response.PostResponse;
-import com.dama.wanderwave.post.response.dto.AccountInfoResponse;
+import com.dama.wanderwave.post.response.AccountInfoResponse;
 import com.dama.wanderwave.user.User;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;

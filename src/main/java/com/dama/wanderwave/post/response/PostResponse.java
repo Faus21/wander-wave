@@ -1,9 +1,5 @@
 package com.dama.wanderwave.post.response;
 
-import com.dama.wanderwave.comment.Comment;
-import com.dama.wanderwave.post.response.dto.AccountInfoResponse;
-import com.dama.wanderwave.post.response.dto.CategoryResponse;
-import com.dama.wanderwave.post.response.dto.PlaceResponse;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -39,7 +35,7 @@ public class PostResponse {
 
     private Boolean isSaved;
 
-    private List<Comment> comments;
+    private List<CommentResponse> comments;
 
     private String geo;
 

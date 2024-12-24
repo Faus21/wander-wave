@@ -4,6 +4,7 @@ package com.dama.wanderwave.user;
 import com.dama.wanderwave.azure.AzureService;
 import com.dama.wanderwave.user.request.BlockRequest;
 import com.dama.wanderwave.user.request.SubscribeRequest;
+import com.dama.wanderwave.user.response.UserResponse;
 import com.dama.wanderwave.utils.ResponseRecord;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
@@ -42,7 +44,7 @@ public class UserController {
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
     public ResponseEntity<ResponseRecord> getUserProfile(@PathVariable String id) {
-        var user = userService.getUserById(id);
+        UserResponse user = userService.getUserById(id);
         return ResponseEntity.ok(new ResponseRecord(HttpStatus.OK.value(), user));
     }
 
@@ -56,7 +58,7 @@ public class UserController {
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
     public ResponseEntity<ResponseRecord> subscribe(@RequestBody SubscribeRequest request) {
-        var res = userService.updateSubscription(request, true);
+        String res = userService.updateSubscription(request, true);
         return ResponseEntity.ok(new ResponseRecord(HttpStatus.OK.value(), res));
     }
 
@@ -70,7 +72,7 @@ public class UserController {
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
     public ResponseEntity<ResponseRecord> unsubscribe(@RequestBody SubscribeRequest request) {
-        var res = userService.updateSubscription(request, false);
+        String res = userService.updateSubscription(request, false);
         return ResponseEntity.ok(new ResponseRecord(HttpStatus.OK.value(), res));
     }
 
@@ -87,7 +89,7 @@ public class UserController {
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
     public ResponseEntity<ResponseRecord> blockUser(@RequestBody BlockRequest request) {
-        var res = userService.updateBlacklist(request, true);
+        String res = userService.updateBlacklist(request, true);
         return ResponseEntity.ok(new ResponseRecord(HttpStatus.OK.value(), res));
     }
 
@@ -104,7 +106,7 @@ public class UserController {
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
     public ResponseEntity<ResponseRecord> unblockUser(@RequestBody BlockRequest request) {
-        var res = userService.updateBlacklist(request, false);
+        String res = userService.updateBlacklist(request, false);
         return ResponseEntity.ok(new ResponseRecord(HttpStatus.OK.value(), res));
     }
 
@@ -117,7 +119,7 @@ public class UserController {
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
     public ResponseEntity<ResponseRecord> banUser(@PathVariable String id) {
-        var res = userService.updateBan(id, true);
+        String res = userService.updateBan(id, true);
         return ResponseEntity.ok(new ResponseRecord(HttpStatus.OK.value(), res));
     }
 
@@ -130,7 +132,7 @@ public class UserController {
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
     public ResponseEntity<ResponseRecord> unbanUser(@PathVariable String id) {
-        var res = userService.updateBan(id, false);
+        String res = userService.updateBan(id, false);
         return ResponseEntity.ok(new ResponseRecord(HttpStatus.OK.value(), res));
     }
 
@@ -147,7 +149,7 @@ public class UserController {
             @RequestParam @Max(MAX_PAGE_SIZE) Integer page,
             @RequestParam int size) {
 
-        var subscriptionsPage = userService.getUserSubscriptions(userId, page, size);
+        List<UserResponse> subscriptionsPage = userService.getUserSubscriptions(userId, page, size);
         return ResponseEntity.ok(new ResponseRecord(HttpStatus.OK.value(), subscriptionsPage));
     }
 
@@ -164,7 +166,7 @@ public class UserController {
             @RequestParam @Max(MAX_PAGE_SIZE) Integer page,
             @RequestParam int size) {
 
-        var subscribersPage = userService.getUserSubscribers(userId, page, size);
+        List<UserResponse> subscribersPage = userService.getUserSubscribers(userId, page, size);
         return ResponseEntity.ok(new ResponseRecord(HttpStatus.OK.value(), subscribersPage));
     }
 
@@ -197,7 +199,7 @@ public class UserController {
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
     public ResponseEntity<ResponseRecord> getUserFriendshipRecommendations(@PathVariable String userId) {
-        var res = userService.getUserFriendshipRecommendations(userId);
+        List<UserResponse> res = userService.getUserFriendshipRecommendations(userId);
         return ResponseEntity.ok(new ResponseRecord(HttpStatus.OK.value(), res));
     }
 

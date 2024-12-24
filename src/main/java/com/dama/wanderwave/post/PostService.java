@@ -1,6 +1,9 @@
 package com.dama.wanderwave.post;
 
+import com.dama.wanderwave.categoryType.CategoryType;
 import com.dama.wanderwave.categoryType.CategoryTypeRepository;
+import com.dama.wanderwave.comment.Comment;
+import com.dama.wanderwave.comment.CommentRepository;
 import com.dama.wanderwave.handler.post.CategoryTypeNotFoundException;
 import com.dama.wanderwave.handler.post.PostNotFoundException;
 import com.dama.wanderwave.handler.user.UserNotFoundException;
@@ -15,10 +18,11 @@ import com.dama.wanderwave.place.PlaceRepository;
 import com.dama.wanderwave.post.request.CreatePostRequest;
 import com.dama.wanderwave.place.PlaceRequest;
 import com.dama.wanderwave.post.request.PostRequest;
+import com.dama.wanderwave.post.response.CommentResponse;
 import com.dama.wanderwave.post.response.PostResponse;
-import com.dama.wanderwave.post.response.dto.AccountInfoResponse;
-import com.dama.wanderwave.post.response.dto.CategoryResponse;
-import com.dama.wanderwave.post.response.dto.PlaceResponse;
+import com.dama.wanderwave.post.response.AccountInfoResponse;
+import com.dama.wanderwave.post.response.CategoryResponse;
+import com.dama.wanderwave.post.response.PlaceResponse;
 import com.dama.wanderwave.user.User;
 import com.dama.wanderwave.user.UserRepository;
 import com.dama.wanderwave.user.UserService;
@@ -59,6 +63,7 @@ public class PostService {
     private final SavedPostRepository savedPostRepository;
     private final PlaceRepository placeRepository;
     private final ModelMapper modelMapper;
+    private final CommentRepository commentRepository;
 
     public Page<PostResponse> getUserPosts(Pageable pageRequest, String nickname) {
         log.info("getUserPosts called with nickname: {}", nickname);
@@ -372,21 +377,12 @@ public class PostService {
         log.info("getPostResponseFromPost from post: {}", p.getId());
         User user = userService.getAuthenticatedUser();
 
-        AccountInfoResponse accountInfo = AccountInfoResponse.builder()
-                .nickname(p.getUser().getNickname())
-                .imageUrl(p.getUser().getImageUrl())
-                .build();
+        AccountInfoResponse accountInfo = buildAccountInfo(p.getUser());
+        CategoryResponse category = buildCategoryResponse(p.getCategoryType());
 
-        CategoryResponse category = CategoryResponse.builder()
-                .name(p.getCategoryType().getName())
-                .imageUrl(p.getCategoryType().getImageUrl())
-                .build();
+        List<PlaceResponse> places = fetchAndMapPlaces(p);
 
-        List<PlaceResponse> places = placeRepository.findAllByPost(p)
-                .stream()
-                .map(place -> modelMapper.map(place, PlaceResponse.class))
-                .toList();
-
+        List<CommentResponse> commentsContent = fetchAndMapComments(p);
 
         return PostResponse.builder()
                 .id(p.getId())
@@ -398,6 +394,7 @@ public class PostService {
                 .places(places)
                 .isLiked(isPostLikedByUser(p, user))
                 .isSaved(isPostSavedByUser(p, user))
+                .comments(commentsContent)
                 .likes(p.getLikesCount())
                 .cons(p.getCons())
                 .pros(p.getPros())
@@ -405,6 +402,47 @@ public class PostService {
                 .build();
     }
 
+    private AccountInfoResponse buildAccountInfo(User user) {
+        return AccountInfoResponse.builder()
+                .nickname(user.getNickname())
+                .imageUrl(user.getImageUrl())
+                .build();
+    }
+
+    private CategoryResponse buildCategoryResponse(CategoryType categoryType) {
+        return CategoryResponse.builder()
+                .name(categoryType.getName())
+                .imageUrl(categoryType.getImageUrl())
+                .build();
+    }
+
+    private List<PlaceResponse> fetchAndMapPlaces(Post p) {
+        return Optional.ofNullable(placeRepository.findAllByPost(p))
+                .orElse(Collections.emptyList())
+                .stream()
+                .map(place -> modelMapper.map(place, PlaceResponse.class))
+                .toList();
+    }
+
+    private List<CommentResponse> fetchAndMapComments(Post p) {
+        Page<Comment> commentsPage = Optional.ofNullable(commentRepository.findAllByPost(p, PageRequest.of(0, 10)))
+                .orElse(Page.empty());
+
+        return Optional.of(commentsPage.getContent())
+                .orElse(Collections.emptyList())
+                .stream()
+                .map(this::mapCommentToCommentResponse)
+                .toList();
+    }
+
+    private CommentResponse mapCommentToCommentResponse(Comment comment) {
+        AccountInfoResponse accountInfo = buildAccountInfo(comment.getUser());
+        return CommentResponse.builder()
+                .accountInfo(accountInfo)
+                .text(comment.getContent())
+                .creationDate(comment.getCreatedAt())
+                .build();
+    }
     private Page<PostResponse> getPostResponseListFromPostList(Pageable pageRequest, Page<Post> posts) {
         log.info("getPostResponseListFromPostList called for {} posts", posts.getSize());
         List<PostResponse> response = new ArrayList<>();

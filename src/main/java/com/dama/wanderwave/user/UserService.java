@@ -242,6 +242,7 @@ public class UserService {
             mutableResult.addAll(allUsersToUserResponse(getRandomUsersFromDatabase(size)));
         }
 
+        mutableResult.removeIf(u -> u.getId().equals(userId));
         log.info("Returning final list of friendship recommendations with size: {}", mutableResult.size());
         return mutableResult;
     }

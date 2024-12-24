@@ -2,6 +2,7 @@ package com.dama.wanderwave.post;
 
 import com.dama.wanderwave.categoryType.CategoryType;
 import com.dama.wanderwave.categoryType.CategoryTypeRepository;
+import com.dama.wanderwave.comment.CommentRepository;
 import com.dama.wanderwave.handler.post.CategoryTypeNotFoundException;
 import com.dama.wanderwave.handler.post.PostNotFoundException;
 import com.dama.wanderwave.handler.user.UserNotFoundException;
@@ -56,6 +57,8 @@ public class PostServiceTest {
     private UserRepository userRepository;
     @Mock
     private UserService userService;
+    @Mock
+    private CommentRepository commentRepository;
     @Mock
     private HashTagRepository  hashTagRepository;
     @Mock

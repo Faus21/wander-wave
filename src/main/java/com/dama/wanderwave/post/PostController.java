@@ -271,8 +271,8 @@ public class PostController {
     public ResponseEntity<ResponseRecord> createComment(
             @RequestBody CreateCommentRequest createCommentRequest
     ) {
-        Comment comment = commentService.createComment(createCommentRequest);
-        return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), comment));
+        String result = commentService.createComment(createCommentRequest);
+        return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), result));
     }
 
     @PutMapping("/comments/{commentId}")

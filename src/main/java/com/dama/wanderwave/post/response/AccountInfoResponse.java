@@ -1,4 +1,4 @@
-package com.dama.wanderwave.post.response.dto;
+package com.dama.wanderwave.post.response;
 
 import lombok.Builder;
 import lombok.Data;

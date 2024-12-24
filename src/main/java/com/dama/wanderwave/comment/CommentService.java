@@ -27,7 +27,7 @@ public class CommentService {
     private final UserService userService;
 
     @Transactional
-    public Comment createComment(CreateCommentRequest createCommentRequest) {
+    public String createComment(CreateCommentRequest createCommentRequest) {
         log.info("Creating a new comment for postId: {}", createCommentRequest.getPostId());
 
         Post post = findPostById(createCommentRequest.getPostId());
@@ -47,7 +47,7 @@ public class CommentService {
         Comment savedComment = commentRepository.save(comment);
         log.info("Comment created successfully with id: {}", savedComment.getId());
 
-        return savedComment;
+        return "Comment created successfully";
     }
 
     public List<Comment> getAllCommentsForPost(Pageable pageable, String postId) {
