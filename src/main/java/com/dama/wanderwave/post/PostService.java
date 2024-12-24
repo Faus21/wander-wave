@@ -18,11 +18,7 @@ import com.dama.wanderwave.place.PlaceRepository;
 import com.dama.wanderwave.post.request.CreatePostRequest;
 import com.dama.wanderwave.place.PlaceRequest;
 import com.dama.wanderwave.post.request.PostRequest;
-import com.dama.wanderwave.post.response.CommentResponse;
-import com.dama.wanderwave.post.response.PostResponse;
-import com.dama.wanderwave.post.response.AccountInfoResponse;
-import com.dama.wanderwave.post.response.CategoryResponse;
-import com.dama.wanderwave.post.response.PlaceResponse;
+import com.dama.wanderwave.post.response.*;
 import com.dama.wanderwave.user.User;
 import com.dama.wanderwave.user.UserRepository;
 import com.dama.wanderwave.user.UserService;
@@ -45,6 +41,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -65,13 +62,13 @@ public class PostService {
     private final ModelMapper modelMapper;
     private final CommentRepository commentRepository;
 
-    public Page<PostResponse> getUserPosts(Pageable pageRequest, String nickname) {
+    public Page<ShortPostResponse> getUserPosts(Pageable pageRequest, String nickname) {
         log.info("getUserPosts called with nickname: {}", nickname);
         User user = userRepository.findByNickname(nickname)
                 .orElseThrow(() -> new UserNotFoundException(nickname));
 
         Page<Post> result = postRepository.findByUserWithHashtags(user, pageRequest);
-        Page<PostResponse> postResponses = getPostResponseListFromPostList(pageRequest, result);
+        Page<ShortPostResponse> postResponses = getShortPostResponseListFromPostList(pageRequest, result);
 
         log.info("getUserPosts returned {} posts for nickname: {}", postResponses.getSize(), nickname);
         return postResponses;
@@ -235,13 +232,13 @@ public class PostService {
         return "Post is unsaved successfully!";
     }
 
-    public Page<PostResponse> personalFlow(Pageable pageRequest) {
+    public Page<ShortPostResponse> personalFlow(Pageable pageRequest) {
         log.info("personalFlow called");
         User user = userService.getAuthenticatedUser();
 
         List<String> subscriptions = userRepository.findByIdAndFetchSubscriptions(user.getId());
 
-        List<PostResponse> response = new ArrayList<>();
+        List<ShortPostResponse> response = new ArrayList<>();
         for (String us : subscriptions) {
             User subscription = userRepository.findById(us)
                     .orElseGet(() -> {
@@ -254,10 +251,10 @@ public class PostService {
             }
 
             Page<Post> posts = postRepository.findByUserWithHashtags(subscription, pageRequest);
-            response.addAll(getPostResponseListFromPostList(pageRequest, posts).getContent());
+            response.addAll(getShortPostResponseListFromPostList(pageRequest, posts).getContent());
         }
 
-        response = response.stream().sorted(Comparator.comparing(PostResponse::getCreationDate)).toList();
+        response = response.stream().sorted(Comparator.comparing(ShortPostResponse::getCreationDate)).toList();
         log.info("personalFlow returned {} posts", response.size());
         return new PageImpl<>(response, pageRequest, response.size());
     }
@@ -402,6 +399,43 @@ public class PostService {
                 .build();
     }
 
+    private ShortPostResponse getShortPostResponseFromPost(Post p) {
+        log.info("getShortPostResponseFromPost from post: {}", p.getId());
+        User user = userService.getAuthenticatedUser();
+
+        AccountInfoResponse accountInfo = buildAccountInfo(p.getUser());
+        CategoryResponse category = buildCategoryResponse(p.getCategoryType());
+
+        List<PlaceResponse> places = fetchAndMapPlaces(p);
+
+        PlaceResponse first = places.getFirst();
+
+        return ShortPostResponse.builder()
+                .id(p.getId())
+                .creationDate(p.getCreatedAt())
+                .category(category)
+                .title(p.getTitle())
+                .place(first)
+                .rating(calculateRating(places))
+                .accountInfo(accountInfo)
+                .likes(p.getLikesCount())
+                .isLiked(isPostLikedByUser(p, user))
+                .isSaved(isPostSavedByUser(p, user))
+                .build();
+    }
+
+    private Double calculateRating(List<PlaceResponse> places) {
+        if (places == null || places.isEmpty()) {
+            return 0.0;
+        }
+
+        double totalRating = places.stream()
+                .mapToDouble(PlaceResponse::getRating)
+                .sum();
+
+        return totalRating / places.size();
+    }
+
     private AccountInfoResponse buildAccountInfo(User user) {
         return AccountInfoResponse.builder()
                 .nickname(user.getNickname())
@@ -443,15 +477,25 @@ public class PostService {
                 .creationDate(comment.getCreatedAt())
                 .build();
     }
-    private Page<PostResponse> getPostResponseListFromPostList(Pageable pageRequest, Page<Post> posts) {
-        log.info("getPostResponseListFromPostList called for {} posts", posts.getSize());
-        List<PostResponse> response = new ArrayList<>();
 
-        posts.forEach(post -> response.add(getPostResponseFromPost(post)));
+    private <T> Page<T> getResponseListFromPostList(Pageable pageRequest, Page<Post> posts, Function<Post, T> mapper) {
+        log.info("getResponseListFromPostList called for {} posts", posts.getSize());
+        List<T> response = posts.getContent().stream()
+                .map(mapper)
+                .collect(Collectors.toList());
 
-        log.info("getPostResponseListFromPostList returned {} responses", response.size());
-        return new PageImpl<>(response, pageRequest, response.size());
+        log.info("getResponseListFromPostList returned {} responses", response.size());
+        return new PageImpl<>(response, pageRequest, posts.getTotalElements());
     }
+
+    private Page<PostResponse> getPostResponseListFromPostList(Pageable pageRequest, Page<Post> posts) {
+        return getResponseListFromPostList(pageRequest, posts, this::getPostResponseFromPost);
+    }
+
+    private Page<ShortPostResponse> getShortPostResponseListFromPostList(Pageable pageRequest, Page<Post> posts) {
+        return getResponseListFromPostList(pageRequest, posts, this::getShortPostResponseFromPost);
+    }
+
 
     private Page<Post> getRandomPopularPosts() {
         LocalDateTime lastWeek = LocalDateTime.now().minusWeeks(1);

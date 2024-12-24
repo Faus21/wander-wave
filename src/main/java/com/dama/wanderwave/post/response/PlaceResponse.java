@@ -13,7 +13,7 @@ public class PlaceResponse {
 
     private String description;
 
-    private double rating;
+    private Double rating;
 
     private BigDecimal longitude;
 

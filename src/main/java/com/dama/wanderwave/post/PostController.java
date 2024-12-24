@@ -6,6 +6,7 @@ import com.dama.wanderwave.post.request.CreateCommentRequest;
 import com.dama.wanderwave.post.request.CreatePostRequest;
 import com.dama.wanderwave.post.request.PostRequest;
 import com.dama.wanderwave.post.response.PostResponse;
+import com.dama.wanderwave.post.response.ShortPostResponse;
 import com.dama.wanderwave.utils.ResponseRecord;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -49,7 +50,7 @@ public class PostController {
                                                        @RequestParam @Max(MAX_PAGE_SIZE) Integer pageSize,
                                                        @PathVariable String nickname) {
         Pageable page = PageRequest.of(pageNumber, pageSize);
-        Page<PostResponse> posts = postService.getUserPosts(page, nickname);
+        Page<ShortPostResponse> posts = postService.getUserPosts(page, nickname);
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), posts));
     }
 
@@ -181,7 +182,7 @@ public class PostController {
     public ResponseEntity<ResponseRecord> getPersonalFlow(@RequestParam int pageNumber,
                                                           @RequestParam @Max(MAX_PAGE_SIZE) Integer pageSize) {
         Pageable page = PageRequest.of(pageNumber, pageSize);
-        Page<PostResponse> response = postService.personalFlow(page);
+        Page<ShortPostResponse> response = postService.personalFlow(page);
 
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), response));
     }
