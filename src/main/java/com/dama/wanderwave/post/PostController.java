@@ -197,7 +197,7 @@ public class PostController {
     public ResponseEntity<ResponseRecord> getRecommendationsFlow(@RequestParam int pageNumber,
                                                                  @RequestParam @Max(MAX_PAGE_SIZE) Integer pageSize) {
         Pageable page = PageRequest.of(pageNumber, pageSize);
-        Page<PostResponse> response = postService.recommendationFlow(page);
+        Page<ShortPostResponse> response = postService.recommendationFlow(page);
 
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), response));
     }
@@ -226,7 +226,7 @@ public class PostController {
     public ResponseEntity<ResponseRecord> getUserSaved(@RequestParam int pageNumber,
                                                        @RequestParam @Max(MAX_PAGE_SIZE) Integer pageSize) {
         Pageable page = PageRequest.of(pageNumber, pageSize);
-        Page<PostResponse> response = postService.getSavedPostsResponse(page);
+        Page<ShortPostResponse> response = postService.getSavedPostsResponse(page);
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), response));
     }
 
@@ -242,7 +242,7 @@ public class PostController {
                                                              @RequestParam @Max(MAX_PAGE_SIZE) Integer pageSize,
                                                              @RequestParam() String category) {
         Pageable page = PageRequest.of(pageNumber, pageSize);
-        Page<PostResponse> response = postService.getPostsByCategory(page, category);
+        Page<ShortPostResponse> response = postService.getPostsByCategory(page, category);
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), response));
     }
 

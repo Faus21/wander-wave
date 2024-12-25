@@ -25,6 +25,8 @@ public class ShortPostResponse {
 
     private Double rating;
 
+    private Integer commentsCount;
+
     private AccountInfoResponse accountInfo;
 
     private Integer likes;

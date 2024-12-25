@@ -259,7 +259,7 @@ public class PostService {
         return new PageImpl<>(response, pageRequest, response.size());
     }
 
-    public Page<PostResponse> recommendationFlow(Pageable pageRequest) {
+    public Page<ShortPostResponse> recommendationFlow(Pageable pageRequest) {
         log.info("recommendationFlow called");
         User user = userService.getAuthenticatedUser();
 
@@ -287,13 +287,13 @@ public class PostService {
 
         Collections.shuffle(allPosts);
 
-        List<PostResponse> response = new ArrayList<>(
-                getPostResponseListFromPostList(
+        List<ShortPostResponse> response = new ArrayList<>(
+                getShortPostResponseListFromPostList(
                         pageRequest, new PageImpl<>(allPosts, pageRequest, allPosts.size())
                 ).getContent()
         );
 
-        Page<PostResponse> finalPage = new PageImpl<>(response, pageRequest, response.size());
+        Page<ShortPostResponse> finalPage = new PageImpl<>(response, pageRequest, response.size());
 
         log.info("recommendationFlow returned {} posts", finalPage.getTotalElements());
         return finalPage;
@@ -309,21 +309,21 @@ public class PostService {
     }
 
 
-    public Page<PostResponse> getSavedPostsResponse(Pageable pageRequest) {
+    public Page<ShortPostResponse> getSavedPostsResponse(Pageable pageRequest) {
         log.info("getSavedPostsResponse called");
         User user = userService.getAuthenticatedUser();
 
-        Page<PostResponse> response = getPostResponseListFromPostList(pageRequest, getSavedPosts(pageRequest, user));
+        Page<ShortPostResponse> response = getShortPostResponseListFromPostList(pageRequest, getSavedPosts(pageRequest, user));
         log.info("getSavedPostsResponse returned {} posts", response.getSize());
         return response;
     }
 
 
-    public Page<PostResponse> getPostsByCategory(Pageable pageRequest, String category) {
+    public Page<ShortPostResponse> getPostsByCategory(Pageable pageRequest, String category) {
         log.info("getPostsByCategory called with category: {}", category);
         Page<Post> posts = postRepository.findByCategory(category, pageRequest);
 
-        Page<PostResponse> response = getPostResponseListFromPostList(pageRequest, posts);
+        Page<ShortPostResponse> response = getShortPostResponseListFromPostList(pageRequest, posts);
         log.info("getPostsByCategory returned {} posts for category: {}", response.getSize(), category);
         return response;
     }
@@ -405,6 +405,7 @@ public class PostService {
 
         AccountInfoResponse accountInfo = buildAccountInfo(p.getUser());
         CategoryResponse category = buildCategoryResponse(p.getCategoryType());
+        Integer commentsCount = fetchAndMapComments(p).size();
 
         List<PlaceResponse> places = fetchAndMapPlaces(p);
 
@@ -419,6 +420,7 @@ public class PostService {
                 .rating(calculateRating(places))
                 .accountInfo(accountInfo)
                 .likes(p.getLikesCount())
+                .commentsCount(commentsCount)
                 .isLiked(isPostLikedByUser(p, user))
                 .isSaved(isPostSavedByUser(p, user))
                 .build();

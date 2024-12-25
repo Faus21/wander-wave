@@ -501,7 +501,7 @@ public class PostServiceTest {
                     .thenReturn(new PageImpl<>(List.of(mockPost1)));
             when(postRepository.findPopularPosts(any(Pageable.class), any(LocalDateTime.class))).thenReturn(new PageImpl<>(List.of(mockPost1)));
 
-            Page<PostResponse> result = postService.recommendationFlow(getPageRequest());
+            Page<ShortPostResponse> result = postService.recommendationFlow(getPageRequest());
 
             assertNotNull(result);
             assertEquals(2, result.getTotalElements());
@@ -541,7 +541,7 @@ public class PostServiceTest {
             when(postRepository.findByUserSaved(mockUser, getPageRequest()))
                     .thenReturn(new PageImpl<>(posts, getPageRequest(), posts.size()));
 
-            Page<PostResponse> result = postService.getSavedPostsResponse(getPageRequest());
+            Page<ShortPostResponse> result = postService.getSavedPostsResponse(getPageRequest());
 
             assertNotNull(result);
             assertEquals(2, result.getTotalElements());
@@ -559,7 +559,7 @@ public class PostServiceTest {
             when(postRepository.findByCategory(any(String.class), any(Pageable.class)))
                     .thenReturn(new PageImpl<>(getUserPosts()));
 
-            Page<PostResponse> result = postService.getPostsByCategory(getPageRequest(), "category");
+            Page<ShortPostResponse> result = postService.getPostsByCategory(getPageRequest(), "category");
             assertNotNull(result);
             assertEquals(2, result.getTotalElements());
 

@@ -600,7 +600,7 @@ public class PostControllerTest {
         @DisplayName("Get recommendations flow should return success (200) when the flow is fetched successfully")
         void getRecommendationsFlow_Success() throws Exception {
 
-            when(postService.recommendationFlow(any(Pageable.class))).thenReturn(getUserPosts());
+            when(postService.recommendationFlow(any(Pageable.class))).thenReturn(getShortUserPosts());
 
             mockMvc.perform(get(ApiUrls.GET_RECOMMENDATIONS_FLOW.getUrl())
                             .param("pageNumber", "0")
@@ -674,7 +674,7 @@ public class PostControllerTest {
         @DisplayName("Get user saved posts should return success (200) when saved posts are fetched successfully")
         void getUserSaved_Success() throws Exception {
 
-            when(postService.getSavedPostsResponse(any(Pageable.class))).thenReturn(getUserPosts());
+            when(postService.getSavedPostsResponse(any(Pageable.class))).thenReturn(getShortUserPosts());
 
             mockMvc.perform(get(ApiUrls.GET_USER_SAVED.getUrl())
                             .param("pageNumber", "0")
@@ -711,7 +711,7 @@ public class PostControllerTest {
         @Test
         @DisplayName("Get posts by category should return success (200) when posts are retrieved successfully")
         void getPostsByCategory_Success() throws Exception {
-            when(postService.getPostsByCategory(any(Pageable.class), any(String.class))).thenReturn(getUserPosts());
+            when(postService.getPostsByCategory(any(Pageable.class), any(String.class))).thenReturn(getShortUserPosts());
 
             mockMvc.perform(get(ApiUrls.GET_POSTS_BY_CATEGORY.getUrl())
                             .param("pageNumber", "0")
