@@ -1,5 +1,7 @@
 package com.dama.wanderwave.place;
 
+import com.dama.wanderwave.place.request.CoordsRequest;
+import com.dama.wanderwave.place.request.PlaceRequest;
 import com.dama.wanderwave.post.Post;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Max;
@@ -57,4 +59,18 @@ public class Place {
 			nullable = false,
 			foreignKey = @ForeignKey(name = "fk_place_post"))
 	private Post post;
+
+	public static Place fromPlaceRequest(PlaceRequest request, Post post) {
+		CoordsRequest coords = request.getCoords();
+
+		return Place.builder()
+				.displayName(request.getDisplayName())
+				.locationName(request.getLocationName())
+				.description(request.getDescription())
+				.longitude(BigDecimal.valueOf(coords.getLongitude()))
+				.latitude(BigDecimal.valueOf(coords.getLatitude()))
+				.rating(request.getRating())
+				.post(post)
+				.build();
+	}
 }

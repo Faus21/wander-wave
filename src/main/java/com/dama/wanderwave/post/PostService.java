@@ -1,5 +1,6 @@
 package com.dama.wanderwave.post;
 
+import com.dama.wanderwave.azure.AzureService;
 import com.dama.wanderwave.categoryType.CategoryType;
 import com.dama.wanderwave.categoryType.CategoryTypeRepository;
 import com.dama.wanderwave.comment.Comment;
@@ -16,7 +17,6 @@ import com.dama.wanderwave.hashtag.HashTag;
 import com.dama.wanderwave.hashtag.HashTagRepository;
 import com.dama.wanderwave.place.Place;
 import com.dama.wanderwave.place.PlaceRepository;
-import com.dama.wanderwave.place.request.CoordsRequest;
 import com.dama.wanderwave.place.request.PlaceRequest;
 import com.dama.wanderwave.post.request.PostRequest;
 import com.dama.wanderwave.post.response.*;
@@ -42,7 +42,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.math.BigDecimal;
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Function;
@@ -65,6 +65,7 @@ public class PostService {
     private final PlaceRepository placeRepository;
     private final ModelMapper modelMapper;
     private final CommentRepository commentRepository;
+    private final AzureService azureService;
 
     public Page<ShortPostResponse> getUserPosts(Pageable pageRequest, String nickname) {
         log.info("getUserPosts called with nickname: {}", nickname);
@@ -91,48 +92,100 @@ public class PostService {
             throw new UnauthorizedActionException("User not authorized to perform this action");
         }
 
-        String categoryName = request.getCategory();
+        updatePostFields(request, post);
 
-        CategoryType categoryType = categoryTypeRepository.findByName(categoryName)
-                .orElseThrow(() -> new CategoryTypeNotFoundException("Category type not found with name: " + categoryName));
-
-        post.setCategoryType(categoryType);
-        post.setTitle(request.getTitle());
-        post.setDescription(request.getText());
-        post.setIsDisabledComments(request.getIsDisabledComments());
-
-        Set<HashTag> hashtags = request.getHashtags().stream()
-                .map(hashtag -> hashTagRepository.findByTitle(hashtag)
-                        .orElseGet(() -> {
-                            HashTag newHashtag = HashTag.builder()
-                                    .title(hashtag)
-                                    .posts(new HashSet<>())
-                                    .build();
-                            return hashTagRepository.save(newHashtag);
-                        }))
-                .peek(hashtag -> hashtag.getPosts().add(post))
-                .collect(Collectors.toSet());
-
-        post.setHashtags(hashtags);
-
-        post.setImages(request.getImages().stream()
-                .map(MultipartFile::getOriginalFilename)
-                .toArray(String[]::new));
-
-        List<Place> places = request.getPlaces().stream()
-                .map(placeRequest -> mapToPlace(placeRequest, post))
-                .collect(Collectors.toList());
-
-        Route route = Route.fromRouteRequest(request.getRoute());
-
-        post.setRoute(route);
-        post.setPros(request.getPros().toArray(new String[0]));
-        post.setCons(request.getCons().toArray(new String[0]));
-
-        placeRepository.saveAll(places);
         postRepository.save(post);
 
         return "Post modified successfully";
+    }
+
+    private void updatePostFields(PostRequest request, Post post) {
+        if (request.getCategory() != null) {
+            CategoryType categoryType = getCategoryType(request.getCategory());
+            post.setCategoryType(categoryType);
+        }
+
+        if (request.getTitle() != null) {
+            post.setTitle(request.getTitle());
+        }
+
+        if (request.getText() != null) {
+            post.setDescription(request.getText());
+        }
+
+        if (request.getIsDisabledComments() != null) {
+            post.setIsDisabledComments(request.getIsDisabledComments());
+        }
+
+        if (request.getHashtags() != null && !request.getHashtags().isEmpty()) {
+            Set<HashTag> hashtagSet = processHashtags(request.getHashtags(), post);
+            post.setHashtags(hashtagSet);
+        }
+
+        if (request.getImages() != null && !request.getImages().isEmpty()) {
+            long timestamp = System.currentTimeMillis();
+            String[] uploadedImages = uploadImages(request.getImages(), timestamp);
+            post.setImages(uploadedImages);
+        }
+
+        if (request.getPlaces() != null && !request.getPlaces().isEmpty()) {
+            List<Place> placeList = processPlaces(request.getPlaces(), post);
+            placeRepository.saveAll(placeList);
+        }
+
+        if (request.getRoute() != null) {
+            post.setRoute(Route.fromRouteRequest(request.getRoute()));
+        }
+
+        if (request.getPros() != null && !request.getPros().isEmpty()) {
+            post.setPros(request.getPros().toArray(new String[0]));
+        }
+
+        if (request.getCons() != null && !request.getCons().isEmpty()) {
+            post.setCons(request.getCons().toArray(new String[0]));
+        }
+    }
+
+    private CategoryType getCategoryType(String categoryName) {
+        return categoryTypeRepository.findByName(categoryName)
+                .orElseThrow(() -> new CategoryTypeNotFoundException("Category type not found with name: " + categoryName));
+    }
+
+    private Set<HashTag> processHashtags(Set<String> hashtags, Post post) {
+        return Optional.ofNullable(hashtags)
+                .filter(h -> !h.isEmpty())
+                .orElse(Collections.emptySet())
+                .stream()
+                .map(h -> hashTagRepository.findByTitle(h)
+                        .orElseGet(() -> {
+                            HashTag newHashtag = HashTag.builder()
+                                    .title(h)
+                                    .posts(new HashSet<>())
+                                    .build();
+                            hashTagRepository.save(newHashtag);
+                            return newHashtag;
+                        }))
+                .peek(h -> h.getPosts().add(post))
+                .collect(Collectors.toSet());
+    }
+
+    private String[] uploadImages(List<MultipartFile> images, long timestamp) {
+        return Optional.ofNullable(images)
+                .filter(i -> !i.isEmpty())
+                .orElse(Collections.emptyList())
+                .parallelStream()
+                .map(image -> uploadImage(image, timestamp))
+                .filter(Objects::nonNull)
+                .toArray(String[]::new);
+    }
+
+    private List<Place> processPlaces(List<PlaceRequest> places, Post post) {
+        return Optional.ofNullable(places)
+                .filter(p -> !p.isEmpty())
+                .orElse(Collections.emptyList())
+                .stream()
+                .map(placeRequest -> Place.fromPlaceRequest(placeRequest, post))
+                .collect(Collectors.toList());
     }
 
     @Transactional
@@ -141,10 +194,15 @@ public class PostService {
         User user = userService.getAuthenticatedUser();
 
         Post post = mapToPost(createPostRequest, user);
+
+        long timestamp = System.currentTimeMillis();
+        String[] uploadedImages = uploadImages(createPostRequest.getImages(), timestamp);
+        post.setImages(uploadedImages);
+
         postRepository.save(post);
 
         createPostRequest.getPlaces().stream()
-                .map(placeRequest -> mapToPlace(placeRequest, post))
+                .map(placeRequest -> Place.fromPlaceRequest(placeRequest, post))
                 .forEach(placeRepository::save);
 
         log.info("createPost successfully created post with title: {}", createPostRequest.getTitle());
@@ -551,32 +609,37 @@ public class PostService {
         return savedPostRepository.findByUserAndPost(user, post).isPresent();
     }
 
-    private Post mapToPost(PostRequest createPostRequest, User user) {
+    private Post mapToPost(PostRequest postRequest, User author) {
+        Route route = Route.fromRouteRequest(postRequest.getRoute());
+
         return Post.builder()
-                .title(createPostRequest.getTitle())
-                .description(createPostRequest.getText())
-                .user(user)
+                .title(postRequest.getTitle())
+                .description(postRequest.getText())
+                .user(author)
+                .route(route)
+                .isDisabledComments(postRequest.getIsDisabledComments())
                 .createdAt(LocalDateTime.now())
-                .pros(createPostRequest.getPros().toArray(new String[0]))
-                .cons(createPostRequest.getCons().toArray(new String[0]))
-                .hashtags(createHashTags(createPostRequest.getHashtags()))
-                .categoryType(categoryTypeRepository.findByName(createPostRequest.getCategory())
-                        .orElseThrow(() -> new CategoryTypeNotFoundException("CategoryType is not found!")))
+                .pros(postRequest.getPros().toArray(new String[0]))
+                .cons(postRequest.getCons().toArray(new String[0]))
+                .hashtags(createHashTags(postRequest.getHashtags()))
+                .categoryType(getCategoryType(postRequest.getCategory()))
                 .build();
     }
 
-    private Place mapToPlace(PlaceRequest placeRequest, Post post) {
-        CoordsRequest coords = placeRequest.getCoords();
-
-        return Place.builder()
-                .displayName(placeRequest.getDisplayName())
-                .locationName(placeRequest.getLocationName())
-                .description(placeRequest.getDescription())
-                .longitude(BigDecimal.valueOf(coords.getLongitude()))
-                .latitude(BigDecimal.valueOf(coords.getLatitude()))
-                .rating(placeRequest.getRating())
-                .post(post)
-                .build();
+    private String uploadImage(MultipartFile file, long timestamp) {
+        try {
+            String fileName = timestamp + "-" + file.getOriginalFilename();
+            return azureService.uploadAvatar(
+                    "posts",
+                    fileName,
+                    file.getBytes(),
+                    file.getContentType(),
+                    file.getSize()
+            );
+        } catch (IOException e) {
+            log.error("Failed to upload file: {}", file.getOriginalFilename(), e);
+            return null;
+        }
     }
 }
 

@@ -8,7 +8,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 
@@ -18,7 +17,6 @@ import java.util.Set;
 @AllArgsConstructor
 public class PostRequest {
     private String id;
-    private LocalDateTime creationDate;
     private String title;
     private String text;
     @Builder.Default
