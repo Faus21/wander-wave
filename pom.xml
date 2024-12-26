@@ -206,9 +206,9 @@
                 <artifactId>flyway-maven-plugin</artifactId>
                 <version>9.16.3</version>
                 <configuration>
-                    <url>jdbc:postgresql://dpg-ct2sdebqf0us73a1hh70-a.frankfurt-postgres.render.com:5432/wanderwave_db?sslmode=require</url>
+                    <url>jdbc:postgresql://dpg-ctmligpopnds73fgauu0-a.frankfurt-postgres.render.com/wanderwave_db_k7a2?sslmode=require</url>
                     <user>dama_team</user>
-                    <password>dama_team_db</password>
+                    <password>v0JFZ5YYLp8bqNO5W6TtUThuOJM1sBNB</password>
                 </configuration>
             </plugin>
             <plugin>

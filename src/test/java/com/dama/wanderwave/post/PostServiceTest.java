@@ -14,8 +14,8 @@ import com.dama.wanderwave.hashtag.HashTag;
 import com.dama.wanderwave.hashtag.HashTagRepository;
 import com.dama.wanderwave.place.Place;
 import com.dama.wanderwave.place.PlaceRepository;
-import com.dama.wanderwave.place.PlaceRequest;
-import com.dama.wanderwave.post.request.CreatePostRequest;
+import com.dama.wanderwave.place.request.PlaceRequest;
+import com.dama.wanderwave.post.request.PostRequest;
 import com.dama.wanderwave.post.response.PostResponse;
 import com.dama.wanderwave.post.response.ShortPostResponse;
 import com.dama.wanderwave.user.User;
@@ -491,13 +491,12 @@ public class PostServiceTest {
         void recommendationFlow_Success() {
             User mockUser = getMockUser();
             Post mockPost1 = getUserPosts().getFirst();
-            HashTag mockHashTag = getMockHashtag();
             when(userService.getAuthenticatedUser()).thenReturn(mockUser);
 
             when(postRepository.findByUserWithLikes(any(User.class), any(Pageable.class))).thenReturn(new PageImpl<>(List.of(mockPost1)));
             when(postRepository.findByUserSaved(any(), any(Pageable.class))).thenReturn(new PageImpl<>(new ArrayList<>()));
 
-            when(postRepository.findByHashtag(mockHashTag.getId(), getPageRequest()))
+            when(postRepository.findByHashtagsContaining(any(HashTag.class), any(Pageable.class)))
                     .thenReturn(new PageImpl<>(List.of(mockPost1)));
             when(postRepository.findPopularPosts(any(Pageable.class), any(LocalDateTime.class))).thenReturn(new PageImpl<>(List.of(mockPost1)));
 
@@ -505,7 +504,7 @@ public class PostServiceTest {
 
             assertNotNull(result);
             assertEquals(2, result.getTotalElements());
-            verify(postRepository).findByHashtag(anyString(), any(Pageable.class));
+            verify(postRepository).findByHashtagsContaining(any(HashTag.class), any(Pageable.class));
         }
     }
 
@@ -520,7 +519,7 @@ public class PostServiceTest {
             when(postRepository.findByUserWithLikes(mockUser, getPageRequest()))
                     .thenReturn(new PageImpl<>(posts, getPageRequest(), posts.size()));
 
-            Page<PostResponse> result = postService.getLikedPostsResponse(getPageRequest());
+            Page<ShortPostResponse> result = postService.getLikedPostsResponse(getPageRequest());
 
             assertNotNull(result);
             assertEquals(2, result.getTotalElements());
@@ -606,14 +605,14 @@ public class PostServiceTest {
         void modifyPost_Success() {
             var postId = "12345";
             var mockPost = getMockPost(postId);
-            var request = getMockPostCreateRequest();
+            var request = getMockPostModifyRequest();
 
             when(postRepository.findById(postId)).thenReturn(Optional.of(mockPost));
-            String result = postService.modifyPost(postId, request);
+            String result = postService.modifyPost(request);
 
             assertEquals("Post modified successfully", result);
             assertEquals(request.getTitle(), mockPost.getTitle());
-            assertEquals(request.getDescription(), mockPost.getDescription());
+            assertEquals(request.getText(), mockPost.getDescription());
             assertArrayEquals(request.getPros().toArray(new String[0]), mockPost.getPros());
             assertArrayEquals(request.getCons().toArray(new String[0]), mockPost.getCons());
 
@@ -625,11 +624,11 @@ public class PostServiceTest {
         @DisplayName("Modify post should throw exception when post not found")
         void modifyPost_PostNotFound() {
             var postId = "12345";
-            var request = getMockPostCreateRequest();
+            var request = getMockPostModifyRequest();
 
             when(postRepository.findById(postId)).thenReturn(Optional.empty());
 
-            assertThrows(PostNotFoundException.class, () -> postService.modifyPost(postId, request));
+            assertThrows(PostNotFoundException.class, () -> postService.modifyPost(request));
 
             verify(postRepository).findById(postId);
             verify(postRepository, never()).save(any(Post.class));
@@ -643,6 +642,8 @@ public class PostServiceTest {
         mockPost.setTitle("mock");
         mockPost.setHashtags(new HashSet<>());
         mockPost.setUser(new User());
+        mockPost.setPros(new String[]{"pros"});
+        mockPost.setCons(new String[]{"cons"});
         mockPost.setCategoryType(new CategoryType());
         return mockPost;
     }
@@ -696,16 +697,26 @@ public class PostServiceTest {
         return post1;
     }
 
-    private CreatePostRequest getMockPostCreateRequest(){
-        CreatePostRequest pr = CreatePostRequest.builder()
+    private PostRequest getMockPostCreateRequest(){
+        PostRequest pr = PostRequest.builder()
                 .hashtags(Set.of(getMockHashtag().getTitle()))
-                .categoryName(getMockCategoryType().getName())
+                .category(getMockCategoryType().getName())
                 .places(List.of(new PlaceRequest()))
                 .build();
         pr.setTitle("title1");
         pr.setPros(List.of("pros"));
         pr.setCons(List.of("cons"));
-        pr.setDescription("description1");
+        pr.setText("description1");
+        return pr;
+    }
+
+    private PostRequest getMockPostModifyRequest(){
+        PostRequest pr = PostRequest.builder()
+                .hashtags(Set.of(getMockHashtag().getTitle()))
+                .build();
+        pr.setTitle("mock");
+        pr.setPros(List.of("pros"));
+        pr.setCons(List.of("cons"));
         return pr;
     }
 

@@ -1,5 +1,6 @@
 package com.dama.wanderwave.post;
 
+import com.dama.wanderwave.hashtag.HashTag;
 import com.dama.wanderwave.user.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -27,8 +28,7 @@ public interface PostRepository extends JpaRepository<Post, String> {
     @Query("SELECT p FROM Post p LEFT JOIN FETCH p.savedPosts s LEFT JOIN FETCH p.hashtags h WHERE s.user = :user")
     Page<Post> findByUserSaved(@Param("user") User user, Pageable pageable);
 
-    @Query("SELECT p FROM Post p LEFT JOIN FETCH p.hashtags h WHERE :hashtag MEMBER OF p.hashtags")
-    Page<Post> findByHashtag(@Param("hashtag") String hashtag, Pageable pageable);
+    Page<Post> findByHashtagsContaining(HashTag hashtag, Pageable pageable);
 
     @Query("SELECT p FROM Post p LEFT JOIN FETCH p.categoryType c LEFT JOIN FETCH p.hashtags h WHERE c.name = :category")
     Page<Post> findByCategory(@Param("category") String category, Pageable pageable);

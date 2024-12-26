@@ -25,6 +25,16 @@ public class Place {
 	@Column(name = "place_id")
 	private String id;
 
+	@Size(max = 64)
+	@NotBlank
+	@Column(nullable = false, length = 64)
+	private String displayName;
+
+	@Size(max = 64)
+	@NotBlank
+	@Column(nullable = false, length = 64)
+	private String locationName;
+
 	@Size(max = 500, message = "Place description length must be less than or equal to 500 characters")
 	@NotBlank(message = "Place description cannot be blank")
 	@Column(nullable = false, length = 500)
@@ -40,9 +50,6 @@ public class Place {
 
 	@Column(columnDefinition = "Numeric(9,6)", nullable = false)
 	private BigDecimal latitude;
-
-	@Column(columnDefinition = "TEXT", name = "image_url")
-	private String imgUrl;
 
 	@ManyToOne
 	@JoinColumn(name = "post_id",

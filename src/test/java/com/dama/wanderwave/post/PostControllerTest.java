@@ -9,7 +9,6 @@ import com.dama.wanderwave.handler.user.like.IsLikedException;
 import com.dama.wanderwave.handler.user.like.LikeNotFoundException;
 import com.dama.wanderwave.handler.user.save.IsSavedException;
 import com.dama.wanderwave.handler.user.save.SavedPostNotFound;
-import com.dama.wanderwave.post.request.CreatePostRequest;
 import com.dama.wanderwave.post.request.PostRequest;
 import com.dama.wanderwave.post.response.PostResponse;
 import com.dama.wanderwave.post.response.AccountInfoResponse;
@@ -172,10 +171,10 @@ public class PostControllerTest {
         @Test
         @DisplayName("Post creation should return OK (200)")
         void createPost_Success() throws Exception {
-            String mockRequestJson = objectMapper.writeValueAsString(getMockPostSuccess());
+            String mockRequestJson = objectMapper.writeValueAsString(getMockPost());
             PostControllerTest.ResponseRecord response = new PostControllerTest.ResponseRecord(HttpStatus.OK.value(), "Post is created successfully");
 
-            when(postService.createPost(any(CreatePostRequest.class))).thenReturn(response.message);
+            when(postService.createPost(any(PostRequest.class))).thenReturn(response.message);
 
             mockMvc.perform(post(ApiUrls.CREATE_POST.getUrl())
                             .contentType(CONTENT_TYPE)
@@ -185,13 +184,13 @@ public class PostControllerTest {
                     .andExpect(jsonPath("$.code").value(HttpStatus.OK.value()))
                     .andExpect(jsonPath("$.message").value(response.message));
 
-            verify(postService).createPost(any(CreatePostRequest.class));
+            verify(postService).createPost(any(PostRequest.class));
         }
 
         @Test
         @DisplayName("Post creation should return bad request (400)")
         void createPost_BadRequest() throws Exception {
-            String mockRequestJson = objectMapper.writeValueAsString(getMockPostBadRequest());
+            String mockRequestJson = objectMapper.writeValueAsString(getMockPost());
             PostControllerTest.ResponseRecord response = new PostControllerTest.ResponseRecord(HttpStatus.BAD_REQUEST.value(), "Validation failed: userNickname: User is mandatory");
 
             mockMvc.perform(post(ApiUrls.CREATE_POST.getUrl())
@@ -205,10 +204,10 @@ public class PostControllerTest {
         @Test
         @DisplayName("Post creation should return not found (404)")
         void createPost_NotFound() throws Exception {
-            String mockRequestJson = objectMapper.writeValueAsString(getMockPostSuccess());
+            String mockRequestJson = objectMapper.writeValueAsString(getMockPost());
             PostControllerTest.ResponseRecord response = new PostControllerTest.ResponseRecord(HttpStatus.NOT_FOUND.value(), "Category not found");
 
-            when(postService.createPost(any(CreatePostRequest.class))).thenThrow(new CategoryTypeNotFoundException(response.message));
+            when(postService.createPost(any(PostRequest.class))).thenThrow(new CategoryTypeNotFoundException(response.message));
 
             mockMvc.perform(post(ApiUrls.CREATE_POST.getUrl())
                             .contentType(CONTENT_TYPE)
@@ -217,16 +216,16 @@ public class PostControllerTest {
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.message").value(response.message));
 
-            verify(postService).createPost(any(CreatePostRequest.class));
+            verify(postService).createPost(any(PostRequest.class));
         }
 
         @Test
         @DisplayName("Post creation should return not found (404)")
         void createPost_InternalServerError() throws Exception {
-            String mockRequestJson = objectMapper.writeValueAsString(getMockPostSuccess());
+            String mockRequestJson = objectMapper.writeValueAsString(getMockPost());
             PostControllerTest.ResponseRecord response = new PostControllerTest.ResponseRecord(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Internal server error");
 
-            when(postService.createPost(any(CreatePostRequest.class))).thenThrow(new RuntimeException(response.message));
+            when(postService.createPost(any(PostRequest.class))).thenThrow(new RuntimeException(response.message));
 
             mockMvc.perform(post(ApiUrls.CREATE_POST.getUrl())
                             .contentType(CONTENT_TYPE)
@@ -235,7 +234,7 @@ public class PostControllerTest {
                     .andExpect(status().isInternalServerError())
                     .andExpect(jsonPath("$.message").value(response.message));
 
-            verify(postService).createPost(any(CreatePostRequest.class));
+            verify(postService).createPost(any(PostRequest.class));
         }
     }
 
@@ -636,7 +635,7 @@ public class PostControllerTest {
         @Test
         @DisplayName("Get user likes should return success (200) when likes are fetched successfully")
         void getUserLikes_Success() throws Exception {
-            when(postService.getLikedPostsResponse(any(Pageable.class))).thenReturn(getUserPosts());
+            when(postService.getLikedPostsResponse(any(Pageable.class))).thenReturn(getShortUserPosts());
 
             mockMvc.perform(get(ApiUrls.GET_USER_LIKES.getUrl())
                             .param("pageNumber", "0")
@@ -801,10 +800,10 @@ public class PostControllerTest {
         @DisplayName("Modify post should return OK (200)")
         void modifyPost_Success() throws Exception {
             var postId = "12345";
-            var request = objectMapper.writeValueAsString(getMockPostSuccess());
+            var request = objectMapper.writeValueAsString(getMockPost());
             var responseMessage = "Post modified successfully";
 
-            when(postService.modifyPost(eq(postId), any(PostRequest.class))).thenReturn(responseMessage);
+            when(postService.modifyPost(any(PostRequest.class))).thenReturn(responseMessage);
 
             mockMvc.perform(put(ApiUrls.MODIFY_POST.getUrl(), postId)
                             .content(request)
@@ -814,16 +813,16 @@ public class PostControllerTest {
                     .andExpect(jsonPath("$.code").value(HttpStatus.OK.value()))
                     .andExpect(jsonPath("$.message").value(responseMessage));
 
-            verify(postService).modifyPost(eq(postId), any(PostRequest.class));
+            verify(postService).modifyPost(any(PostRequest.class));
         }
 
         @Test
         @DisplayName("Modify post should return NOT FOUND (404)")
         void modifyPost_PostNotFound() throws Exception {
             var postId = "12345";
-            var request = objectMapper.writeValueAsString(getMockPostSuccess());
+            var request = objectMapper.writeValueAsString(getMockPost());
 
-            when(postService.modifyPost(eq(postId), any(PostRequest.class))).thenThrow(new PostNotFoundException(postId));
+            when(postService.modifyPost(any(PostRequest.class))).thenThrow(new PostNotFoundException(postId));
 
             mockMvc.perform(put(ApiUrls.MODIFY_POST.getUrl(), postId)
                             .content(request)
@@ -832,7 +831,7 @@ public class PostControllerTest {
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.errorCode").value(HttpStatus.NOT_FOUND.value()));
 
-            verify(postService).modifyPost(eq(postId), any(PostRequest.class));
+            verify(postService).modifyPost(any(PostRequest.class));
         }
 
         @Test
@@ -848,16 +847,16 @@ public class PostControllerTest {
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.errorCode").value(HttpStatus.BAD_REQUEST.value()));
 
-            verify(postService, never()).modifyPost(anyString(), any(PostRequest.class));
+            verify(postService, never()).modifyPost(any(PostRequest.class));
         }
 
         @Test
         @DisplayName("Modify post should return INTERNAL SERVER ERROR (500)")
         void modifyPost_InternalServerError() throws Exception {
             var postId = "12345";
-            var request = objectMapper.writeValueAsString(getMockPostSuccess());
+            var request = objectMapper.writeValueAsString(getMockPost());
 
-            when(postService.modifyPost(eq(postId), any(PostRequest.class))).thenThrow(new RuntimeException("Internal server error"));
+            when(postService.modifyPost(any(PostRequest.class))).thenThrow(new RuntimeException("Internal server error"));
 
             mockMvc.perform(put(ApiUrls.MODIFY_POST.getUrl(), postId)
                             .content(request)
@@ -866,7 +865,7 @@ public class PostControllerTest {
                     .andExpect(status().isInternalServerError())
                     .andExpect(jsonPath("$.errorCode").value(HttpStatus.INTERNAL_SERVER_ERROR.value()));
 
-            verify(postService).modifyPost(eq(postId), any(PostRequest.class));
+            verify(postService).modifyPost(any(PostRequest.class));
         }
 
     }
@@ -880,18 +879,10 @@ public class PostControllerTest {
                 .build();
     }
 
-    private CreatePostRequest getMockPostSuccess() {
-        CreatePostRequest p = new CreatePostRequest();
+    private PostRequest getMockPost() {
+        PostRequest p = new PostRequest();
         p.setTitle("mockPost");
-        p.setCategoryName("mockCategory");
-        p.setUserNickname("mockNickname");
-        return p;
-    }
-
-    private CreatePostRequest getMockPostBadRequest() {
-        CreatePostRequest p = new CreatePostRequest();
-        p.setTitle("mockPost");
-        p.setCategoryName("mockCategory");
+        p.setCategory("mockCategory");
         return p;
     }
 

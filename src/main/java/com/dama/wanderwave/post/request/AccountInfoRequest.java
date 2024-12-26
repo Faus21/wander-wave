@@ -1,11 +1,12 @@
-package com.dama.wanderwave.post.response;
+package com.dama.wanderwave.post.request;
+
 
 import lombok.Builder;
 import lombok.Data;
 
-@Data
 @Builder
-public class AccountInfoResponse {
+@Data
+public class AccountInfoRequest {
 
     private String id;
     private String nickname;

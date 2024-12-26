@@ -6,6 +6,7 @@ import com.dama.wanderwave.comment.Comment;
 import com.dama.wanderwave.comment.CommentRepository;
 import com.dama.wanderwave.handler.post.CategoryTypeNotFoundException;
 import com.dama.wanderwave.handler.post.PostNotFoundException;
+import com.dama.wanderwave.handler.user.UnauthorizedActionException;
 import com.dama.wanderwave.handler.user.UserNotFoundException;
 import com.dama.wanderwave.handler.user.like.IsLikedException;
 import com.dama.wanderwave.handler.user.like.LikeNotFoundException;
@@ -15,10 +16,11 @@ import com.dama.wanderwave.hashtag.HashTag;
 import com.dama.wanderwave.hashtag.HashTagRepository;
 import com.dama.wanderwave.place.Place;
 import com.dama.wanderwave.place.PlaceRepository;
-import com.dama.wanderwave.post.request.CreatePostRequest;
-import com.dama.wanderwave.place.PlaceRequest;
+import com.dama.wanderwave.place.request.CoordsRequest;
+import com.dama.wanderwave.place.request.PlaceRequest;
 import com.dama.wanderwave.post.request.PostRequest;
 import com.dama.wanderwave.post.response.*;
+import com.dama.wanderwave.route.Route;
 import com.dama.wanderwave.user.User;
 import com.dama.wanderwave.user.UserRepository;
 import com.dama.wanderwave.user.UserService;
@@ -38,7 +40,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Function;
@@ -75,30 +79,64 @@ public class PostService {
     }
 
     @Transactional
-    public String modifyPost(String postId, PostRequest request) {
+    public String modifyPost(PostRequest request) {
         log.info("modifyPost called with request: {}", request);
+        User user = userService.getAuthenticatedUser();
 
-        Post post = postRepository.findById(postId).orElseThrow(() -> new PostNotFoundException(postId));
+        String postId = request.getId();
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new PostNotFoundException("Post not found with id: " + postId));
 
-        if (Objects.nonNull(request.getTitle()))
-            post.setTitle(request.getTitle());
+        if (!post.getUser().equals(user)) {
+            throw new UnauthorizedActionException("User not authorized to perform this action");
+        }
 
-        if (Objects.nonNull(request.getDescription()))
-            post.setDescription(request.getDescription());
+        String categoryName = request.getCategory();
 
-        if (!request.getPros().isEmpty())
-            post.setPros(request.getPros().toArray(new String[0]));
+        CategoryType categoryType = categoryTypeRepository.findByName(categoryName)
+                .orElseThrow(() -> new CategoryTypeNotFoundException("Category type not found with name: " + categoryName));
 
-        if (!request.getCons().isEmpty())
-            post.setCons(request.getCons().toArray(new String[0]));
+        post.setCategoryType(categoryType);
+        post.setTitle(request.getTitle());
+        post.setDescription(request.getText());
+        post.setIsDisabledComments(request.getIsDisabledComments());
 
+        Set<HashTag> hashtags = request.getHashtags().stream()
+                .map(hashtag -> hashTagRepository.findByTitle(hashtag)
+                        .orElseGet(() -> {
+                            HashTag newHashtag = HashTag.builder()
+                                    .title(hashtag)
+                                    .posts(new HashSet<>())
+                                    .build();
+                            return hashTagRepository.save(newHashtag);
+                        }))
+                .peek(hashtag -> hashtag.getPosts().add(post))
+                .collect(Collectors.toSet());
+
+        post.setHashtags(hashtags);
+
+        post.setImages(request.getImages().stream()
+                .map(MultipartFile::getOriginalFilename)
+                .toArray(String[]::new));
+
+        List<Place> places = request.getPlaces().stream()
+                .map(placeRequest -> mapToPlace(placeRequest, post))
+                .collect(Collectors.toList());
+
+        Route route = Route.fromRouteRequest(request.getRoute());
+
+        post.setRoute(route);
+        post.setPros(request.getPros().toArray(new String[0]));
+        post.setCons(request.getCons().toArray(new String[0]));
+
+        placeRepository.saveAll(places);
         postRepository.save(post);
 
         return "Post modified successfully";
     }
 
     @Transactional
-    public String createPost(CreatePostRequest createPostRequest) {
+    public String createPost(PostRequest createPostRequest) {
         log.info("createPost called with request: {}", createPostRequest);
         User user = userService.getAuthenticatedUser();
 
@@ -275,7 +313,7 @@ public class PostService {
         List<Post> hashtagPosts = new ArrayList<>();
         if (!uniqueHashtags.isEmpty()) {
             hashtagPosts = uniqueHashtags.stream()
-                    .flatMap(h -> postRepository.findByHashtag(h.getId(), pageRequest).getContent().stream())
+                    .flatMap(h -> postRepository.findByHashtagsContaining(h, pageRequest).getContent().stream())
                     .toList();
         }
 
@@ -299,11 +337,11 @@ public class PostService {
         return finalPage;
     }
 
-    public Page<PostResponse> getLikedPostsResponse(Pageable pageRequest) {
+    public Page<ShortPostResponse> getLikedPostsResponse(Pageable pageRequest) {
         log.info("getLikedPostsResponse called");
         User user = userService.getAuthenticatedUser();
 
-        Page<PostResponse> response = getPostResponseListFromPostList(pageRequest, getLikedPosts(pageRequest, user));
+        Page<ShortPostResponse> response = getShortPostResponseListFromPostList(pageRequest, getLikedPosts(pageRequest, user));
         log.info("getLikedPostsResponse returned {} posts", response.getSize());
         return response;
     }
@@ -442,6 +480,7 @@ public class PostService {
         return AccountInfoResponse.builder()
                 .nickname(user.getNickname())
                 .imageUrl(user.getImageUrl())
+                .id(user.getId())
                 .build();
     }
 
@@ -512,27 +551,30 @@ public class PostService {
         return savedPostRepository.findByUserAndPost(user, post).isPresent();
     }
 
-    private Post mapToPost(CreatePostRequest createPostRequest, User user) {
+    private Post mapToPost(PostRequest createPostRequest, User user) {
         return Post.builder()
                 .title(createPostRequest.getTitle())
-                .description(createPostRequest.getDescription())
+                .description(createPostRequest.getText())
                 .user(user)
                 .createdAt(LocalDateTime.now())
                 .pros(createPostRequest.getPros().toArray(new String[0]))
                 .cons(createPostRequest.getCons().toArray(new String[0]))
                 .hashtags(createHashTags(createPostRequest.getHashtags()))
-                .categoryType(categoryTypeRepository.findByName(createPostRequest.getCategoryName())
+                .categoryType(categoryTypeRepository.findByName(createPostRequest.getCategory())
                         .orElseThrow(() -> new CategoryTypeNotFoundException("CategoryType is not found!")))
                 .build();
     }
 
     private Place mapToPlace(PlaceRequest placeRequest, Post post) {
+        CoordsRequest coords = placeRequest.getCoords();
+
         return Place.builder()
+                .displayName(placeRequest.getDisplayName())
+                .locationName(placeRequest.getLocationName())
                 .description(placeRequest.getDescription())
-                .longitude(placeRequest.getLongitude())
-                .latitude(placeRequest.getLatitude())
+                .longitude(BigDecimal.valueOf(coords.getLongitude()))
+                .latitude(BigDecimal.valueOf(coords.getLatitude()))
                 .rating(placeRequest.getRating())
-                .imgUrl(placeRequest.getImageUrl())
                 .post(post)
                 .build();
     }

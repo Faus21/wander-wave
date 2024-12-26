@@ -3,7 +3,6 @@ package com.dama.wanderwave.post;
 import com.dama.wanderwave.comment.Comment;
 import com.dama.wanderwave.comment.CommentService;
 import com.dama.wanderwave.post.request.CreateCommentRequest;
-import com.dama.wanderwave.post.request.CreatePostRequest;
 import com.dama.wanderwave.post.request.PostRequest;
 import com.dama.wanderwave.post.response.PostResponse;
 import com.dama.wanderwave.post.response.ShortPostResponse;
@@ -64,15 +63,15 @@ public class PostController {
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
     public ResponseEntity<ResponseRecord> createPost(
-            @RequestBody @Valid CreatePostRequest request
+            @RequestBody @Valid PostRequest request
     ) {
         String response = postService.createPost(request);
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), response));
     }
 
-    @PutMapping("/{postId}")
+    @PutMapping("")
     @ResponseStatus(HttpStatus.OK)
-    @Operation(summary = "Modify post", description = "Create post for user.")
+    @Operation(summary = "Modify post", description = "Modify post for user.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Post modified successfully", content = @Content()),
             @ApiResponse(responseCode = "400", description = "User is mandatory!", content = @Content()),
@@ -80,10 +79,9 @@ public class PostController {
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
     public ResponseEntity<ResponseRecord> modifyPost(
-            @PathVariable String postId,
             @RequestBody @Valid PostRequest request
     ) {
-        String response = postService.modifyPost(postId, request);
+        String response = postService.modifyPost(request);
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), response));
     }
 
@@ -212,7 +210,7 @@ public class PostController {
     public ResponseEntity<ResponseRecord> getUserLikes(@RequestParam int pageNumber,
                                                        @RequestParam @Max(MAX_PAGE_SIZE) Integer pageSize) {
         Pageable page = PageRequest.of(pageNumber, pageSize);
-        Page<PostResponse> response = postService.getLikedPostsResponse(page);
+        Page<ShortPostResponse> response = postService.getLikedPostsResponse(page);
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), response));
     }
 

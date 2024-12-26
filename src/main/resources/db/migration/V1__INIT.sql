@@ -75,13 +75,14 @@ CREATE TABLE notifications
 
 CREATE TABLE places
 (
-    place_id    VARCHAR(255)     NOT NULL,
-    description VARCHAR(500)     NOT NULL,
-    rating      DOUBLE PRECISION NOT NULL,
-    longitude   numeric(9, 6)    NOT NULL,
-    latitude    numeric(9, 6)    NOT NULL,
-    image_url   TEXT,
-    post_id     VARCHAR(255)     NOT NULL,
+    place_id      VARCHAR(255)     NOT NULL,
+    display_name  VARCHAR(64)      NOT NULL,
+    location_name VARCHAR(64)      NOT NULL,
+    description   VARCHAR(500)     NOT NULL,
+    rating        DOUBLE PRECISION NOT NULL,
+    longitude     numeric(9, 6)    NOT NULL,
+    latitude      numeric(9, 6)    NOT NULL,
+    post_id       VARCHAR(255)     NOT NULL,
     CONSTRAINT pk_places PRIMARY KEY (place_id)
 );
 
@@ -101,16 +102,34 @@ CREATE TABLE post_reports
 
 CREATE TABLE posts
 (
-    post_id          VARCHAR(255)                NOT NULL,
-    title            VARCHAR(100)                NOT NULL,
-    created_at       TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-    user_id          VARCHAR(255)                NOT NULL,
-    description      TEXT,
-    category_type_id VARCHAR(255)                NOT NULL,
-    pros             TEXT[],
-    cons             TEXT[],
-    post_likes       INT                         NOT NULL,
-    CONSTRAINT pk_posts PRIMARY KEY (post_id)
+    post_id              VARCHAR(255)                NOT NULL,
+    title                VARCHAR(100)                NOT NULL,
+    created_at           TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    user_id              VARCHAR(255)                NOT NULL,
+    description          TEXT,
+    category_type_id     VARCHAR(255)                NOT NULL,
+    images               TEXT[],
+    pros                 TEXT[],
+    cons                 TEXT[],
+    post_likes           INT                         NOT NULL,
+    is_disabled_comments BOOLEAN,
+    route_id             VARCHAR(255),
+    CONSTRAINT pk_posts PRIMARY KEY (post_id),
+    CONSTRAINT fk_posts_routes FOREIGN KEY (route_id) REFERENCES routes(route_id) ON DELETE SET NULL
+);
+
+CREATE TABLE routes
+(
+    route_id                         VARCHAR(255) PRIMARY KEY,
+    source_coords_display_name       VARCHAR(255),
+    source_coords_location_name      VARCHAR(255),
+    source_coords_latitude           NUMERIC(9, 6),
+    source_coords_longitude          NUMERIC(9, 6),
+    destination_coords_display_name  VARCHAR(255),
+    destination_coords_location_name VARCHAR(255),
+    destination_coords_latitude      NUMERIC(9, 6),
+    destination_coords_longitude     NUMERIC(9, 6),
+    description                      VARCHAR(500)
 );
 
 CREATE TABLE refresh_tokens

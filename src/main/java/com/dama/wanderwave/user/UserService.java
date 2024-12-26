@@ -31,7 +31,7 @@ public class UserService {
 
     @Cacheable(value = "users", key = "#id")
     public UserResponse getUserById(String id) {
-        var user = findUserByIdOrThrow(id);
+        User user = findUserByIdOrThrow(id);
         return userToUserResponse(user);
     }
 
@@ -274,5 +274,12 @@ public class UserService {
         User user = getAuthenticatedUser();
         user.setImageUrl(url);
         userRepository.save(user);
+    }
+
+    @Cacheable(value = "users", key = "#nickname")
+    public UserResponse getUserByNickname(String nickname) {
+        User user = userRepository.findByNickname(nickname)
+                .orElseThrow(() -> new UserNotFoundException("User not found with nickname " + nickname));
+        return userToUserResponse(user);
     }
 }

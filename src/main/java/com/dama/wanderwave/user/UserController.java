@@ -35,16 +35,29 @@ public class UserController {
     private final UserService userService;
     private final AzureService azureService;
 
-    @GetMapping("/profile/{id}")
+    @GetMapping("/profile/id/{id}")
     @ResponseStatus(HttpStatus.OK)
-    @Operation(summary = "Get user profile", description = "Retrieves profile details for a specific user.")
+    @Operation(summary = "Get user profile by ID", description = "Retrieves profile details for a specific user by ID.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "User profile retrieved successfully", content = @Content()),
             @ApiResponse(responseCode = "404", description = "User not found", content = @Content()),
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
-    public ResponseEntity<ResponseRecord> getUserProfile(@PathVariable String id) {
+    public ResponseEntity<ResponseRecord> getUserProfileById(@PathVariable String id) {
         UserResponse user = userService.getUserById(id);
+        return ResponseEntity.ok(new ResponseRecord(HttpStatus.OK.value(), user));
+    }
+
+    @GetMapping("/profile/nickname/{nickname}")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Get user profile by nickname", description = "Retrieves profile details for a specific user by nickname.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "User profile retrieved successfully", content = @Content()),
+            @ApiResponse(responseCode = "404", description = "User not found", content = @Content()),
+            @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
+    })
+    public ResponseEntity<ResponseRecord> getUserProfileByNickname(@PathVariable String nickname) {
+        UserResponse user = userService.getUserByNickname(nickname);
         return ResponseEntity.ok(new ResponseRecord(HttpStatus.OK.value(), user));
     }
 

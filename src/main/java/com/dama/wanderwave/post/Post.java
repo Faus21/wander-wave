@@ -3,6 +3,7 @@ package com.dama.wanderwave.post;
 import com.dama.wanderwave.categoryType.CategoryType;
 import com.dama.wanderwave.comment.Comment;
 import com.dama.wanderwave.report.post.PostReport;
+import com.dama.wanderwave.route.Route;
 import com.dama.wanderwave.user.User;
 import com.dama.wanderwave.hashtag.HashTag;
 import com.dama.wanderwave.user.like.Like;
@@ -61,6 +62,10 @@ public class Post {
 	private CategoryType categoryType;
 
 	@Type(StringArrayType.class)
+	@Column(name = "images", columnDefinition = "TEXT[]")
+	private String[] images;
+
+	@Type(StringArrayType.class)
 	@Column(name = "pros", columnDefinition = "TEXT[]")
 	private String[] pros;
 
@@ -90,6 +95,9 @@ public class Post {
 	@Builder.Default
 	private Integer likesCount = 0;
 
+	@Column(name = "is_disabled_comments")
+	private Boolean isDisabledComments;
+
 	@OneToMany(mappedBy = "post", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
 	@Builder.Default
 	private Set<Like> likes = new HashSet<>();
@@ -101,4 +109,8 @@ public class Post {
 	@OneToMany(mappedBy = "post", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
 	@Builder.Default
 	private List<Comment> comments = new ArrayList<>();
+
+	@ManyToOne(fetch = FetchType.EAGER)
+	@JoinColumn(name = "route_id", nullable = false, referencedColumnName = "route_id", foreignKey = @ForeignKey(name = "fk_posts_routes"))
+	private Route route;
 }

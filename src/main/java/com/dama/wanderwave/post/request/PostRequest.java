@@ -1,27 +1,33 @@
 package com.dama.wanderwave.post.request;
 
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.Size;
-import lombok.*;
+import com.dama.wanderwave.place.request.PlaceRequest;
+import com.dama.wanderwave.place.request.RouteRequest;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.ArrayList;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
-@Getter
-@Setter
+@Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class PostRequest {
-
-    @Size(max = 100, message = "Title length must be less than or equal to 100 characters")
-    @NotEmpty(message = "Title is mandatory")
+    private String id;
+    private LocalDateTime creationDate;
     private String title;
-
-    @Size(max = 1024, message = "Description length must be less than or equal to 1024 characters")
-    private String description;
-
-    private List<String> pros = new ArrayList<>();
-
-    private List<String> cons = new ArrayList<>();
-
+    private String text;
+    @Builder.Default
+    private Boolean isDisabledComments = false;
+    private Set<String> hashtags;
+    private String category;
+    private List<MultipartFile> images;
+    private List<PlaceRequest> places;
+    private RouteRequest route;
+    private List<String> pros;
+    private List<String> cons;
 }

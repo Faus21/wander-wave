@@ -33,7 +33,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Getter
 @RequiredArgsConstructor
 enum ApiUrl {
-    PROFILE("/api/users/profile/{id}"),
+    PROFILE("/api/users/profile/id/{id}"),
     SUBSCRIBE("/api/users/subscribe"),
     UNSUBSCRIBE("/api/users/unsubscribe"),
     BAN("/api/users/ban/{id}"),
