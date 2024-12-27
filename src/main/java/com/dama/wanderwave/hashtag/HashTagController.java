@@ -38,4 +38,18 @@ public class HashTagController {
         Page<HashTag> hashTags = hashTagService.getAllHashTags(PageRequest.of(page, size));
         return new ResponseEntity<>(hashTags, HttpStatus.OK);
     }
+
+    @GetMapping("/search")
+    @Operation(summary = "Retrieve hashtags by prefix", description = "Retrieves hashtags that start with a specific prefix.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Hashtags retrieved successfully"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<Page<HashTag>> getHashTagsByPrefix(
+            @RequestParam String prefix,
+            @RequestParam @Max(MAX_PAGE_SIZE) Integer page,
+            @RequestParam int size) {
+        Page<HashTag> hashTags = hashTagService.getHashTagsByPrefix(prefix, PageRequest.of(page, size));
+        return new ResponseEntity<>(hashTags, HttpStatus.OK);
+    }
 }

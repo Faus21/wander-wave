@@ -15,4 +15,8 @@ public class HashTagService {
     public Page<HashTag> getAllHashTags(Pageable pageable) {
         return hashTagRepository.findAll(pageable);
     }
+
+    public Page<HashTag> getHashTagsByPrefix(String prefix, Pageable pageable) {
+        return hashTagRepository.findByTitleStartingWith(prefix, pageable);
+    }
 }
