@@ -3,6 +3,7 @@ package com.dama.wanderwave.route;
 import com.dama.wanderwave.place.request.RouteRequest;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.GenericGenerator;
 
 @Getter
 @Setter
@@ -14,7 +15,9 @@ import lombok.*;
 public class Route {
 
     @Id
-    @Column(name = "route_id")
+    @GeneratedValue(generator = "hash_generator")
+    @GenericGenerator(name = "hash_generator", type = com.dama.wanderwave.hash.HashUUIDGenerator.class)
+    @Column(name = "route_id", nullable = false, updatable = false, unique = true)
     private String routeId;
 
     @Embedded

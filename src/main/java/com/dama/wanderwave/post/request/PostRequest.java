@@ -23,7 +23,6 @@ public class PostRequest {
     private Boolean isDisabledComments = false;
     private Set<String> hashtags;
     private String category;
-    private List<MultipartFile> images;
     private List<PlaceRequest> places;
     private RouteRequest route;
     private List<String> pros;

@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -23,6 +24,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -63,9 +65,10 @@ public class PostController {
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
     public ResponseEntity<ResponseRecord> createPost(
-            @RequestBody @Valid PostRequest request
+            @RequestPart @Valid PostRequest request,
+            @RequestPart("images") @Size(max = 5, message = "Maximum 5 images allowed") List<MultipartFile> images
     ) {
-        String response = postService.createPost(request);
+        String response = postService.createPost(request, images);
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), response));
     }
 
@@ -79,9 +82,10 @@ public class PostController {
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
     public ResponseEntity<ResponseRecord> modifyPost(
-            @RequestBody @Valid PostRequest request
+            @RequestPart @Valid PostRequest request,
+            @RequestPart("images") @Size(max = 5, message = "Maximum 5 images allowed") List<MultipartFile> images
     ) {
-        String response = postService.modifyPost(request);
+        String response = postService.modifyPost(request, images);
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), response));
     }
 

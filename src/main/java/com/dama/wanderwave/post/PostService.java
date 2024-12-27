@@ -21,6 +21,7 @@ import com.dama.wanderwave.place.request.PlaceRequest;
 import com.dama.wanderwave.post.request.PostRequest;
 import com.dama.wanderwave.post.response.*;
 import com.dama.wanderwave.route.Route;
+import com.dama.wanderwave.route.RouteRepository;
 import com.dama.wanderwave.user.User;
 import com.dama.wanderwave.user.UserRepository;
 import com.dama.wanderwave.user.UserService;
@@ -66,6 +67,7 @@ public class PostService {
     private final ModelMapper modelMapper;
     private final CommentRepository commentRepository;
     private final AzureService azureService;
+    private final RouteRepository routeRepository;
 
     public Page<ShortPostResponse> getUserPosts(Pageable pageRequest, String nickname) {
         log.info("getUserPosts called with nickname: {}", nickname);
@@ -80,7 +82,7 @@ public class PostService {
     }
 
     @Transactional
-    public String modifyPost(PostRequest request) {
+    public String modifyPost(PostRequest request, List<MultipartFile> images) {
         log.info("modifyPost called with request: {}", request);
         User user = userService.getAuthenticatedUser();
 
@@ -92,14 +94,14 @@ public class PostService {
             throw new UnauthorizedActionException("User not authorized to perform this action");
         }
 
-        updatePostFields(request, post);
+        updatePostFields(request, post, images);
 
         postRepository.save(post);
 
         return "Post modified successfully";
     }
 
-    private void updatePostFields(PostRequest request, Post post) {
+    private void updatePostFields(PostRequest request, Post post, List<MultipartFile> images) {
         if (request.getCategory() != null) {
             CategoryType categoryType = getCategoryType(request.getCategory());
             post.setCategoryType(categoryType);
@@ -122,9 +124,9 @@ public class PostService {
             post.setHashtags(hashtagSet);
         }
 
-        if (request.getImages() != null && !request.getImages().isEmpty()) {
+        if (images != null && !images.isEmpty()) {
             long timestamp = System.currentTimeMillis();
-            String[] uploadedImages = uploadImages(request.getImages(), timestamp);
+            String[] uploadedImages = uploadImages(images, timestamp);
             post.setImages(uploadedImages);
         }
 
@@ -189,14 +191,17 @@ public class PostService {
     }
 
     @Transactional
-    public String createPost(PostRequest createPostRequest) {
+    public String createPost(PostRequest createPostRequest, List<MultipartFile> images) {
         log.info("createPost called with request: {}", createPostRequest);
         User user = userService.getAuthenticatedUser();
 
-        Post post = mapToPost(createPostRequest, user);
+        Route route = Route.fromRouteRequest(createPostRequest.getRoute());
+        routeRepository.save(route);
+
+        Post post = mapToPost(createPostRequest, user, route);
 
         long timestamp = System.currentTimeMillis();
-        String[] uploadedImages = uploadImages(createPostRequest.getImages(), timestamp);
+        String[] uploadedImages = uploadImages(images, timestamp);
         post.setImages(uploadedImages);
 
         postRepository.save(post);
@@ -609,9 +614,7 @@ public class PostService {
         return savedPostRepository.findByUserAndPost(user, post).isPresent();
     }
 
-    private Post mapToPost(PostRequest postRequest, User author) {
-        Route route = Route.fromRouteRequest(postRequest.getRoute());
-
+    private Post mapToPost(PostRequest postRequest, User author, Route route) {
         return Post.builder()
                 .title(postRequest.getTitle())
                 .description(postRequest.getText())

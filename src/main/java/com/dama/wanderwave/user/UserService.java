@@ -191,6 +191,7 @@ public class UserService {
                 .build();
     }
 
+    @Transactional
     public List<UserResponse> getUserFriendshipRecommendations(String userId) {
         log.info("Fetching friendship recommendations for user with ID: {}", userId);
 
