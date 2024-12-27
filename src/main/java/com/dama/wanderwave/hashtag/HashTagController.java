@@ -1,5 +1,6 @@
 package com.dama.wanderwave.hashtag;
 
+import com.dama.wanderwave.utils.ResponseRecord;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -32,11 +33,11 @@ public class HashTagController {
             @ApiResponse(responseCode = "200", description = "Hashtags retrieved successfully"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public ResponseEntity<Page<HashTag>> getAllHashTags(
+    public ResponseEntity<ResponseRecord> getAllHashTags(
             @RequestParam @Max(MAX_PAGE_SIZE) Integer page,
             @RequestParam int size) {
         Page<HashTag> hashTags = hashTagService.getAllHashTags(PageRequest.of(page, size));
-        return new ResponseEntity<>(hashTags, HttpStatus.OK);
+        return ResponseEntity.ok(new ResponseRecord(HttpStatus.OK.value(), hashTags));
     }
 
     @GetMapping("/search")
@@ -45,11 +46,11 @@ public class HashTagController {
             @ApiResponse(responseCode = "200", description = "Hashtags retrieved successfully"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public ResponseEntity<Page<HashTag>> getHashTagsByPrefix(
+    public ResponseEntity<ResponseRecord> getHashTagsByPrefix(
             @RequestParam String prefix,
             @RequestParam @Max(MAX_PAGE_SIZE) Integer page,
             @RequestParam int size) {
         Page<HashTag> hashTags = hashTagService.getHashTagsByPrefix(prefix, PageRequest.of(page, size));
-        return new ResponseEntity<>(hashTags, HttpStatus.OK);
+        return ResponseEntity.ok(new ResponseRecord(HttpStatus.OK.value(), hashTags));
     }
 }
