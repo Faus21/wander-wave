@@ -2,9 +2,9 @@ package com.dama.wanderwave.hashtag;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
@@ -12,11 +12,16 @@ public class HashTagService {
 
     private final HashTagRepository hashTagRepository;
 
-    public Page<HashTag> getAllHashTags(Pageable pageable) {
-        return hashTagRepository.findAll(pageable);
+    public List<String> getAllHashTags() {
+        return hashTagRepository.findAll()
+                .stream()
+                .map(HashTag::getTitle)
+                .toList();
     }
 
-    public Page<HashTag> getHashTagsByPrefix(String prefix, Pageable pageable) {
-        return hashTagRepository.findByTitleStartingWith(prefix, pageable);
+    public List<String> getHashTagsByPrefix(String prefix) {
+        return hashTagRepository.findByTitleStartingWith(prefix).stream()
+                .map(HashTag::getTitle)
+                .toList();
     }
 }

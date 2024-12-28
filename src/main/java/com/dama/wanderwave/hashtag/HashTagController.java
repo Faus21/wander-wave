@@ -18,6 +18,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/hashtags")
 @RequiredArgsConstructor
@@ -33,10 +35,8 @@ public class HashTagController {
             @ApiResponse(responseCode = "200", description = "Hashtags retrieved successfully"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public ResponseEntity<ResponseRecord> getAllHashTags(
-            @RequestParam @Max(MAX_PAGE_SIZE) Integer page,
-            @RequestParam int size) {
-        Page<HashTag> hashTags = hashTagService.getAllHashTags(PageRequest.of(page, size));
+    public ResponseEntity<ResponseRecord> getAllHashTags() {
+        List<String> hashTags = hashTagService.getAllHashTags();
         return ResponseEntity.ok(new ResponseRecord(HttpStatus.OK.value(), hashTags));
     }
 
@@ -47,10 +47,8 @@ public class HashTagController {
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     public ResponseEntity<ResponseRecord> getHashTagsByPrefix(
-            @RequestParam String prefix,
-            @RequestParam @Max(MAX_PAGE_SIZE) Integer page,
-            @RequestParam int size) {
-        Page<HashTag> hashTags = hashTagService.getHashTagsByPrefix(prefix, PageRequest.of(page, size));
+            @RequestParam String prefix) {
+        List<String> hashTags = hashTagService.getHashTagsByPrefix(prefix);
         return ResponseEntity.ok(new ResponseRecord(HttpStatus.OK.value(), hashTags));
     }
 }
