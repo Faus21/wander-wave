@@ -60,12 +60,11 @@ public class PostController {
     @Operation(summary = "Create post", description = "Create post for user.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Post is created successfully", content = @Content()),
-            @ApiResponse(responseCode = "400", description = "User is mandatory!", content = @Content()),
             @ApiResponse(responseCode = "404", description = "Request parameters not found", content = @Content()),
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
     public ResponseEntity<ResponseRecord> createPost(
-            @RequestPart @Valid PostRequest request,
+            @RequestPart PostRequest request,
             @RequestPart("images") @Size(max = 5, message = "Maximum 5 images allowed") List<MultipartFile> images
     ) {
         String response = postService.createPost(request, images);
@@ -77,12 +76,11 @@ public class PostController {
     @Operation(summary = "Modify post", description = "Modify post for user.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Post modified successfully", content = @Content()),
-            @ApiResponse(responseCode = "400", description = "User is mandatory!", content = @Content()),
             @ApiResponse(responseCode = "404", description = "Request parameters not found", content = @Content()),
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
     public ResponseEntity<ResponseRecord> modifyPost(
-            @RequestPart @Valid PostRequest request,
+            @RequestPart PostRequest request,
             @RequestPart("images") @Size(max = 5, message = "Maximum 5 images allowed") List<MultipartFile> images
     ) {
         String response = postService.modifyPost(request, images);
@@ -199,7 +197,7 @@ public class PostController {
     public ResponseEntity<ResponseRecord> getRecommendationsFlow(@RequestParam int pageNumber,
                                                                  @RequestParam @Max(MAX_PAGE_SIZE) Integer pageSize) {
         Pageable page = PageRequest.of(pageNumber, pageSize);
-        Page<ShortPostResponse> response = postService.recommendationFlow(page);
+        List<ShortPostResponse> response = postService.recommendationFlow(page);
 
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), response));
     }

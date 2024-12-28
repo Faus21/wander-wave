@@ -31,6 +31,7 @@ import com.dama.wanderwave.user.like.LikeRepository;
 import com.dama.wanderwave.user.saved_post.SavedPost;
 import com.dama.wanderwave.user.saved_post.SavedPostId;
 import com.dama.wanderwave.user.saved_post.SavedPostRepository;
+import com.github.benmanes.caffeine.cache.Cache;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
@@ -68,6 +69,8 @@ public class PostService {
     private final CommentRepository commentRepository;
     private final AzureService azureService;
     private final RouteRepository routeRepository;
+
+    private final Cache<String, Set<String>> userRecommendedPostsCache;
 
     public Page<ShortPostResponse> getUserPosts(Pageable pageRequest, String nickname) {
         log.info("getUserPosts called with nickname: {}", nickname);
@@ -195,15 +198,15 @@ public class PostService {
         log.info("createPost called with request: {}", createPostRequest);
         User user = userService.getAuthenticatedUser();
 
+        long timestamp = System.currentTimeMillis();
+        String[] uploadedImages = uploadImages(images, timestamp);
+
         Route route = Route.fromRouteRequest(createPostRequest.getRoute());
         routeRepository.save(route);
 
         Post post = mapToPost(createPostRequest, user, route);
 
-        long timestamp = System.currentTimeMillis();
-        String[] uploadedImages = uploadImages(images, timestamp);
         post.setImages(uploadedImages);
-
         postRepository.save(post);
 
         createPostRequest.getPlaces().stream()
@@ -360,13 +363,16 @@ public class PostService {
         return new PageImpl<>(response, pageRequest, response.size());
     }
 
-    public Page<ShortPostResponse> recommendationFlow(Pageable pageRequest) {
+    public List<ShortPostResponse> recommendationFlow(Pageable pageRequest) {
         log.info("recommendationFlow called");
         User user = userService.getAuthenticatedUser();
+
+        Set<String> recommendedPostIds = userRecommendedPostsCache.get(user.getId(), k -> new HashSet<>());
 
         List<Post> combinedPosts = Stream.concat(
                         getLikedPosts(pageRequest, user).getContent().stream(),
                         getSavedPosts(pageRequest, user).getContent().stream())
+                .filter(post -> !recommendedPostIds.contains(post.getId()))
                 .toList();
 
         Set<HashTag> uniqueHashtags = combinedPosts.stream()
@@ -377,29 +383,35 @@ public class PostService {
         if (!uniqueHashtags.isEmpty()) {
             hashtagPosts = uniqueHashtags.stream()
                     .flatMap(h -> postRepository.findByHashtagsContaining(h, pageRequest).getContent().stream())
+                    .filter(post -> !recommendedPostIds.contains(post.getId()))
                     .toList();
         }
 
         Page<Post> mostPopularPosts = getRandomPopularPosts();
+        List<Post> popularPosts = mostPopularPosts.getContent().stream()
+                .filter(post -> !recommendedPostIds.contains(post.getId()))
+                .toList();
 
         List<Post> allPosts = new ArrayList<>();
         allPosts.addAll(hashtagPosts);
-        allPosts.addAll(mostPopularPosts.getContent());
+        allPosts.addAll(popularPosts);
 
         Collections.shuffle(allPosts);
 
-        List<ShortPostResponse> response = new ArrayList<>(
-                getShortPostResponseListFromPostList(
-                        pageRequest, new PageImpl<>(allPosts, pageRequest, allPosts.size())
-                ).getContent()
-        );
+        List<ShortPostResponse> response = getShortPostResponseListFromPostList(
+                pageRequest, new PageImpl<>(allPosts, pageRequest, allPosts.size())
+        ).getContent();
 
-        Page<ShortPostResponse> finalPage = new PageImpl<>(response, pageRequest, response.size());
+        if (response.size() > 5) {
+            response = response.subList(0, 5);
+        }
 
-        log.info("recommendationFlow returned {} posts", finalPage.getTotalElements());
-        return finalPage;
+        response.forEach(post -> recommendedPostIds.add(post.getId()));
+        userRecommendedPostsCache.put(user.getId(), recommendedPostIds);
+
+        log.info("recommendationFlow returned {} posts", response.size());
+        return response;
     }
-
     public Page<ShortPostResponse> getLikedPostsResponse(Pageable pageRequest) {
         log.info("getLikedPostsResponse called");
         User user = userService.getAuthenticatedUser();
