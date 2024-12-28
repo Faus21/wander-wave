@@ -283,4 +283,9 @@ public class UserService {
                 .orElseThrow(() -> new UserNotFoundException("User not found with nickname " + nickname));
         return userToUserResponse(user);
     }
+
+    public boolean isSubscribed(String userId) {
+        User authenticatedUser = getAuthenticatedUser();
+        return userRepository.isSubscribed(authenticatedUser.getId(), userId);
+    }
 }

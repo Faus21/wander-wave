@@ -183,6 +183,20 @@ public class UserController {
         return ResponseEntity.ok(new ResponseRecord(HttpStatus.OK.value(), subscribersPage));
     }
 
+    @GetMapping("/subscribers/{userId}/status")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Check subscription status", description = "Check if a user is subscribed.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Subscription status successfully fetched", content = @Content()),
+            @ApiResponse(responseCode = "404", description = "User not found", content = @Content()),
+            @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
+    })
+    public ResponseEntity<ResponseRecord> isUserSubscribed(@PathVariable String userId) {
+
+        boolean isSubscribed = userService.isSubscribed(userId);
+        return ResponseEntity.ok(new ResponseRecord(HttpStatus.OK.value(), isSubscribed));
+    }
+
     @PostMapping("/upload-avatar")
     @ResponseStatus(HttpStatus.OK)
     @Operation(summary = "Upload user avatar", description = "Upload a user avatar.")
