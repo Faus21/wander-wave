@@ -38,6 +38,7 @@ import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequ
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.List;
+import java.util.Set;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -175,16 +176,16 @@ public class PostControllerTest {
             PostRequest mockPostRequest = getMockPost();
             PostControllerTest.ResponseRecord response = new PostControllerTest.ResponseRecord(HttpStatus.OK.value(), "Post is created successfully");
 
-            when(postService.createPost(any(PostRequest.class), anyList())).thenReturn(response.message);
+            when(postService.createPost(any(PostRequest.class))).thenReturn(response.message);
 
-            MockMultipartHttpServletRequestBuilder requestBuilder = createPostRequest(mockPostRequest, createMockImages());
+            MockMultipartHttpServletRequestBuilder requestBuilder = createPostRequest(mockPostRequest);
 
             mockMvc.perform(requestBuilder)
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.code").value(HttpStatus.OK.value()))
                     .andExpect(jsonPath("$.message").value(response.message));
 
-            verify(postService).createPost(any(PostRequest.class), anyList());
+            verify(postService).createPost(any(PostRequest.class));
         }
 
         @Test
@@ -193,15 +194,15 @@ public class PostControllerTest {
             PostRequest mockPostRequest = getMockPost();
             PostControllerTest.ResponseRecord response = new PostControllerTest.ResponseRecord(HttpStatus.NOT_FOUND.value(), "Category not found");
 
-            when(postService.createPost(any(PostRequest.class), anyList())).thenThrow(new CategoryTypeNotFoundException(response.message));
+            when(postService.createPost(any(PostRequest.class))).thenThrow(new CategoryTypeNotFoundException(response.message));
 
-            MockMultipartHttpServletRequestBuilder requestBuilder = createPostRequest(mockPostRequest, createMockImages());
+            MockMultipartHttpServletRequestBuilder requestBuilder = createPostRequest(mockPostRequest);
 
             mockMvc.perform(requestBuilder)
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.message").value(response.message));
 
-            verify(postService).createPost(any(PostRequest.class), anyList());
+            verify(postService).createPost(any(PostRequest.class));
         }
 
         @Test
@@ -210,15 +211,15 @@ public class PostControllerTest {
             PostRequest mockPostRequest = getMockPost();
             PostControllerTest.ResponseRecord response = new PostControllerTest.ResponseRecord(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Internal server error");
 
-            when(postService.createPost(any(PostRequest.class), anyList())).thenThrow(new RuntimeException(response.message));
+            when(postService.createPost(any(PostRequest.class))).thenThrow(new RuntimeException(response.message));
 
-            MockMultipartHttpServletRequestBuilder requestBuilder = createPostRequest(mockPostRequest, createMockImages());
+            MockMultipartHttpServletRequestBuilder requestBuilder = createPostRequest(mockPostRequest);
 
             mockMvc.perform(requestBuilder)
                     .andExpect(status().isInternalServerError())
                     .andExpect(jsonPath("$.message").value(response.message));
 
-            verify(postService).createPost(any(PostRequest.class), anyList());
+            verify(postService).createPost(any(PostRequest.class));
         }
     }
 
@@ -786,16 +787,16 @@ public class PostControllerTest {
             var request = getMockPost();
             var responseMessage = "Post modified successfully";
 
-            when(postService.modifyPost(any(PostRequest.class), anyList())).thenReturn(responseMessage);
+            when(postService.modifyPost(any(PostRequest.class))).thenReturn(responseMessage);
 
-            MockMultipartHttpServletRequestBuilder requestBuilder = modifyRequest(request, createMockImages());
+            MockMultipartHttpServletRequestBuilder requestBuilder = modifyRequest(request);
 
             mockMvc.perform(requestBuilder)
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.code").value(HttpStatus.OK.value()))
                     .andExpect(jsonPath("$.message").value(responseMessage));
 
-            verify(postService).modifyPost(any(PostRequest.class), anyList());
+            verify(postService).modifyPost(any(PostRequest.class));
         }
 
         @Test
@@ -804,15 +805,15 @@ public class PostControllerTest {
             var postId = "12345";
             var request = getMockPost();
 
-            when(postService.modifyPost(any(PostRequest.class), anyList())).thenThrow(new PostNotFoundException(postId));
+            when(postService.modifyPost(any(PostRequest.class))).thenThrow(new PostNotFoundException(postId));
 
-            MockMultipartHttpServletRequestBuilder requestBuilder = modifyRequest(request, createMockImages());
+            MockMultipartHttpServletRequestBuilder requestBuilder = modifyRequest(request);
 
             mockMvc.perform(requestBuilder)
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.errorCode").value(HttpStatus.NOT_FOUND.value()));
 
-            verify(postService).modifyPost(any(PostRequest.class), anyList());
+            verify(postService).modifyPost(any(PostRequest.class));
         }
 
         @Test
@@ -820,15 +821,15 @@ public class PostControllerTest {
         void modifyPost_InternalServerError() throws Exception {
             var request = getMockPost();
 
-            when(postService.modifyPost(any(PostRequest.class), anyList())).thenThrow(new RuntimeException("Internal server error"));
+            when(postService.modifyPost(any(PostRequest.class))).thenThrow(new RuntimeException("Internal server error"));
 
-            MockMultipartHttpServletRequestBuilder requestBuilder = modifyRequest(request, createMockImages());
+            MockMultipartHttpServletRequestBuilder requestBuilder = modifyRequest(request);
 
             mockMvc.perform(requestBuilder)
                     .andExpect(status().isInternalServerError())
                     .andExpect(jsonPath("$.errorCode").value(HttpStatus.INTERNAL_SERVER_ERROR.value()));
 
-            verify(postService).modifyPost(any(PostRequest.class), anyList());
+            verify(postService).modifyPost(any(PostRequest.class));
         }
 
     }
@@ -895,7 +896,7 @@ public class PostControllerTest {
         ));
     }
 
-    private List<ShortPostResponse> getShortUserPostsList(){
+    private Set<ShortPostResponse> getShortUserPostsList(){
         User user = getMockUser();
 
         AccountInfoResponse accountInfo = AccountInfoResponse
@@ -913,30 +914,24 @@ public class PostControllerTest {
         post2.setId("mockPost2");
         post2.setAccountInfo(accountInfo);
 
-        return List.of(post1, post2);
+        return Set.of(post1, post2);
     }
 
-    private MockMultipartHttpServletRequestBuilder createMultipartRequest(String url, PostRequest postRequest, List<MockMultipartFile> images) throws Exception {
+    private MockMultipartHttpServletRequestBuilder createMultipartRequest(String url, PostRequest postRequest) throws Exception {
         String postRequestJson = objectMapper.writeValueAsString(postRequest);
 
-        MockMultipartHttpServletRequestBuilder requestBuilder = (MockMultipartHttpServletRequestBuilder) multipart(url)
+        return (MockMultipartHttpServletRequestBuilder) multipart(url)
                 .file(new MockMultipartFile("request", "", "application/json", postRequestJson.getBytes()))
                 .contentType(MediaType.MULTIPART_FORM_DATA)
                 .accept(ACCEPT_TYPE);
-
-        for (MockMultipartFile image : images) {
-            requestBuilder.file(image);
-        }
-
-        return requestBuilder;
     }
 
-    private MockMultipartHttpServletRequestBuilder createPostRequest(PostRequest postRequest, List<MockMultipartFile> images) throws Exception {
-        return createMultipartRequest(ApiUrls.CREATE_POST.getUrl(), postRequest, images);
+    private MockMultipartHttpServletRequestBuilder createPostRequest(PostRequest postRequest) throws Exception {
+        return createMultipartRequest(ApiUrls.CREATE_POST.getUrl(), postRequest);
     }
 
-    private MockMultipartHttpServletRequestBuilder modifyRequest(PostRequest postRequest, List<MockMultipartFile> images) throws Exception {
-        return (MockMultipartHttpServletRequestBuilder) createMultipartRequest(ApiUrls.MODIFY_POST.getUrl(), postRequest, images)
+    private MockMultipartHttpServletRequestBuilder modifyRequest(PostRequest postRequest) throws Exception {
+        return (MockMultipartHttpServletRequestBuilder) createMultipartRequest(ApiUrls.MODIFY_POST.getUrl(), postRequest)
                 .with(request -> {
                     request.setMethod("PUT");
                     return request;

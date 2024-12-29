@@ -317,13 +317,13 @@ class UserServiceTest {
             User mockUser = getMockUser(userId, "mock@mail.com");
             mockUser.setSubscriptionsCount(0);
 
+            when(userRepository.findByEmail(isNull()))
+                    .thenReturn(Optional.of(mockUser));
+
             when(userRepository.findAll(any(PageRequest.class)))
                     .thenReturn(new PageImpl<>(getRandomUserList(SUBSCRIPTIONS_PAGE)));
 
-            when(userRepository.findById(userId))
-                    .thenReturn(Optional.of(mockUser));
-
-            List<UserResponse> result = userService.getUserFriendshipRecommendations(userId);
+            List<UserResponse> result = userService.getUserFriendshipRecommendations();
 
             assertNotNull(result);
             assertEquals(SUBSCRIPTIONS_PAGE, result.size());
@@ -338,7 +338,7 @@ class UserServiceTest {
             int count = 5;
             mockUser.setSubscriptionsCount(count);
 
-            when(userRepository.findById(userId))
+            when(userRepository.findByEmail(isNull()))
                     .thenReturn(Optional.of(mockUser));
 
             when(userRepository.findAll(any(PageRequest.class)))
@@ -350,7 +350,7 @@ class UserServiceTest {
             when(userRepository.findSubscriptionsIdsByUserId(eq(userId), any(PageRequest.class)))
                     .thenReturn(new PageImpl<>(getRandomUserIdList(count)));
 
-            List<UserResponse> result = userService.getUserFriendshipRecommendations(userId);
+            List<UserResponse> result = userService.getUserFriendshipRecommendations();
 
             assertNotNull(result);
             assertEquals(SUBSCRIPTIONS_PAGE, result.size());
@@ -365,7 +365,8 @@ class UserServiceTest {
             int count = 100;
             mockUser.setSubscriptionsCount(count);
 
-            when(userRepository.findById(userId)).thenReturn(Optional.of(mockUser));
+            when(userRepository.findByEmail(isNull()))
+                    .thenReturn(Optional.of(mockUser));
 
             when(userRepository.findAllByIdIn(ArgumentMatchers.anyList()))
                     .thenReturn(getRandomUserList(SUBSCRIPTIONS_PAGE));
@@ -373,7 +374,7 @@ class UserServiceTest {
             when(userRepository.findSubscriptionsIdsByUserId(eq(userId), any(PageRequest.class)))
                     .thenReturn(new PageImpl<>(getRandomUserIdList(count)));
 
-            List<UserResponse> result = userService.getUserFriendshipRecommendations(userId);
+            List<UserResponse> result = userService.getUserFriendshipRecommendations();
 
             assertNotNull(result);
             assertEquals(SUBSCRIPTIONS_PAGE, result.size());

@@ -85,7 +85,7 @@ public class PostService {
     }
 
     @Transactional
-    public String modifyPost(PostRequest request, List<MultipartFile> images) {
+    public String modifyPost(PostRequest request) {
         log.info("modifyPost called with request: {}", request);
         User user = userService.getAuthenticatedUser();
 
@@ -97,14 +97,14 @@ public class PostService {
             throw new UnauthorizedActionException("User not authorized to perform this action");
         }
 
-        updatePostFields(request, post, images);
+        updatePostFields(request, post);
 
         postRepository.save(post);
 
         return "Post modified successfully";
     }
 
-    private void updatePostFields(PostRequest request, Post post, List<MultipartFile> images) {
+    private void updatePostFields(PostRequest request, Post post) {
         if (request.getCategory() != null) {
             CategoryType categoryType = getCategoryType(request.getCategory());
             post.setCategoryType(categoryType);
@@ -125,12 +125,6 @@ public class PostService {
         if (request.getHashtags() != null && !request.getHashtags().isEmpty()) {
             Set<HashTag> hashtagSet = processHashtags(request.getHashtags(), post);
             post.setHashtags(hashtagSet);
-        }
-
-        if (images != null && !images.isEmpty()) {
-            long timestamp = System.currentTimeMillis();
-            String[] uploadedImages = uploadImages(images, timestamp);
-            post.setImages(uploadedImages);
         }
 
         if (request.getPlaces() != null && !request.getPlaces().isEmpty()) {
@@ -174,14 +168,24 @@ public class PostService {
                 .collect(Collectors.toSet());
     }
 
-    private String[] uploadImages(List<MultipartFile> images, long timestamp) {
-        return Optional.ofNullable(images)
+    public String[] uploadImages(String postId, List<MultipartFile> images, long timestamp) {
+        log.info("Starting image upload for postId: {}", postId);
+
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new PostNotFoundException("Post not found with id: " + postId));
+
+        String[] uploadedImageUrls = Optional.ofNullable(images)
                 .filter(i -> !i.isEmpty())
                 .orElse(Collections.emptyList())
                 .parallelStream()
                 .map(image -> uploadImage(image, timestamp))
                 .filter(Objects::nonNull)
                 .toArray(String[]::new);
+
+        post.setImages(uploadedImageUrls);
+
+        log.info("Successfully uploaded {} images for postId: {}", uploadedImageUrls.length, postId);
+        return uploadedImageUrls;
     }
 
     private List<Place> processPlaces(List<PlaceRequest> places, Post post) {
@@ -194,19 +198,15 @@ public class PostService {
     }
 
     @Transactional
-    public String createPost(PostRequest createPostRequest, List<MultipartFile> images) {
+    public String createPost(PostRequest createPostRequest) {
         log.info("createPost called with request: {}", createPostRequest);
         User user = userService.getAuthenticatedUser();
-
-        long timestamp = System.currentTimeMillis();
-        String[] uploadedImages = uploadImages(images, timestamp);
 
         Route route = Route.fromRouteRequest(createPostRequest.getRoute());
         routeRepository.save(route);
 
         Post post = mapToPost(createPostRequest, user, route);
 
-        post.setImages(uploadedImages);
         postRepository.save(post);
 
         createPostRequest.getPlaces().stream()
@@ -363,15 +363,16 @@ public class PostService {
         return new PageImpl<>(response, pageRequest, response.size());
     }
 
-    public List<ShortPostResponse> recommendationFlow(Pageable pageRequest) {
+    public Set<ShortPostResponse> recommendationFlow(Pageable pageRequest) {
         log.info("recommendationFlow called");
         User user = userService.getAuthenticatedUser();
 
         Set<String> recommendedPostIds = userRecommendedPostsCache.get(user.getId(), k -> new HashSet<>());
 
-        List<Post> combinedPosts = Stream.concat(
-                        getLikedPosts(pageRequest, user).getContent().stream(),
-                        getSavedPosts(pageRequest, user).getContent().stream())
+        List<Post> combinedPosts = Stream.of(
+                        getLikedPosts(pageRequest, user).getContent(),
+                        getSavedPosts(pageRequest, user).getContent())
+                .flatMap(List::stream)
                 .filter(post -> !recommendedPostIds.contains(post.getId()))
                 .toList();
 
@@ -379,39 +380,37 @@ public class PostService {
                 .flatMap(post -> post.getHashtags().stream())
                 .collect(Collectors.toSet());
 
-        List<Post> hashtagPosts = new ArrayList<>();
-        if (!uniqueHashtags.isEmpty()) {
-            hashtagPosts = uniqueHashtags.stream()
-                    .flatMap(h -> postRepository.findByHashtagsContaining(h, pageRequest).getContent().stream())
-                    .filter(post -> !recommendedPostIds.contains(post.getId()))
-                    .toList();
-        }
+        List<Post> hashtagPosts = uniqueHashtags.isEmpty() ? List.of() :
+                uniqueHashtags.stream()
+                        .flatMap(h -> postRepository.findByHashtagsContaining(h, pageRequest).getContent().stream())
+                        .filter(post -> !recommendedPostIds.contains(post.getId()))
+                        .toList();
 
-        Page<Post> mostPopularPosts = getRandomPopularPosts();
-        List<Post> popularPosts = mostPopularPosts.getContent().stream()
+        List<Post> popularPosts = getRandomPopularPosts().getContent().stream()
                 .filter(post -> !recommendedPostIds.contains(post.getId()))
                 .toList();
 
-        List<Post> allPosts = new ArrayList<>();
-        allPosts.addAll(hashtagPosts);
-        allPosts.addAll(popularPosts);
-
+        List<Post> allPosts = Stream.concat(hashtagPosts.stream(), popularPosts.stream())
+                .collect(Collectors.toList());
         Collections.shuffle(allPosts);
 
         List<ShortPostResponse> response = getShortPostResponseListFromPostList(
                 pageRequest, new PageImpl<>(allPosts, pageRequest, allPosts.size())
         ).getContent();
 
-        if (response.size() > 5) {
-            response = response.subList(0, 5);
-        }
+        response = response.size() > 5 ? response.subList(0, 5) : response;
 
         response.forEach(post -> recommendedPostIds.add(post.getId()));
+
         userRecommendedPostsCache.put(user.getId(), recommendedPostIds);
 
-        log.info("recommendationFlow returned {} posts", response.size());
-        return response;
+        LinkedHashSet<ShortPostResponse> finalResult = new LinkedHashSet<>(response);
+
+        log.info("recommendationFlow returned {} posts", finalResult.size());
+
+        return finalResult;
     }
+
     public Page<ShortPostResponse> getLikedPostsResponse(Pageable pageRequest) {
         log.info("getLikedPostsResponse called");
         User user = userService.getAuthenticatedUser();

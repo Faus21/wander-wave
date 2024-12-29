@@ -192,11 +192,12 @@ public class UserService {
     }
 
     @Transactional
-    public List<UserResponse> getUserFriendshipRecommendations(String userId) {
-        log.info("Fetching friendship recommendations for user with ID: {}", userId);
-
-        User user = findUserByIdOrThrow(userId);
+    public List<UserResponse> getUserFriendshipRecommendations() {
+        User user = getAuthenticatedUser();
         log.debug("User found: {}", user);
+
+        log.info("Fetching friendship recommendations for user with ID: {}", user.getId());
+
 
         int subs = user.getSubscriptionsCount();
         log.debug("User has {} subscriptions", subs);
@@ -211,7 +212,7 @@ public class UserService {
         log.debug("Generated random page: {}", randomPage);
 
         List<UserResponse> randomSubscriptions =
-                getUserSubscriptions(userId, randomPage.getPageNumber(), randomPage.getPageSize());
+                getUserSubscriptions(user.getId(), randomPage.getPageNumber(), randomPage.getPageSize());
         log.debug("Random subscriptions fetched: {}", randomSubscriptions.size());
 
         if (randomSubscriptions.size() > SUBSCRIPTIONS_PAGE) {
@@ -243,7 +244,7 @@ public class UserService {
             mutableResult.addAll(allUsersToUserResponse(getRandomUsersFromDatabase(size)));
         }
 
-        mutableResult.removeIf(u -> u.getId().equals(userId));
+        mutableResult.removeIf(u -> u.getId().equals(user.getId()));
         log.info("Returning final list of friendship recommendations with size: {}", mutableResult.size());
         return mutableResult;
     }

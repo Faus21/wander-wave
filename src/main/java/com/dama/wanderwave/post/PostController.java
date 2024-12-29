@@ -12,7 +12,6 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Set;
 
 
 @RestController
@@ -64,10 +64,9 @@ public class PostController {
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
     public ResponseEntity<ResponseRecord> createPost(
-            @RequestPart PostRequest request,
-            @RequestPart("images") @Size(max = 5, message = "Maximum 5 images allowed") List<MultipartFile> images
+            @RequestPart PostRequest request
     ) {
-        String response = postService.createPost(request, images);
+        String response = postService.createPost(request);
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), response));
     }
 
@@ -80,10 +79,25 @@ public class PostController {
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
     public ResponseEntity<ResponseRecord> modifyPost(
-            @RequestPart PostRequest request,
-            @RequestPart("images") @Size(max = 5, message = "Maximum 5 images allowed") List<MultipartFile> images
+            @RequestPart PostRequest request
     ) {
-        String response = postService.modifyPost(request, images);
+        String response = postService.modifyPost(request);
+        return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), response));
+    }
+
+    @PostMapping("/{postId}/uploadImages")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Upload images", description = "Upload images for a post.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Images uploaded successfully", content = @Content()),
+            @ApiResponse(responseCode = "400", description = "Invalid image format or size", content = @Content()),
+            @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
+    })
+    public ResponseEntity<ResponseRecord> uploadImages(
+            @RequestPart("images") @Size(min = 1, max = 10) List<MultipartFile> images,
+            @PathVariable String postId
+    ) {
+        String[] response = postService.uploadImages(postId, images, System.currentTimeMillis());
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), response));
     }
 
@@ -197,7 +211,7 @@ public class PostController {
     public ResponseEntity<ResponseRecord> getRecommendationsFlow(@RequestParam int pageNumber,
                                                                  @RequestParam @Max(MAX_PAGE_SIZE) Integer pageSize) {
         Pageable page = PageRequest.of(pageNumber, pageSize);
-        List<ShortPostResponse> response = postService.recommendationFlow(page);
+        Set<ShortPostResponse> response = postService.recommendationFlow(page);
 
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), response));
     }

@@ -43,7 +43,7 @@ enum ApiUrl {
     SUBSCRIPTIONS("/api/users/subscriptions/{userId}"),
     SUBSCRIBERS("/api/users/subscribers/{userId}"),
     UPLOAD_AVATAR("/api/users/upload-avatar"),
-    RECOMMENDATIONS("/api/users/recommendations/{userId}");
+    RECOMMENDATIONS("/api/users/recommendations");
 
     private final String url;
 }
@@ -651,7 +651,6 @@ class UserControllerTest {
         @Test
         @DisplayName("Should successfully fetch friendship recommendations")
         void testGetUserFriendshipRecommendations_Success() throws Exception {
-            String userId = "123";
             UserResponse recommendedUser = UserResponse.builder()
                     .id("user1")
                     .nickname("JaneDoe1")
@@ -662,9 +661,9 @@ class UserControllerTest {
                     .build();
             List<UserResponse> recommendations = Arrays.asList(recommendedUser, recommendedUser2);
 
-            when(userService.getUserFriendshipRecommendations(userId)).thenReturn(recommendations);
+            when(userService.getUserFriendshipRecommendations()).thenReturn(recommendations);
 
-            mockMvc.perform(get(ApiUrl.RECOMMENDATIONS.getUrl(), userId)
+            mockMvc.perform(get(ApiUrl.RECOMMENDATIONS.getUrl())
                             .accept(ACCEPT_TYPE))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.message[0].id").value(recommendedUser.getId()))
@@ -672,21 +671,20 @@ class UserControllerTest {
                     .andExpect(jsonPath("$.message[1].id").value(recommendedUser2.getId()))
                     .andExpect(jsonPath("$.message[1].nickname").value(recommendedUser2.getNickname()));
 
-            verify(userService, times(1)).getUserFriendshipRecommendations(userId);
+            verify(userService, times(1)).getUserFriendshipRecommendations();
         }
 
         @Test
         @DisplayName("Should return 404 if user not found for friendship recommendations")
         void testGetUserFriendshipRecommendations_NotFound() throws Exception {
-            String userId = "123";
-            when(userService.getUserFriendshipRecommendations(userId)).thenThrow(new UserNotFoundException("User not found"));
+            when(userService.getUserFriendshipRecommendations()).thenThrow(new UserNotFoundException("User not found"));
 
-            mockMvc.perform(get(ApiUrl.RECOMMENDATIONS.getUrl(), userId)
+            mockMvc.perform(get(ApiUrl.RECOMMENDATIONS.getUrl())
                             .accept(ACCEPT_TYPE))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.message").value("User not found"));
 
-            verify(userService, times(1)).getUserFriendshipRecommendations(userId);
+            verify(userService, times(1)).getUserFriendshipRecommendations();
         }
     }
 }

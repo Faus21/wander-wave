@@ -14,7 +14,6 @@ import com.dama.wanderwave.hashtag.HashTag;
 import com.dama.wanderwave.hashtag.HashTagRepository;
 import com.dama.wanderwave.place.Place;
 import com.dama.wanderwave.place.PlaceRepository;
-import com.dama.wanderwave.place.request.CoordsRequest;
 import com.dama.wanderwave.place.request.PlaceRequest;
 import com.dama.wanderwave.place.request.RouteRequest;
 import com.dama.wanderwave.post.request.PostRequest;
@@ -165,7 +164,7 @@ public class PostServiceTest {
                 mockedPlace.when(() -> Place.fromPlaceRequest(any(PlaceRequest.class), any(Post.class)))
                         .thenReturn(new Place());
 
-                var response = postService.createPost(getMockPostCreateRequest(), Collections.emptyList());
+                var response = postService.createPost(getMockPostCreateRequest());
 
                 assertNotNull(response);
                 assertEquals("Post is created successfully!", response);
@@ -196,7 +195,7 @@ public class PostServiceTest {
                 mockedPlace.when(() -> Place.fromPlaceRequest(any(PlaceRequest.class), any(Post.class)))
                         .thenReturn(new Place());
 
-                assertThrows(CategoryTypeNotFoundException.class, () -> postService.createPost(getMockPostCreateRequest(), Collections.emptyList()));
+                assertThrows(CategoryTypeNotFoundException.class, () -> postService.createPost(getMockPostCreateRequest()));
 
                 verify(userService).getAuthenticatedUser();
                 verify(hashTagRepository).findByTitle(any(String.class));
@@ -523,19 +522,20 @@ public class PostServiceTest {
         void recommendationFlow_Success() {
             User mockUser = getMockUser();
             Post mockPost1 = getUserPosts().getFirst();
+            Post mockPost2 = getUserPosts().get(1);
 
             when(userService.getAuthenticatedUser()).thenReturn(mockUser);
             when(cache.get(anyString(), any())).thenReturn(new HashSet<>());
-            when(postRepository.findByUserWithLikes(any(User.class), any(Pageable.class))).thenReturn(new PageImpl<>(List.of(mockPost1)));
+            when(postRepository.findByUserWithLikes(any(User.class), any(Pageable.class))).thenReturn(new PageImpl<>(List.of(mockPost2)));
             when(postRepository.findByUserSaved(any(User.class), any(Pageable.class))).thenReturn(new PageImpl<>(new ArrayList<>()));
             when(postRepository.findByHashtagsContaining(any(HashTag.class), any(Pageable.class)))
                     .thenReturn(new PageImpl<>(List.of(mockPost1)));
             when(postRepository.findPopularPosts(any(Pageable.class), any(LocalDateTime.class))).thenReturn(new PageImpl<>(List.of(mockPost1)));
 
-            List<ShortPostResponse> result = postService.recommendationFlow(getPageRequest());
+            Set<ShortPostResponse> result = postService.recommendationFlow(getPageRequest());
 
             assertNotNull(result);
-            assertEquals(2, result.size());
+            assertEquals(1, result.size());
             verify(postRepository).findByHashtagsContaining(any(HashTag.class), any(Pageable.class));
         }
     }
@@ -644,7 +644,7 @@ public class PostServiceTest {
 
             when(userService.getAuthenticatedUser()).thenReturn(mockUser);
             when(postRepository.findById(postId)).thenReturn(Optional.of(mockPost));
-            String result = postService.modifyPost(request, Collections.emptyList());
+            String result = postService.modifyPost(request);
 
             assertEquals("Post modified successfully", result);
             assertEquals(request.getTitle(), mockPost.getTitle());
@@ -664,7 +664,7 @@ public class PostServiceTest {
 
             when(postRepository.findById(postId)).thenReturn(Optional.empty());
 
-            assertThrows(PostNotFoundException.class, () -> postService.modifyPost(request, Collections.emptyList()));
+            assertThrows(PostNotFoundException.class, () -> postService.modifyPost(request));
 
             verify(postRepository).findById(postId);
             verify(postRepository, never()).save(any(Post.class));

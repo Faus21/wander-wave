@@ -218,15 +218,15 @@ public class UserController {
         return ResponseEntity.ok(new ResponseRecord(HttpStatus.OK.value(), url));
     }
 
-    @GetMapping("/recommendations/{userId}")
+    @GetMapping("/recommendations")
     @Operation(summary = "Get friendship recommendations", description = "Retrieve list of friendship recommendations for user.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Recommendations retrieved successfully", content = @Content()),
             @ApiResponse(responseCode = "404", description = "User not found", content = @Content()),
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
-    public ResponseEntity<ResponseRecord> getUserFriendshipRecommendations(@PathVariable String userId) {
-        List<UserResponse> res = userService.getUserFriendshipRecommendations(userId);
+    public ResponseEntity<ResponseRecord> getUserFriendshipRecommendations() {
+        List<UserResponse> res = userService.getUserFriendshipRecommendations();
         return ResponseEntity.ok(new ResponseRecord(HttpStatus.OK.value(), res));
     }
 
