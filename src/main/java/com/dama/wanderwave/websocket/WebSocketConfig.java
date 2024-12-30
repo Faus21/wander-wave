@@ -16,7 +16,6 @@ import org.springframework.web.socket.server.standard.ServletServerContainerFact
 
 import static com.dama.wanderwave.websocket.WebSocketSettings.*;
 
-
 @Configuration
 @EnableWebSocketMessageBroker
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
@@ -31,13 +30,13 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 	}
 
 	@Override
-	public void configureClientInboundChannel( ChannelRegistration registration ) {
-		registration.interceptors( authChannelInterceptor );
+	public void configureClientInboundChannel(ChannelRegistration registration) {
+		registration.interceptors(authChannelInterceptor);
 	}
 
 	@Override
 	public void registerStompEndpoints(StompEndpointRegistry registry) {
-		registry.addEndpoint(CHAT_ENDPOINT.getStringValue())
+		registry.addEndpoint(CHAT_ENDPOINT.getStringValue(), NOTIFICATION_ENDPOINT.getStringValue())
 				.setAllowedOrigins(ALLOWED_ORIGINS.getStringValue())
 				.withSockJS()
 				.setTaskScheduler(taskScheduler)
@@ -49,9 +48,10 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 	}
 
 	@Override
-	public void configureMessageBroker( MessageBrokerRegistry config ) {
+	public void configureMessageBroker(MessageBrokerRegistry config) {
 		config.setApplicationDestinationPrefixes("/wander_wave");
 		config.enableSimpleBroker("/topic", "/queue");
+		config.setUserDestinationPrefix("/user");
 	}
 
 	@Bean
@@ -63,7 +63,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 	}
 
 	@Override
-	public void configureWebSocketTransport( WebSocketTransportRegistration registry ) {
+	public void configureWebSocketTransport(WebSocketTransportRegistration registry) {
 		registry.setMessageSizeLimit(MESSAGE_SIZE_LIMIT.getIntValue());
 		registry.setTimeToFirstMessage(TIME_TO_FIRST_MESSAGE.getIntValue());
 	}

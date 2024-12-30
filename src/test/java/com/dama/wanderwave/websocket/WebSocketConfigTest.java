@@ -76,8 +76,9 @@ class WebSocketConfigTest {
         void registerStompEndpointsShouldRegisterCorrectly() {
             StompWebSocketEndpointRegistration endpointRegistration = mock(StompWebSocketEndpointRegistration.class);
 
-            // Mock the StompEndpointRegistry
-            when(stompEndpointRegistry.addEndpoint(CHAT_ENDPOINT.getStringValue())).thenReturn(endpointRegistration);
+            // Mock the StompEndpointRegistry for both endpoints
+            when(stompEndpointRegistry.addEndpoint(CHAT_ENDPOINT.getStringValue(), NOTIFICATION_ENDPOINT.getStringValue()))
+                    .thenReturn(endpointRegistration);
 
             // Mock the StompWebSocketEndpointRegistration
             when(endpointRegistration.setAllowedOrigins(ALLOWED_ORIGINS.getStringValue())).thenReturn(endpointRegistration);
@@ -95,7 +96,7 @@ class WebSocketConfigTest {
             webSocketConfig.registerStompEndpoints(stompEndpointRegistry);
 
             // Verify the method calls
-            verify(stompEndpointRegistry).addEndpoint(CHAT_ENDPOINT.getStringValue());
+            verify(stompEndpointRegistry).addEndpoint(CHAT_ENDPOINT.getStringValue(), NOTIFICATION_ENDPOINT.getStringValue());
             verify(endpointRegistration).setAllowedOrigins(ALLOWED_ORIGINS.getStringValue());
             verify(endpointRegistration).withSockJS();
             verify(sockJsServiceRegistration).setTaskScheduler(taskScheduler);

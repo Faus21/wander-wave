@@ -1,5 +1,6 @@
 package com.dama.wanderwave.user.response;
 
+import com.dama.wanderwave.user.User;
 import lombok.Builder;
 import lombok.Data;
 
