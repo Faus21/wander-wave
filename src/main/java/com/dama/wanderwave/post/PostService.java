@@ -462,7 +462,7 @@ public class PostService {
     public PostResponse getPostById(String postId) {
         log.info("getPostById called with postId: {}", postId);
         Post p = postRepository.findByIdAndFetchHashtags(postId)
-                .orElseThrow(() -> new PostNotFoundException("Post with id + " + postId + " +  not found"));
+                .orElseThrow(() -> new PostNotFoundException("Post with id " + postId + " not found"));
 
         log.info("getPostById successfully returned post: {}", postId);
         return getPostResponseFromPost(p);
@@ -491,8 +491,6 @@ public class PostService {
 
         List<PlaceResponse> places = fetchAndMapPlaces(p);
 
-        List<CommentResponse> commentsContent = fetchAndMapComments(p);
-
         return PostResponse.builder()
                 .id(p.getId())
                 .title(p.getTitle())
@@ -503,7 +501,7 @@ public class PostService {
                 .places(places)
                 .isLiked(isPostLikedByUser(p, user))
                 .isSaved(isPostSavedByUser(p, user))
-                .comments(commentsContent)
+                .comments(p.getCommentsCount())
                 .likes(p.getLikesCount())
                 .cons(p.getCons())
                 .pros(p.getPros())
@@ -517,7 +515,6 @@ public class PostService {
 
         AccountInfoResponse accountInfo = buildAccountInfo(p.getUser());
         CategoryResponse category = buildCategoryResponse(p.getCategoryType());
-        Integer commentsCount = fetchAndMapComments(p).size();
 
         List<PlaceResponse> places = fetchAndMapPlaces(p);
 
@@ -532,7 +529,7 @@ public class PostService {
                 .rating(calculateRating(places))
                 .accountInfo(accountInfo)
                 .likes(p.getLikesCount())
-                .commentsCount(commentsCount)
+                .commentsCount(p.getCommentsCount())
                 .isLiked(isPostLikedByUser(p, user))
                 .isSaved(isPostSavedByUser(p, user))
                 .build();

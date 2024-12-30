@@ -45,6 +45,10 @@ public class CommentService {
                 .build();
 
         Comment savedComment = commentRepository.save(comment);
+
+        post.setCommentsCount(post.getCommentsCount() + 1);
+        postRepository.save(post);
+
         log.info("Comment created successfully with id: {}", savedComment.getId());
 
         return "Comment created successfully";
@@ -88,10 +92,12 @@ public class CommentService {
     public String deleteComment(String id) {
         log.info("Deleting comment with id: {}", id);
 
-        if (!commentRepository.existsById(id)) {
-            log.error("Comment with id {} not found", id);
-            throw new CommentNotFoundException("Comment with id " + id + " not found");
-        }
+        Comment comment = commentRepository.findById(id)
+                .orElseThrow(() -> new CommentNotFoundException("Comment with id " + id + " not found"));
+
+        Post post = comment.getPost();
+        post.setCommentsCount(post.getCommentsCount() - 1);
+        postRepository.save(post);
 
         commentRepository.deleteById(id);
         log.info("Comment deleted successfully with id: {}", id);

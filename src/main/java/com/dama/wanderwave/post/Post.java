@@ -95,6 +95,11 @@ public class Post {
 	@Builder.Default
 	private Integer likesCount = 0;
 
+	@Min(value = 0, message = "Comments count must be non-negative")
+	@Column(name = "post_comments")
+	@Builder.Default
+	private Integer commentsCount = 0;
+
 	@Column(name = "is_disabled_comments")
 	private Boolean isDisabledComments;
 

@@ -1,5 +1,6 @@
 package com.dama.wanderwave.post.response;
 
+import com.dama.wanderwave.route.Route;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -31,15 +32,13 @@ public class PostResponse {
 
     private Integer likes;
 
+    private Integer comments;
+
     private Boolean isLiked;
 
     private Boolean isSaved;
 
-    private List<CommentResponse> comments;
-
-    private String geo;
-
-    private String geoText;
+    private Route route;
 
     private String[] pros;
 

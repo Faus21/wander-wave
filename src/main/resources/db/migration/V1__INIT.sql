@@ -112,10 +112,11 @@ CREATE TABLE posts
     pros                 TEXT[],
     cons                 TEXT[],
     post_likes           INT                         NOT NULL,
+    post_comments        INT                         NOT NULL,
     is_disabled_comments BOOLEAN,
     route_id             VARCHAR(255),
     CONSTRAINT pk_posts PRIMARY KEY (post_id),
-    CONSTRAINT fk_posts_routes FOREIGN KEY (route_id) REFERENCES routes(route_id) ON DELETE SET NULL
+    CONSTRAINT fk_posts_routes FOREIGN KEY (route_id) REFERENCES routes (route_id) ON DELETE SET NULL
 );
 
 CREATE TABLE routes
