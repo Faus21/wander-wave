@@ -1,8 +1,11 @@
 package com.dama.wanderwave.config;
 
 
+import com.dama.wanderwave.place.Place;
+import com.dama.wanderwave.post.response.PlaceResponse;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.modelmapper.PropertyMap;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -74,7 +77,19 @@ public class BeanConfig {
 
 	@Bean
 	public ModelMapper modelMapper() {
-		return new ModelMapper();
+		ModelMapper modelMapper = new ModelMapper();
+
+		modelMapper.addMappings(new PropertyMap<Place, PlaceResponse>() {
+			@Override
+			protected void configure() {
+				map().setDescription(source.getDescription());
+				map().setRating(source.getRating());
+				map().getCoords().setLatitude(source.getLatitude());
+				map().getCoords().setLongitude(source.getLongitude());
+			}
+		});
+
+		return modelMapper;
 	}
 }
 

@@ -15,9 +15,7 @@ public class PlaceResponse {
 
     private Double rating;
 
-    private BigDecimal longitude;
-
-    private BigDecimal latitude;
+    private CoordsResponse coords;
 
     private String imgUrl;
 
