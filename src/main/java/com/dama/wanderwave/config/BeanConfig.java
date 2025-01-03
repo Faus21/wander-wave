@@ -1,8 +1,12 @@
 package com.dama.wanderwave.config;
 
 
+import com.dama.wanderwave.comment.Comment;
 import com.dama.wanderwave.place.Place;
+import com.dama.wanderwave.post.response.AccountInfoResponse;
+import com.dama.wanderwave.post.response.CommentResponse;
 import com.dama.wanderwave.post.response.PlaceResponse;
+import com.dama.wanderwave.user.User;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.PropertyMap;
@@ -86,6 +90,24 @@ public class BeanConfig {
 				map().setRating(source.getRating());
 				map().getCoords().setLatitude(source.getLatitude());
 				map().getCoords().setLongitude(source.getLongitude());
+			}
+		});
+
+		modelMapper.addMappings(new PropertyMap<Comment, CommentResponse>() {
+			@Override
+			protected void configure() {
+				map().setText(source.getContent());
+				map().setCreationDate(source.getCreatedAt());
+				map(source.getUser(), destination.getAccountInfo());
+			}
+		});
+
+		modelMapper.addMappings(new PropertyMap<User, AccountInfoResponse>() {
+			@Override
+			protected void configure() {
+				map().setId(source.getId());
+				map().setNickname(source.getNickname());
+				map().setImageUrl(source.getImageUrl());
 			}
 		});
 

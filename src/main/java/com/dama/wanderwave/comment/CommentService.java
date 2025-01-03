@@ -5,10 +5,12 @@ import com.dama.wanderwave.handler.post.PostNotFoundException;
 import com.dama.wanderwave.post.Post;
 import com.dama.wanderwave.post.PostRepository;
 import com.dama.wanderwave.post.request.CreateCommentRequest;
+import com.dama.wanderwave.post.response.CommentResponse;
 import com.dama.wanderwave.user.User;
 import com.dama.wanderwave.user.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -16,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
@@ -25,6 +28,7 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
     private final UserService userService;
+    private final ModelMapper modelMapper;
 
     @Transactional
     public String createComment(CreateCommentRequest createCommentRequest) {
@@ -54,7 +58,7 @@ public class CommentService {
         return "Comment created successfully";
     }
 
-    public List<Comment> getAllCommentsForPost(Pageable pageable, String postId) {
+    public List<CommentResponse> getAllCommentsForPost(Pageable pageable, String postId) {
         log.info("Fetching all comments for post {} with page number: {}, page size: {}",
                 postId, pageable.getPageNumber(), pageable.getPageSize());
 
@@ -67,7 +71,9 @@ public class CommentService {
                 commentsPage.getNumber(),
                 commentsPage.getTotalElements());
 
-        return commentsPage.getContent();
+        return commentsPage.getContent().stream()
+                .map(comment -> modelMapper.map(comment, CommentResponse.class))
+                .toList();
     }
 
     @Transactional

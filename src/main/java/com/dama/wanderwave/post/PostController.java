@@ -4,6 +4,7 @@ import com.dama.wanderwave.comment.Comment;
 import com.dama.wanderwave.comment.CommentService;
 import com.dama.wanderwave.post.request.CreateCommentRequest;
 import com.dama.wanderwave.post.request.PostRequest;
+import com.dama.wanderwave.post.response.CommentResponse;
 import com.dama.wanderwave.post.response.PostResponse;
 import com.dama.wanderwave.post.response.ShortPostResponse;
 import com.dama.wanderwave.utils.ResponseRecord;
@@ -336,7 +337,7 @@ public class PostController {
             @RequestParam @Max(MAX_PAGE_SIZE) Integer pageSize
     ) {
         Pageable pageable = PageRequest.of(pageNumber, pageSize);
-        List<Comment> comments = commentService.getAllCommentsForPost(pageable, postId);
+        List<CommentResponse> comments = commentService.getAllCommentsForPost(pageable, postId);
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), comments));
     }
 
