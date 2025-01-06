@@ -606,25 +606,25 @@ public class PostServiceTest {
         void getPostById_Success() {
             var postId = "12345";
             var mockPost = getMockPost(postId);
-            when(postRepository.findByIdAndFetchHashtags(postId)).thenReturn(Optional.of(mockPost));
+            when(postRepository.findById(postId)).thenReturn(Optional.of(mockPost));
             PostResponse result = postService.getPostById(postId);
 
             assertNotNull(result);
             assertEquals(mockPost.getId(), result.getId());
             assertEquals(mockPost.getTitle(), result.getTitle());
 
-            verify(postRepository).findByIdAndFetchHashtags(postId);
+            verify(postRepository).findById(postId);
         }
 
         @Test
         @DisplayName("Get post by ID should throw exception when post is not found")
         void getPostById_PostNotFound() {
             var postId = "12345";
-            when(postRepository.findByIdAndFetchHashtags(postId)).thenReturn(Optional.empty());
+            when(postRepository.findById(postId)).thenReturn(Optional.empty());
 
             assertThrows(PostNotFoundException.class, () -> postService.getPostById(postId));
 
-            verify(postRepository).findByIdAndFetchHashtags(postId);
+            verify(postRepository).findById(postId);
         }
 
     }

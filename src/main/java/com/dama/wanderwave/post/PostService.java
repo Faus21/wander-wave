@@ -183,6 +183,7 @@ public class PostService {
                 .toArray(String[]::new);
 
         post.setImages(uploadedImageUrls);
+        postRepository.save(post);
 
         log.info("Successfully uploaded {} images for postId: {}", uploadedImageUrls.length, postId);
         return uploadedImageUrls;
@@ -461,7 +462,7 @@ public class PostService {
 
     public PostResponse getPostById(String postId) {
         log.info("getPostById called with postId: {}", postId);
-        Post p = postRepository.findByIdAndFetchHashtags(postId)
+        Post p = postRepository.findById(postId)
                 .orElseThrow(() -> new PostNotFoundException("Post with id " + postId + " not found"));
 
         log.info("getPostById successfully returned post: {}", postId);
@@ -516,32 +517,45 @@ public class PostService {
         AccountInfoResponse accountInfo = buildAccountInfo(p.getUser());
         CategoryResponse category = buildCategoryResponse(p.getCategoryType());
 
-        List<PlaceResponse> places = fetchAndMapPlaces(p);
+        List<Place> places = fetchPlaces(p);
 
-        PlaceResponse first = !places.isEmpty() ? places.getFirst() : null;
+        Place first = !places.isEmpty() ? places.getFirst() : null;
+        ShortPlaceResponse shortPlaceResponse = new ShortPlaceResponse();
+        if (first != null) {
+            shortPlaceResponse = ShortPlaceResponse
+                    .builder()
+                    .displayName(first.getDisplayName())
+                    .rating(first.getRating())
+                    .build();
+        }
+        String image = "";
+        if (p.getImages() != null) {
+            image = p.getImages().length > 0 ? p.getImages()[0] : null;
+        }
 
         return ShortPostResponse.builder()
                 .id(p.getId())
                 .creationDate(p.getCreatedAt())
                 .category(category)
                 .title(p.getTitle())
-                .place(first)
+                .place(shortPlaceResponse)
                 .rating(calculateRating(places))
                 .accountInfo(accountInfo)
                 .likes(p.getLikesCount())
+                .previewImage(image)
                 .commentsCount(p.getCommentsCount())
                 .isLiked(isPostLikedByUser(p, user))
                 .isSaved(isPostSavedByUser(p, user))
                 .build();
     }
 
-    private Double calculateRating(List<PlaceResponse> places) {
+    private Double calculateRating(List<Place> places) {
         if (places == null || places.isEmpty()) {
             return 0.0;
         }
 
         double totalRating = places.stream()
-                .mapToDouble(PlaceResponse::getRating)
+                .mapToDouble(Place::getRating)
                 .sum();
 
         return totalRating / places.size();
@@ -567,6 +581,13 @@ public class PostService {
                 .orElse(Collections.emptyList())
                 .stream()
                 .map(place -> modelMapper.map(place, PlaceResponse.class))
+                .toList();
+    }
+
+    private List<Place> fetchPlaces(Post p) {
+        return Optional.ofNullable(placeRepository.findAllByPost(p))
+                .orElse(Collections.emptyList())
+                .stream()
                 .toList();
     }
 

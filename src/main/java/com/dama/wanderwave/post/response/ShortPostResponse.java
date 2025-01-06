@@ -22,11 +22,13 @@ public class ShortPostResponse {
 
     private String title;
 
-    private PlaceResponse place;
+    private ShortPlaceResponse place;
 
     private Double rating;
 
     private Integer commentsCount;
+
+    private String previewImage;
 
     private AccountInfoResponse accountInfo;
 

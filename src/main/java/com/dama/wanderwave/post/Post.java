@@ -72,7 +72,7 @@ public class Post {
 	@Column(name = "cons", columnDefinition = "TEXT[]")
 	private String[] cons;
 
-	@ManyToMany
+	@ManyToMany(fetch = FetchType.EAGER)
 	@JoinTable(
 			name = "post_hashtags",
 			joinColumns = @JoinColumn(name = "post_id"),
