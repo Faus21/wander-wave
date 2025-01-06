@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +37,10 @@ public class CommentService {
 
         Post post = findPostById(createCommentRequest.getPostId());
 
+        if (post.getIsDisabledComments()) {
+            throw new RuntimeException("Comments are disabled.");
+        }
+
         User user = userService.getAuthenticatedUser();
         log.debug("Authenticated user: {}", user.getId());
 
@@ -58,11 +63,15 @@ public class CommentService {
         return "Comment created successfully";
     }
 
-    public List<CommentResponse> getAllCommentsForPost(Pageable pageable, String postId) {
+    public Page<CommentResponse> getAllCommentsForPost(Pageable pageable, String postId) {
         log.info("Fetching all comments for post {} with page number: {}, page size: {}",
                 postId, pageable.getPageNumber(), pageable.getPageSize());
 
         Post post = findPostById(postId);
+
+        if (post.getIsDisabledComments()) {
+            throw new RuntimeException("Comments are disabled.");
+        }
 
         Page<Comment> commentsPage = commentRepository.findAllByPost(post, pageable);
 
@@ -71,9 +80,15 @@ public class CommentService {
                 commentsPage.getNumber(),
                 commentsPage.getTotalElements());
 
-        return commentsPage.getContent().stream()
+        List<CommentResponse> commentResponses = commentsPage.getContent().stream()
                 .map(comment -> modelMapper.map(comment, CommentResponse.class))
-                .toList();
+                .collect(Collectors.toList());
+
+        return new PageImpl<>(
+                commentResponses,
+                commentsPage.getPageable(),
+                commentsPage.getTotalElements()
+        );
     }
 
     @Transactional

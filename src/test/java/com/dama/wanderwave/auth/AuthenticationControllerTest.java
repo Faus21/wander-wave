@@ -38,8 +38,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 import static com.dama.wanderwave.auth.ApiUrls.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -476,7 +475,7 @@ class AuthenticationControllerTest {
             User user = new User();
             user.setNickname("testUser");
             refreshTokenEntity.setUser(user);
-            ResponseRecord response = new ResponseRecord(HttpStatus.OK.value(), newAccessToken);
+            AuthenticationResponse response = new AuthenticationResponse(newAccessToken, refreshToken);
 
             when(refreshTokenService.findByToken(refreshToken)).thenReturn(Optional.of(refreshTokenEntity));
             when(refreshTokenService.verifyExpiration(refreshTokenEntity)).thenReturn(refreshTokenEntity);
@@ -487,8 +486,8 @@ class AuthenticationControllerTest {
                             .accept(ACCEPT_TYPE)
                             .content(mapToJson(request)))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value(response.code))
-                    .andExpect(jsonPath("$.message").value(response.message));
+                    .andExpect(jsonPath("$.accessToken").value(response.getAccessToken()))
+                    .andExpect(jsonPath("$.refreshToken").value(refreshToken));
 
             verify(refreshTokenService, times(1)).findByToken(refreshToken);
             verify(refreshTokenService, times(1)).verifyExpiration(refreshTokenEntity);
@@ -508,7 +507,7 @@ class AuthenticationControllerTest {
                             .accept(ACCEPT_TYPE)
                             .content(mapToJson(request)))
                     .andExpect(status().isBadRequest())
-                    .andExpect(result -> assertTrue(result.getResolvedException() instanceof TokenRefreshException))
+                    .andExpect(result -> assertInstanceOf(TokenRefreshException.class, result.getResolvedException()))
                     .andExpect(result -> assertEquals("Refresh token is invalid!", Objects.requireNonNull(result.getResolvedException()).getMessage()));
 
             verify(refreshTokenService, times(1)).findByToken(refreshToken);

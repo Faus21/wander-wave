@@ -65,7 +65,7 @@ public class PostController {
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
     public ResponseEntity<ResponseRecord> createPost(
-            @RequestPart PostRequest request
+            @RequestBody PostRequest request
     ) {
         String response = postService.createPost(request);
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), response));
@@ -80,7 +80,7 @@ public class PostController {
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
     public ResponseEntity<ResponseRecord> modifyPost(
-            @RequestPart PostRequest request
+            @RequestBody PostRequest request
     ) {
         String response = postService.modifyPost(request);
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), response));
@@ -337,7 +337,7 @@ public class PostController {
             @RequestParam @Max(MAX_PAGE_SIZE) Integer pageSize
     ) {
         Pageable pageable = PageRequest.of(pageNumber, pageSize);
-        List<CommentResponse> comments = commentService.getAllCommentsForPost(pageable, postId);
+        Page<CommentResponse> comments = commentService.getAllCommentsForPost(pageable, postId);
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), comments));
     }
 

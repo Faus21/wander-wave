@@ -167,7 +167,7 @@ public class PostServiceTest {
                 var response = postService.createPost(getMockPostCreateRequest());
 
                 assertNotNull(response);
-                assertEquals("Post is created successfully!", response);
+                assertEquals("mockPost1", response);
 
                 verify(userService).getAuthenticatedUser();
                 verify(hashTagRepository).findByTitle(any(String.class));

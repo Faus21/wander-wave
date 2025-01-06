@@ -34,7 +34,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.List;
@@ -174,11 +174,11 @@ public class PostControllerTest {
         @DisplayName("Post creation should return OK (200)")
         void createPost_Success() throws Exception {
             PostRequest mockPostRequest = getMockPost();
-            PostControllerTest.ResponseRecord response = new PostControllerTest.ResponseRecord(HttpStatus.OK.value(), "Post is created successfully");
+            PostControllerTest.ResponseRecord response = new PostControllerTest.ResponseRecord(HttpStatus.OK.value(), mockPostRequest.getId());
 
             when(postService.createPost(any(PostRequest.class))).thenReturn(response.message);
 
-            MockMultipartHttpServletRequestBuilder requestBuilder = createPostRequest(mockPostRequest);
+            MockHttpServletRequestBuilder requestBuilder = createPostRequest(mockPostRequest);
 
             mockMvc.perform(requestBuilder)
                     .andExpect(status().isOk())
@@ -196,7 +196,7 @@ public class PostControllerTest {
 
             when(postService.createPost(any(PostRequest.class))).thenThrow(new CategoryTypeNotFoundException(response.message));
 
-            MockMultipartHttpServletRequestBuilder requestBuilder = createPostRequest(mockPostRequest);
+            MockHttpServletRequestBuilder requestBuilder = createPostRequest(mockPostRequest);
 
             mockMvc.perform(requestBuilder)
                     .andExpect(status().isNotFound())
@@ -213,7 +213,7 @@ public class PostControllerTest {
 
             when(postService.createPost(any(PostRequest.class))).thenThrow(new RuntimeException(response.message));
 
-            MockMultipartHttpServletRequestBuilder requestBuilder = createPostRequest(mockPostRequest);
+            MockHttpServletRequestBuilder requestBuilder = createPostRequest(mockPostRequest);
 
             mockMvc.perform(requestBuilder)
                     .andExpect(status().isInternalServerError())
@@ -789,7 +789,7 @@ public class PostControllerTest {
 
             when(postService.modifyPost(any(PostRequest.class))).thenReturn(responseMessage);
 
-            MockMultipartHttpServletRequestBuilder requestBuilder = modifyRequest(request);
+            MockHttpServletRequestBuilder requestBuilder = modifyRequest(request);
 
             mockMvc.perform(requestBuilder)
                     .andExpect(status().isOk())
@@ -807,7 +807,7 @@ public class PostControllerTest {
 
             when(postService.modifyPost(any(PostRequest.class))).thenThrow(new PostNotFoundException(postId));
 
-            MockMultipartHttpServletRequestBuilder requestBuilder = modifyRequest(request);
+            MockHttpServletRequestBuilder requestBuilder = modifyRequest(request);
 
             mockMvc.perform(requestBuilder)
                     .andExpect(status().isNotFound())
@@ -823,7 +823,7 @@ public class PostControllerTest {
 
             when(postService.modifyPost(any(PostRequest.class))).thenThrow(new RuntimeException("Internal server error"));
 
-            MockMultipartHttpServletRequestBuilder requestBuilder = modifyRequest(request);
+            MockHttpServletRequestBuilder requestBuilder = modifyRequest(request);
 
             mockMvc.perform(requestBuilder)
                     .andExpect(status().isInternalServerError())
@@ -917,21 +917,20 @@ public class PostControllerTest {
         return Set.of(post1, post2);
     }
 
-    private MockMultipartHttpServletRequestBuilder createMultipartRequest(String url, PostRequest postRequest) throws Exception {
+    private MockHttpServletRequestBuilder createJsonRequest(String url, PostRequest postRequest) throws Exception {
         String postRequestJson = objectMapper.writeValueAsString(postRequest);
 
-        return (MockMultipartHttpServletRequestBuilder) multipart(url)
-                .file(new MockMultipartFile("request", "", "application/json", postRequestJson.getBytes()))
-                .contentType(MediaType.MULTIPART_FORM_DATA)
+        return post(url)
+                .content(postRequestJson)
+                .contentType(MediaType.APPLICATION_JSON)
                 .accept(ACCEPT_TYPE);
     }
 
-    private MockMultipartHttpServletRequestBuilder createPostRequest(PostRequest postRequest) throws Exception {
-        return createMultipartRequest(ApiUrls.CREATE_POST.getUrl(), postRequest);
+    private MockHttpServletRequestBuilder createPostRequest(PostRequest postRequest) throws Exception {
+        return createJsonRequest(ApiUrls.CREATE_POST.getUrl(), postRequest);
     }
-
-    private MockMultipartHttpServletRequestBuilder modifyRequest(PostRequest postRequest) throws Exception {
-        return (MockMultipartHttpServletRequestBuilder) createMultipartRequest(ApiUrls.MODIFY_POST.getUrl(), postRequest)
+    private MockHttpServletRequestBuilder modifyRequest(PostRequest postRequest) throws Exception {
+        return createJsonRequest(ApiUrls.MODIFY_POST.getUrl(), postRequest)
                 .with(request -> {
                     request.setMethod("PUT");
                     return request;

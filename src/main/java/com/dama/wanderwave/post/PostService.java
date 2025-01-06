@@ -207,14 +207,14 @@ public class PostService {
 
         Post post = mapToPost(createPostRequest, user, route);
 
-        postRepository.save(post);
+        Post saved = postRepository.save(post);
 
         createPostRequest.getPlaces().stream()
                 .map(placeRequest -> Place.fromPlaceRequest(placeRequest, post))
                 .forEach(placeRepository::save);
 
         log.info("createPost successfully created post with title: {}", createPostRequest.getTitle());
-        return "Post is created successfully!";
+        return saved.getId();
     }
 
     private Set<HashTag> createHashTags(Set<String> hashtags) {
@@ -584,6 +584,7 @@ public class PostService {
     private CommentResponse mapCommentToCommentResponse(Comment comment) {
         AccountInfoResponse accountInfo = buildAccountInfo(comment.getUser());
         return CommentResponse.builder()
+                .id(comment.getId())
                 .accountInfo(accountInfo)
                 .text(comment.getContent())
                 .creationDate(comment.getCreatedAt())

@@ -76,8 +76,8 @@ CREATE TABLE notifications
 CREATE TABLE places
 (
     place_id      VARCHAR(255)     NOT NULL,
-    display_name  VARCHAR(64)      NOT NULL,
-    location_name VARCHAR(64)      NOT NULL,
+    display_name  VARCHAR(500)      NOT NULL,
+    location_name VARCHAR(500)      NOT NULL,
     description   VARCHAR(500)     NOT NULL,
     rating        DOUBLE PRECISION NOT NULL,
     longitude     numeric(9, 6)    NOT NULL,
@@ -207,22 +207,6 @@ CREATE TABLE user_saved_posts
     CONSTRAINT pk_user_saved_posts PRIMARY KEY (user_id, post_id)
 );
 
-CREATE TABLE user_viewed_posts
-(
-    created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-    user_id    VARCHAR(255)                NOT NULL,
-    post_id    VARCHAR(255)                NOT NULL,
-    CONSTRAINT pk_user_viewed_posts PRIMARY KEY (user_id, post_id)
-);
-
-/*
- @Min(0)
-	@Column(name = "subscriber_count")
-	private int subscriberCount;
-	@Min(0)
-	@Column(name = "subscriptions_count")
-	private int subscriptionsCount;
- */
 CREATE TABLE users
 (
     user_id             VARCHAR(255) NOT NULL,
@@ -346,12 +330,6 @@ ALTER TABLE user_saved_posts
 
 ALTER TABLE reports
     ADD CONSTRAINT FK_USER_SENDER_REPORT FOREIGN KEY (user_sender_id) REFERENCES users (user_id);
-
-ALTER TABLE user_viewed_posts
-    ADD CONSTRAINT FK_USER_VIEWED_POSTS_ON_POST FOREIGN KEY (post_id) REFERENCES posts (post_id);
-
-ALTER TABLE user_viewed_posts
-    ADD CONSTRAINT FK_USER_VIEWED_POSTS_ON_USER FOREIGN KEY (user_id) REFERENCES users (user_id);
 
 ALTER TABLE post_hashtags
     ADD CONSTRAINT fk_poshas_on_hash_tag FOREIGN KEY (hashtag_id) REFERENCES hashtags (hashtag_id);

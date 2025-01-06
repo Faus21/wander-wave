@@ -2,7 +2,6 @@ package com.dama.wanderwave.notification.response;
 
 import com.dama.wanderwave.notification.Notification;
 import com.dama.wanderwave.user.response.ShortUserResponse;
-import com.dama.wanderwave.user.response.UserResponse;
 import lombok.Builder;
 import lombok.Data;
 

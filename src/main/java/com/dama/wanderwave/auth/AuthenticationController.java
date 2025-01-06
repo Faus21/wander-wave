@@ -116,7 +116,7 @@ public class AuthenticationController {
             @ApiResponse(responseCode = "400", description = "Invalid or expired refresh token", content = @Content()),
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
-    public ResponseEntity<ResponseRecord> refreshToken(@RequestBody TokenRefreshRequest request) {
+    public ResponseEntity<AuthenticationResponse> refreshToken(@RequestBody TokenRefreshRequest request) {
         String requestRefreshToken = request.getRefreshToken();
 
         return refreshTokenService.findByToken(requestRefreshToken)
@@ -126,9 +126,9 @@ public class AuthenticationController {
                     Map<String, Object> claims = Map.of("username", user.getNickname());
                     String newAccessToken = jwtService.generateToken(claims, user);
                     return ResponseEntity.ok()
-                            .body(ResponseRecord.builder()
-                                    .code(HttpStatus.OK.value())
-                                    .message(newAccessToken)
+                            .body(AuthenticationResponse.builder()
+                                    .accessToken(newAccessToken)
+                                    .refreshToken(requestRefreshToken)
                                     .build());
                 })
                 .orElseThrow(() -> new TokenRefreshException("Refresh token is invalid!"));

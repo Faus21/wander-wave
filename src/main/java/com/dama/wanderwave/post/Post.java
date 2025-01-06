@@ -8,7 +8,6 @@ import com.dama.wanderwave.user.User;
 import com.dama.wanderwave.hashtag.HashTag;
 import com.dama.wanderwave.user.like.Like;
 import com.dama.wanderwave.user.saved_post.SavedPost;
-import com.dama.wanderwave.user.viewed_post.ViewedPost;
 import com.vladmihalcea.hibernate.type.array.StringArrayType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
@@ -81,10 +80,6 @@ public class Post {
 	)
 	@Builder.Default
 	private Set<HashTag> hashtags = new HashSet<>();
-
-	@OneToMany(mappedBy = "post", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-	@Builder.Default
-	private Set<ViewedPost> viewedPosts = new HashSet<>();
 
 	@OneToMany(mappedBy = "post", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
 	@Builder.Default
