@@ -185,7 +185,7 @@ public class UserService {
                 .email(user.getEmail())
                 .nickname(user.getNickname())
                 .description(user.getDescription())
-                .avatarUrl(user.isAccountLocked() ? "" : user.getImageUrl())
+                .avatarUrl(user.getImageUrl())
                 .subscriberCount(user.getSubscriberCount())
                 .subscriptionsCount(user.getSubscriptionsCount())
                 .build();

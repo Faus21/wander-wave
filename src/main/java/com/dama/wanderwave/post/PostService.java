@@ -500,6 +500,7 @@ public class PostService {
                 .hashtags(p.getHashtags().stream().map(HashTag::getTitle).collect(Collectors.toSet()))
                 .accountInfo(accountInfo)
                 .places(places)
+                .route(p.getRoute())
                 .isLiked(isPostLikedByUser(p, user))
                 .isSaved(isPostSavedByUser(p, user))
                 .comments(p.getCommentsCount())
