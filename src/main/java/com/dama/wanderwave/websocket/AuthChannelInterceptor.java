@@ -21,21 +21,25 @@ public class AuthChannelInterceptor implements ChannelInterceptor {
 	private final UserDetailsService userDetailsService;
 
 	@Override
-	public Message<?> preSend(Message<?> message,@NonNull MessageChannel channel) {
+	public Message<?> preSend(Message<?> message, @NonNull MessageChannel channel) {
 		String authHeader = (String) message.getHeaders().get("simpSessionAttributes.Authorization");
 
 		if (authHeader != null && authHeader.startsWith("Bearer ")) {
 			String token = authHeader.substring("Bearer ".length());
 			String username = jwtService.extractUsername(token);
+			log.debug("Extracted username from token: {}", username);
 
 			UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 			if (userDetails != null && jwtService.isTokenValid(token, userDetails)) {
 				log.info("WebSocket message authenticated for user: {}", username);
 				return message;
+			} else {
+				log.warn("Invalid token or user not found: {}", username);
 			}
+		} else {
+			log.warn("Authorization header is missing or invalid");
 		}
 
-		log.warn("WebSocket message rejected due to invalid authentication");
 		return null;
 	}
 }

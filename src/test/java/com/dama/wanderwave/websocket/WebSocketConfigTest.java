@@ -77,11 +77,11 @@ class WebSocketConfigTest {
             StompWebSocketEndpointRegistration endpointRegistration = mock(StompWebSocketEndpointRegistration.class);
 
             // Mock the StompEndpointRegistry for both endpoints
-            when(stompEndpointRegistry.addEndpoint(CHAT_ENDPOINT.getStringValue(), NOTIFICATION_ENDPOINT.getStringValue()))
+            when(stompEndpointRegistry.addEndpoint(APPLICATION_ENDPOINT.getStringValue()))
                     .thenReturn(endpointRegistration);
 
             // Mock the StompWebSocketEndpointRegistration
-            when(endpointRegistration.setAllowedOrigins(ALLOWED_ORIGINS.getStringValue())).thenReturn(endpointRegistration);
+            when(endpointRegistration.setAllowedOrigins("http://localhost:3000", "https://wanderwave.azurewebsites.net/")).thenReturn(endpointRegistration);
             when(endpointRegistration.withSockJS()).thenReturn(sockJsServiceRegistration);
 
             // Mock the SockJsServiceRegistration
@@ -96,8 +96,8 @@ class WebSocketConfigTest {
             webSocketConfig.registerStompEndpoints(stompEndpointRegistry);
 
             // Verify the method calls
-            verify(stompEndpointRegistry).addEndpoint(CHAT_ENDPOINT.getStringValue(), NOTIFICATION_ENDPOINT.getStringValue());
-            verify(endpointRegistration).setAllowedOrigins(ALLOWED_ORIGINS.getStringValue());
+            verify(stompEndpointRegistry).addEndpoint(APPLICATION_ENDPOINT.getStringValue());
+            verify(endpointRegistration).setAllowedOrigins("http://localhost:3000", "https://wanderwave.azurewebsites.net/");
             verify(endpointRegistration).withSockJS();
             verify(sockJsServiceRegistration).setTaskScheduler(taskScheduler);
             verify(sockJsServiceRegistration).setHeartbeatTime(HEARTBEAT_TIME.getIntValue());

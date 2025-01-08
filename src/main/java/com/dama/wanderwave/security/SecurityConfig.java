@@ -57,7 +57,7 @@ public class SecurityConfig {
                                 "/webjars/**",
                                 "/swagger-ui.html"
                         ).permitAll()
-                        .requestMatchers("/wander_wave/chat/**").permitAll()
+                        .requestMatchers("/wander_wave/**").permitAll()
                         .requestMatchers(
                                 "/api/reports/get",
                                 "/api/reports/review",
@@ -81,6 +81,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.addAllowedOrigin("http://localhost:3000");
+        configuration.addAllowedOrigin("https://wanderwave.azurewebsites.net/");
         configuration.addAllowedMethod("*");
         configuration.addAllowedHeader("*");
         configuration.setAllowCredentials(true);
