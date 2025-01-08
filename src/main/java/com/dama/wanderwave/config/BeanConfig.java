@@ -7,6 +7,7 @@ import com.dama.wanderwave.post.response.AccountInfoResponse;
 import com.dama.wanderwave.post.response.CommentResponse;
 import com.dama.wanderwave.post.response.PlaceResponse;
 import com.dama.wanderwave.user.User;
+import com.dama.wanderwave.user.response.UserResponse;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -95,6 +96,19 @@ public class BeanConfig {
                 map().setRating(source.getRating());
                 map().getCoords().setLatitude(source.getLatitude());
                 map().getCoords().setLongitude(source.getLongitude());
+            }
+        });
+
+        modelMapper.addMappings(new PropertyMap<User, UserResponse>() {
+            @Override
+            protected void configure() {
+                map().setId(source.getId());
+                map().setNickname(source.getNickname());
+                map().setEmail(source.getEmail());
+                map().setDescription(source.getDescription());
+                map().setSubscriberCount(source.getSubscriberCount());
+                map().setSubscriptionsCount(source.getSubscriptionsCount());
+                map().setAvatarUrl(source.getImageUrl());
             }
         });
 

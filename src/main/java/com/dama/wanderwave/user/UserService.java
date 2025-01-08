@@ -8,6 +8,7 @@ import com.dama.wanderwave.user.response.UserResponse;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
@@ -28,6 +29,7 @@ public class UserService {
     private final UserRepository userRepository;
 
     private final static int SUBSCRIPTIONS_PAGE = 10;
+    private final ModelMapper modelMapper;
 
     @Cacheable(value = "users", key = "#id")
     public UserResponse getUserById(String id) {
@@ -179,16 +181,7 @@ public class UserService {
     }
 
     private UserResponse userToUserResponse(User user) {
-        return UserResponse
-                .builder()
-                .id(user.getId())
-                .email(user.getEmail())
-                .nickname(user.getNickname())
-                .description(user.getDescription())
-                .avatarUrl(user.getImageUrl())
-                .subscriberCount(user.getSubscriberCount())
-                .subscriptionsCount(user.getSubscriptionsCount())
-                .build();
+        return modelMapper.map(user, UserResponse.class);
     }
 
     @Transactional
@@ -284,6 +277,18 @@ public class UserService {
                 .orElseThrow(() -> new UserNotFoundException("User not found with nickname " + nickname));
         return userToUserResponse(user);
     }
+
+    public Page<UserResponse> getAllUsers(String nickname, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<User> usersPage;
+        if (nickname != null && !nickname.isEmpty()) {
+            usersPage = userRepository.findByNicknameContainingIgnoreCase(nickname, pageable);
+        } else {
+            usersPage = userRepository.findAll(pageable);
+        }
+        return usersPage.map(this::userToUserResponse);
+    }
+
 
     public boolean isSubscribed(String userId) {
         User authenticatedUser = getAuthenticatedUser();

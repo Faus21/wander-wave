@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Max;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -230,4 +231,20 @@ public class UserController {
         return ResponseEntity.ok(new ResponseRecord(HttpStatus.OK.value(), res));
     }
 
+    @GetMapping
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Get all users", description = "Retrieves a paginated list of all users, optionally filtered by nickname.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Users retrieved successfully", content = @Content()),
+            @ApiResponse(responseCode = "400", description = "Invalid pagination parameters", content = @Content()),
+            @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
+    })
+    public ResponseEntity<ResponseRecord> getAllUsers(
+            @RequestParam(required = false) String nickname,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") @Max(MAX_PAGE_SIZE) int size
+    ) {
+        Page<UserResponse> usersPage = userService.getAllUsers(nickname, page, size);
+        return ResponseEntity.ok(new ResponseRecord(HttpStatus.OK.value(), usersPage));
+    }
 }

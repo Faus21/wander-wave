@@ -1,0 +1,96 @@
+-- -- Insert users
+-- INSERT INTO users (user_id, nickname, email, password, description, black_list, account_locked, enabled, subscriber_count, subscriptions_count, image_url)
+-- VALUES
+--     ('NmU1NTNjZTktODA2', 'testUser', 'yowemas573@gholar.com', '$2a$10$9jjYShaSF67OS4uiM9XO1umLlCKv/3neB/LKZaPfko2iDIjyrq4RG', '', NULL, false, true, 0, 0, 'https://wanderwave.blob.core.windows.net/avatars/user.png'),
+--     ('ZDc1YmY2ZDItZjZj', 'test123123', 'mopodo2151@matmayer.com', '$2a$10$fEyvXh03E3piiLBhbJNFpO1iiQxjQ7y/IqCFiZKcBJtKpgOtgiRC.', '', NULL, false, true, 0, 0, 'https://wanderwave.blob.core.windows.net/avatars/user.png'),
+--     ('Mzg0OGY3MDYtOWY1', 'testUser1212', 'vixaj84493@chansd.com', '$2a$10$w3G1QlA43EtapO6N2hPTQeL3rboEBEEtaLS6E91SbsMoKGL5hrPSW', '', NULL, false, true, 0, 0, 'https://wanderwave.blob.core.windows.net/avatars/user.png');
+--
+-- -- Insert category types
+-- INSERT INTO category_types (category_type_id, name, image_url)
+-- VALUES
+--     ('1', 'Travel', 'https://example.com/travel.jpg'),
+--     ('2', 'Food', 'https://example.com/food.jpg'),
+--     ('3', 'Adventure', 'https://example.com/adventure.jpg');
+--
+-- -- Insert posts
+-- INSERT INTO posts (post_id, title, created_at, user_id, description, category_type_id, images, pros, cons, post_likes, post_comments, is_disabled_comments, route_id)
+-- VALUES
+--     ('1', 'My Travel Experience', NOW(), 'NmU1NTNjZTktODA2', 'An amazing journey through the mountains.', '1', ARRAY['https://example.com/image1.jpg'], ARRAY['Beautiful scenery', 'Great weather'], ARRAY['Long travel time'], 10, 5, false, NULL),
+--     ('2', 'Best Food in Town', NOW(), 'ZDc1YmY2ZDItZjZj', 'Exploring the local cuisine.', '2', ARRAY['https://example.com/image2.jpg'], ARRAY['Delicious food', 'Friendly staff'], ARRAY['Expensive'], 15, 7, false, NULL),
+--     ('3', 'Adventure in the Wild', NOW(), 'Mzg0OGY3MDYtOWY1', 'A thrilling adventure in the jungle.', '3', ARRAY['https://example.com/image3.jpg'], ARRAY['Exciting activities', 'Close to nature'], ARRAY['Risky'], 20, 10, false, NULL);
+--
+-- -- Insert comments
+-- INSERT INTO comments (comment_id, content, created_at, user_id, post_id)
+-- VALUES
+--     ('1', 'Great post!', NOW(), 'ZDc1YmY2ZDItZjZj', '1'),
+--     ('2', 'I love this place!', NOW(), 'Mzg0OGY3MDYtOWY1', '2'),
+--     ('3', 'Amazing adventure!', NOW(), 'NmU1NTNjZTktODA2', '3');
+--
+-- -- Insert hashtags
+-- INSERT INTO hashtags (hashtag_id, title)
+-- VALUES
+--     ('1', 'travel'),
+--     ('2', 'food'),
+--     ('3', 'adventure');
+--
+-- -- Insert post_hashtags
+-- INSERT INTO post_hashtags (hashtag_id, post_id)
+-- VALUES
+--     ('1', '1'),
+--     ('2', '2'),
+--     ('3', '3');
+--
+-- -- Insert chat_rooms
+-- INSERT INTO chat_rooms (chat_id, sender_id, recipient_id, muted)
+-- VALUES
+--     ('1', 'NmU1NTNjZTktODA2', 'ZDc1YmY2ZDItZjZj', false),
+--     ('2', 'ZDc1YmY2ZDItZjZj', 'Mzg0OGY3MDYtOWY1', false),
+--     ('3', 'Mzg0OGY3MDYtOWY1', 'NmU1NTNjZTktODA2', false);
+--
+-- -- Insert messages
+-- INSERT INTO messages (chat_id, content, created_at, sender_id, recipient_id)
+-- VALUES
+--     ('1', 'Hello!', NOW(), 'NmU1NTNjZTktODA2', 'ZDc1YmY2ZDItZjZj'),
+--     ('2', 'Hi there!', NOW(), 'ZDc1YmY2ZDItZjZj', 'Mzg0OGY3MDYtOWY1'),
+--     ('3', 'Hey!', NOW(), 'Mzg0OGY3MDYtOWY1', 'NmU1NTNjZTktODA2');
+--
+-- -- Insert notifications
+-- INSERT INTO notifications (notification_id, content, recipient_id, is_read, created_at, type, object_id, action_user_id)
+-- VALUES
+--     ('1', 'You have a new message.', 'NmU1NTNjZTktODA2', false, NOW(), 'message', '1', 'ZDc1YmY2ZDItZjZj'),
+--     ('2', 'Your post was liked.', 'ZDc1YmY2ZDItZjZj', false, NOW(), 'like', '2', 'Mzg0OGY3MDYtOWY1'),
+--     ('3', 'You have a new follower.', 'Mzg0OGY3MDYtOWY1', false, NOW(), 'follow', '3', 'NmU1NTNjZTktODA2');
+--
+-- -- Insert roles
+-- INSERT INTO roles (role_id, role_type)
+-- VALUES
+--     ('1', 'ROLE_USER'),
+--     ('2', 'ROLE_ADMIN');
+--
+-- -- Insert user_roles
+-- INSERT INTO user_roles (role_id, user_id)
+-- VALUES
+--     ('1', 'NmU1NTNjZTktODA2'),
+--     ('1', 'ZDc1YmY2ZDItZjZj'),
+--     ('1', 'Mzg0OGY3MDYtOWY1');
+--
+-- -- Insert subscribers
+-- INSERT INTO subscribers (follower_id, followed_id)
+-- VALUES
+--     ('NmU1NTNjZTktODA2', 'ZDc1YmY2ZDItZjZj'),
+--     ('ZDc1YmY2ZDItZjZj', 'Mzg0OGY3MDYtOWY1'),
+--     ('Mzg0OGY3MDYtOWY1', 'NmU1NTNjZTktODA2');
+--
+-- -- Insert user_likes
+-- INSERT INTO user_likes (created_at, user_id, post_id)
+-- VALUES
+--     (NOW(), 'NmU1NTNjZTktODA2', '2'),
+--     (NOW(), 'ZDc1YmY2ZDItZjZj', '3'),
+--     (NOW(), 'Mzg0OGY3MDYtOWY1', '1');
+--
+-- -- Insert user_saved_posts
+-- INSERT INTO user_saved_posts (created_at, user_id, post_id)
+-- VALUES
+--     (NOW(), 'NmU1NTNjZTktODA2', '3'),
+--     (NOW(), 'ZDc1YmY2ZDItZjZj', '1'),
+--     (NOW(), 'Mzg0OGY3MDYtOWY1', '2');

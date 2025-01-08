@@ -38,4 +38,6 @@ public interface UserRepository extends JpaRepository<User, String> {
     @Query(value = "SELECT EXISTS(SELECT 1 FROM subscribers WHERE follower_id = :authenticatedUserId AND followed_id = :targetUserId)", nativeQuery = true)
     boolean isSubscribed(@Param("authenticatedUserId") String authenticatedUserId,
                          @Param("targetUserId") String targetUserId);
+
+    Page<User> findByNicknameContainingIgnoreCase(String nickname, Pageable pageable);
 }
