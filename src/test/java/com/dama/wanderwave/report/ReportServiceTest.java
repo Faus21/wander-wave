@@ -16,6 +16,7 @@ import com.dama.wanderwave.report.request.FilteredReportPageRequest;
 import com.dama.wanderwave.report.request.ReportObjectType;
 import com.dama.wanderwave.report.request.ReviewReportRequest;
 import com.dama.wanderwave.report.request.SendReportRequest;
+import com.dama.wanderwave.user.BlackList;
 import com.dama.wanderwave.user.User;
 import com.dama.wanderwave.user.UserRepository;
 import com.dama.wanderwave.user.UserService;
@@ -33,6 +34,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 
@@ -74,9 +76,9 @@ class ReportServiceTest {
         @DisplayName("Send report should be ok")
         void sendReport_Success() {
             var mockUser = getMockUser();
+            when(userService.getAuthenticatedUser()).thenReturn(getMockUser());
 
-            when(authentication.getName()).thenReturn(mockUser.getName());
-            when(userRepository.findById(anyString())).thenReturn(Optional.of(mockUser));
+            when(userService.findUserByIdOrThrow(anyString())).thenReturn(mockUser);
 
             when(reportRepository.findUserReportByObjectAndSender(anyString(), anyString()))
                     .thenReturn(Optional.empty());
@@ -89,40 +91,24 @@ class ReportServiceTest {
             var response = reportService.sendReport(getSendReportRequest());
             assertEquals("Report created successfully", response);
 
-            verify(userRepository, times(2)).findById(anyString());
-
             verify(reportRepository).findUserReportByObjectAndSender(anyString(), anyString());
             verify(reportRepository).save(any(UserReport.class));
             verify(reportStatusRepository).findByName(anyString());
             verify(typeRepository).findByName(anyString());
+            verify(userRepository).save(any(User.class));
 
             verifyNoInteractions(commentRepository, postRepository);
         }
 
         @Test
-        @DisplayName("Send report should throw UnauthorizedActionException")
-        void sendReport_UnauthorizedAction() {
-            assertThrows(UnauthorizedActionException.class, () -> reportService.sendReport(getSendReportRequest()));
-
-            verify(userRepository).findById(anyString());
-
-            verifyNoInteractions(reportRepository, reportStatusRepository, commentRepository, typeRepository, postRepository);
-        }
-
-        @Test
         @DisplayName("Send report should throw DuplicateReportException")
         void sendReport_DuplicateReport() {
-            var mockUser = getMockUser();
-
-            when(authentication.getName()).thenReturn(mockUser.getName());
-            when(userRepository.findById(anyString())).thenReturn(Optional.of(mockUser));
-
+            when(userService.getAuthenticatedUser()).thenReturn(getMockUser());
             when(reportRepository.findUserReportByObjectAndSender(anyString(), anyString()))
                     .thenReturn(Optional.of(getMockReport()));
 
             assertThrows(DuplicateReportException.class, () -> reportService.sendReport(getSendReportRequest()));
 
-            verify(userRepository).findById(anyString());
             verify(reportRepository).findUserReportByObjectAndSender(anyString(), anyString());
 
             verifyNoInteractions(reportStatusRepository, commentRepository, typeRepository, postRepository);
@@ -131,19 +117,15 @@ class ReportServiceTest {
         @Test
         @DisplayName("Send report should throw UserNotFoundException")
         void sendReport_UserNotFound() {
-            var mockUser = getMockUser();
-
-            when(authentication.getName()).thenReturn(mockUser.getName());
-            when(userRepository.findById(anyString()))
-                    .thenReturn(Optional.of(mockUser))
-                    .thenReturn(Optional.empty());
-
+            when(userService.getAuthenticatedUser()).thenReturn(getMockUser());
             when(reportRepository.findUserReportByObjectAndSender(anyString(), anyString()))
                     .thenReturn(Optional.empty());
 
+            when(userService.findUserByIdOrThrow(anyString()))
+                    .thenThrow(UserNotFoundException.class);
+
             assertThrows(UserNotFoundException.class, () -> reportService.sendReport(getSendReportRequest()));
 
-            verify(userRepository, times(2)).findById(anyString());
             verify(reportRepository).findUserReportByObjectAndSender(anyString(), anyString());
 
             verifyNoInteractions(reportStatusRepository, commentRepository, typeRepository, postRepository);
@@ -152,10 +134,7 @@ class ReportServiceTest {
         @Test
         @DisplayName("Send report should throw CommentNotFoundException")
         void sendReport_CommentNotFound() {
-            var mockUser = getMockUser();
-
-            when(authentication.getName()).thenReturn(mockUser.getName());
-            when(userRepository.findById(anyString())).thenReturn(Optional.of(mockUser));
+            when(userService.getAuthenticatedUser()).thenReturn(getMockUser());
             when(reportRepository.findUserReportByObjectAndSender(anyString(), anyString()))
                     .thenReturn(Optional.empty());
             when(commentRepository.findById(anyString())).thenReturn(Optional.empty());
@@ -166,7 +145,6 @@ class ReportServiceTest {
             assertThrows(CommentNotFoundException.class,
                     () -> reportService.sendReport(mockReq));
 
-            verify(userRepository, times(2)).findById(anyString());
             verify(commentRepository).findById(anyString());
             verify(reportRepository).findUserReportByObjectAndSender(anyString(), anyString());
 
@@ -176,10 +154,8 @@ class ReportServiceTest {
         @Test
         @DisplayName("Send report should throw PostNotFoundException")
         void sendReport_PostNotFound() {
-            var mockUser = getMockUser();
+            when(userService.getAuthenticatedUser()).thenReturn(getMockUser());
 
-            when(authentication.getName()).thenReturn(mockUser.getName());
-            when(userRepository.findById(anyString())).thenReturn(Optional.of(mockUser));
             when(reportRepository.findUserReportByObjectAndSender(anyString(), anyString()))
                     .thenReturn(Optional.empty());
             when(postRepository.findById(anyString())).thenReturn(Optional.empty());
@@ -190,7 +166,6 @@ class ReportServiceTest {
             assertThrows(PostNotFoundException.class,
                     () -> reportService.sendReport(mockReq));
 
-            verify(userRepository, times(2)).findById(anyString());
             verify(reportRepository).findUserReportByObjectAndSender(anyString(), anyString());
             verifyNoInteractions(reportStatusRepository, commentRepository, typeRepository);
         }
@@ -198,10 +173,8 @@ class ReportServiceTest {
         @Test
         @DisplayName("Send report should throw ReportTypeNotFoundException")
         void sendReport_ReportTypeNotFound() {
-            var mockUser = getMockUser();
+            when(userService.getAuthenticatedUser()).thenReturn(getMockUser());
 
-            when(authentication.getName()).thenReturn(mockUser.getName());
-            when(userRepository.findById(anyString())).thenReturn(Optional.of(mockUser));
             when(reportRepository.findUserReportByObjectAndSender(anyString(), anyString()))
                     .thenReturn(Optional.empty());
             when(typeRepository.findByName(anyString())).thenReturn(Optional.empty());
@@ -209,7 +182,6 @@ class ReportServiceTest {
             assertThrows(ReportTypeNotFoundException.class,
                     () -> reportService.sendReport(getSendReportRequest()));
 
-            verify(userRepository, times(2)).findById(anyString());
             verify(reportRepository).findUserReportByObjectAndSender(anyString(), anyString());
             verify(typeRepository).findByName(anyString());
 
@@ -219,10 +191,7 @@ class ReportServiceTest {
         @Test
         @DisplayName("Send report should throw ReportStatusNotFound")
         void sendReport_ReportStatusNotFound() {
-            var mockUser = getMockUser();
-
-            when(authentication.getName()).thenReturn(mockUser.getName());
-            when(userRepository.findById(anyString())).thenReturn(Optional.of(mockUser));
+            when(userService.getAuthenticatedUser()).thenReturn(getMockUser());
             when(reportRepository.findUserReportByObjectAndSender(anyString(), anyString()))
                     .thenReturn(Optional.empty());
             when(typeRepository.findByName(anyString())).thenReturn(Optional.of(getMockReportType()));
@@ -231,7 +200,6 @@ class ReportServiceTest {
             assertThrows(ReportStatusNotFoundException.class,
                     () -> reportService.sendReport(getSendReportRequest()));
 
-            verify(userRepository, times(2)).findById(anyString());
             verify(reportRepository).findUserReportByObjectAndSender(anyString(), anyString());
             verify(typeRepository).findByName(anyString());
 
@@ -476,6 +444,7 @@ class ReportServiceTest {
         return User.builder()
                 .id("mockId")
                 .email("mock@mail.com")
+                .blackList(new BlackList(new HashSet<>()))
                 .build();
     }
 
@@ -488,7 +457,6 @@ class ReportServiceTest {
     private SendReportRequest getSendReportRequest() {
         return SendReportRequest
                 .builder()
-                .userSenderId("mockId")
                 .userReportedId("user321")
                 .objectId("object123")
                 .objectType(ReportObjectType.USER)

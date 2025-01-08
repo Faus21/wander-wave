@@ -7,7 +7,6 @@ import com.dama.wanderwave.handler.report.DuplicateReportException;
 import com.dama.wanderwave.handler.report.ReportNotFoundException;
 import com.dama.wanderwave.handler.report.ReportStatusNotFoundException;
 import com.dama.wanderwave.handler.report.ReportTypeNotFoundException;
-import com.dama.wanderwave.handler.user.UnauthorizedActionException;
 import com.dama.wanderwave.handler.user.UserNotFoundException;
 import com.dama.wanderwave.post.PostRepository;
 import com.dama.wanderwave.report.comment.CommentReport;
@@ -29,8 +28,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,15 +56,15 @@ public class ReportService {
 
     @Transactional
     public String sendReport(SendReportRequest request) {
-        User sender = getAuthenticatedSender(request.getUserSenderId());
+        User sender = userService.getAuthenticatedUser();
 
-        var existing = reportRepository.findUserReportByObjectAndSender(request.getObjectId(),
-                request.getUserSenderId());
-
-        existing.ifPresent(existingReport -> {
-            log.warn("User '{}' sent duplicate report on object ID '{}'", sender.getId(), request.getObjectId());
-            throw new DuplicateReportException("Report on object from that user already existing in system");
-        });
+        reportRepository.findUserReportByObjectAndSender(request.getObjectId(), sender.getId())
+                .ifPresent(
+                        existingReport -> {
+                            log.warn("User '{}' sent duplicate report on object ID '{}'", sender.getId(), request.getObjectId());
+                            throw new DuplicateReportException("Report on object from that user already existing in system");
+                        }
+                );
 
         UserReport report = createReportByType(request);
 
@@ -76,6 +73,12 @@ public class ReportService {
         );
         report.setDescription(request.getDescription());
         report.setStatus(getDefaultStatus());
+
+        if (request.getUserReportedId() != null) {
+            User reported = userService.findUserByIdOrThrow(request.getUserReportedId());
+            sender.getBlackList().userIds().add(reported.getId());
+            userRepository.save(sender);
+        }
 
         reportRepository.save(report);
         log.info("Report created successfully for user: {}", sender.getId());
@@ -137,38 +140,40 @@ public class ReportService {
         return "Report reviewed";
     }
 
-    private User getAuthenticatedSender(String senderId) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String authenticatedEmail = authentication.getName();
-
-        return userRepository.findById(senderId)
-                .filter(user -> user.getEmail().equals(authenticatedEmail))
-                .orElseThrow(() -> {
-                    log.warn("Unauthorized attempt by user {} to send a report on behalf of user {}", authenticatedEmail, senderId);
-                    return new UnauthorizedActionException("Unauthorized action.");
-                });
-    }
-
     private UserReport createReportByType(SendReportRequest request) {
-        var reportedUser = userRepository.findById(request.getUserReportedId()).orElseThrow(
-                () -> {
-                    log.warn("User with ID {} not found", request.getObjectId());
-                    return new UserNotFoundException("User not found");
-                });
-
         return switch (request.getObjectType()) {
-            case COMMENT -> buildReport(commentRepository.findById(request.getObjectId()),
-                    CommentNotFoundException.class,
-                    comment -> CommentReport.builder().comment(comment).reported(reportedUser).build());
-            case POST -> buildReport(postRepository.findById(request.getObjectId()),
-                    PostNotFoundException.class,
-                    post -> PostReport.builder().post(post).reported(reportedUser).build());
-            case USER -> UserReport.builder().reported(reportedUser).build();
+            case COMMENT -> {
+                User reportedUser = commentRepository.findById(request.getObjectId())
+                        .orElseThrow(
+                                () -> new CommentNotFoundException("Comment not found with id: " + request.getObjectId())
+                        )
+                        .getUser();
+
+                yield buildReport(commentRepository.findById(request.getObjectId()),
+                        CommentNotFoundException.class,
+                        comment -> CommentReport.builder().comment(comment).reported(reportedUser).build());
+            }
+            case POST -> {
+                User reportedUser = postRepository.findById(request.getObjectId())
+                        .orElseThrow(
+                                () -> new PostNotFoundException("Post not found with id: " + request.getObjectId())
+                        )
+                        .getUser();
+
+                yield buildReport(postRepository.findById(request.getObjectId()),
+                        PostNotFoundException.class,
+                        post -> PostReport.builder().post(post).reported(reportedUser).build());
+            }
+            case USER -> {
+                User user = userService.findUserByIdOrThrow(request.getObjectId());
+                yield UserReport.builder().reported(user).build();
+            }
         };
 
     }
 
-    private <T, E extends UserReport> E buildReport(Optional<T> entity, Class<? extends RuntimeException> exceptionClass, Function<T, E> reportBuilder) {
+    private <T, E extends UserReport> E buildReport(Optional<T> entity, Class<? extends
+            RuntimeException> exceptionClass, Function<T, E> reportBuilder) {
         return entity.map(reportBuilder).orElseThrow(() -> createException(exceptionClass));
     }
 
@@ -210,7 +215,8 @@ public class ReportService {
     }
 
 
-    private void addFilterPredicates(FilteredReportPageRequest filter, List<Predicate> predicates, CriteriaBuilder cb, Root<UserReport> root) {
+    private void addFilterPredicates(FilteredReportPageRequest
+                                             filter, List<Predicate> predicates, CriteriaBuilder cb, Root<UserReport> root) {
         addDatePredicate(filter.getStartDate(), "createdAt", cb::greaterThanOrEqualTo, predicates, root);
         addDatePredicate(filter.getEndDate(), "createdAt", cb::lessThanOrEqualTo, predicates, root);
 

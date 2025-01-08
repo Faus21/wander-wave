@@ -40,9 +40,9 @@ public class SecurityConfig {
         http
                 .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(request -> request.requestMatchers(
-                                "/api/auth/",
-                                "/api/auth/*",
+                .authorizeHttpRequests(request -> request
+                        .requestMatchers(
+                                "/api/auth/**",
                                 "/api/reports/types",
                                 "/wander_wave_swagger",
                                 "/api-docs",
@@ -56,17 +56,20 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/webjars/**",
                                 "/swagger-ui.html"
-                                ).permitAll()
+                        ).permitAll()
+                        .requestMatchers("/wander_wave/chat/**").permitAll()
                         .requestMatchers(
                                 "/api/reports/get",
                                 "/api/reports/review",
                                 "/api/users/ban/**",
-                                "/api/users/unban/**").hasRole(ADMIN.name())
+                                "/api/users/unban/**"
+                        ).hasRole(ADMIN.name())
                         .requestMatchers(
                                 "/api/auth/logout",
                                 "/api/users/upload-avatar"
-                                ).hasRole(USER.name())
-                        .anyRequest().authenticated())
+                        ).hasRole(USER.name())
+                        .anyRequest().authenticated()
+                )
                 .sessionManagement(session -> session.sessionCreationPolicy(STATELESS))
                 .authenticationProvider(authenticationProvider)
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
@@ -78,7 +81,6 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.addAllowedOrigin("http://localhost:3000");
-        configuration.addAllowedOrigin("https://wanderwave.azurewebsites.net/");
         configuration.addAllowedMethod("*");
         configuration.addAllowedHeader("*");
         configuration.setAllowCredentials(true);

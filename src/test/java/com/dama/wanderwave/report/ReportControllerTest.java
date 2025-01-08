@@ -429,7 +429,6 @@ class ReportControllerTest {
     private SendReportRequest getSendReportRequest() {
         return SendReportRequest.builder()
                 .description("This is a sample report description.")
-                .userSenderId("user123")
                 .userReportedId("user456")
                 .reportType("Abuse")
                 .objectType(ReportObjectType.COMMENT)
