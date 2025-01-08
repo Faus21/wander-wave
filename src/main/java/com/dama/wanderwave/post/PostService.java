@@ -460,6 +460,22 @@ public class PostService {
         return "Deleted successfully!";
     }
 
+    @Transactional
+    public String toggleComments(String postId) {
+        log.info("toggleComments called for postId: {}", postId);
+
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new PostNotFoundException("Post not found with id: " + postId));
+
+        boolean isCommentsEnabled = !post.getIsDisabledComments();
+        post.setIsDisabledComments(isCommentsEnabled);
+
+        postRepository.save(post);
+
+        log.info("toggleComments toggled comments for postId: {}. Comments are now {}", postId, isCommentsEnabled ? "enabled" : "disabled");
+        return isCommentsEnabled ? "Comments enabled for post." : "Comments disabled for post.";
+    }
+
     public PostResponse getPostById(String postId) {
         log.info("getPostById called with postId: {}", postId);
         Post p = postRepository.findById(postId)
@@ -503,10 +519,12 @@ public class PostService {
                 .route(p.getRoute())
                 .isLiked(isPostLikedByUser(p, user))
                 .isSaved(isPostSavedByUser(p, user))
+                .images(p.getImages())
                 .comments(p.getCommentsCount())
                 .likes(p.getLikesCount())
                 .cons(p.getCons())
                 .pros(p.getPros())
+                .isDisableComments(p.getIsDisabledComments())
                 .category(category)
                 .build();
     }

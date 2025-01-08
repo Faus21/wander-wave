@@ -11,6 +11,8 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 public class PlaceResponse {
 
+    private String displayName;
+
     private String description;
 
     private Double rating;

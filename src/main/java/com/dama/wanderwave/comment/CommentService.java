@@ -60,7 +60,7 @@ public class CommentService {
 
         log.info("Comment created successfully with id: {}", savedComment.getId());
 
-        return "Comment created successfully";
+        return savedComment.getId();
     }
 
     public Page<CommentResponse> getAllCommentsForPost(Pageable pageable, String postId) {

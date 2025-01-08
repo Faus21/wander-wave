@@ -38,7 +38,11 @@ public class PostResponse {
 
     private Boolean isSaved;
 
+    private Boolean isDisableComments;
+
     private Route route;
+
+    private String[] images;
 
     private String[] pros;
 

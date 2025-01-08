@@ -341,4 +341,17 @@ public class PostController {
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), comments));
     }
 
+    @PutMapping("/{postId}/toggleComments")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Toggle comments for a post", description = "Enable or disable comments for a specific post.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Comments toggled successfully", content = @Content()),
+            @ApiResponse(responseCode = "404", description = "Post not found", content = @Content()),
+            @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
+    })
+    public ResponseEntity<ResponseRecord> toggleComments(@PathVariable String postId) {
+        String response = postService.toggleComments(postId);
+        return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), response));
+    }
+
 }
