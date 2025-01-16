@@ -15,6 +15,9 @@ import com.dama.wanderwave.handler.user.save.IsSavedException;
 import com.dama.wanderwave.handler.user.save.SavedPostNotFound;
 import com.dama.wanderwave.hashtag.HashTag;
 import com.dama.wanderwave.hashtag.HashTagRepository;
+import com.dama.wanderwave.notification.Notification;
+import com.dama.wanderwave.notification.NotificationRepository;
+import com.dama.wanderwave.notification.NotificationService;
 import com.dama.wanderwave.place.Place;
 import com.dama.wanderwave.place.PlaceRepository;
 import com.dama.wanderwave.place.request.PlaceRequest;
@@ -22,6 +25,7 @@ import com.dama.wanderwave.post.request.PostRequest;
 import com.dama.wanderwave.post.response.*;
 import com.dama.wanderwave.route.Route;
 import com.dama.wanderwave.route.RouteRepository;
+import com.dama.wanderwave.user.BlackList;
 import com.dama.wanderwave.user.User;
 import com.dama.wanderwave.user.UserRepository;
 import com.dama.wanderwave.user.UserService;
@@ -69,13 +73,24 @@ public class PostService {
     private final CommentRepository commentRepository;
     private final AzureService azureService;
     private final RouteRepository routeRepository;
+    private final NotificationRepository notificationRepository;
+    private final NotificationService notificationService;
 
     private final Cache<String, Set<String>> userRecommendedPostsCache;
 
     public Page<ShortPostResponse> getUserPosts(Pageable pageRequest, String nickname) {
         log.info("getUserPosts called with nickname: {}", nickname);
+        User authenticatedUser = userService.getAuthenticatedUser();
+
         User user = userRepository.findByNickname(nickname)
                 .orElseThrow(() -> new UserNotFoundException(nickname));
+
+        BlackList blackList = user.getBlackList();
+        if ((blackList != null && blackList.userIds() != null &&
+                blackList.userIds().contains(authenticatedUser.getId())) ||
+                user.isAccountLocked()) {
+            return Page.empty();
+        }
 
         Page<Post> result = postRepository.findByUserWithHashtags(user, pageRequest);
         Page<ShortPostResponse> postResponses = getShortPostResponseListFromPostList(pageRequest, result);
@@ -128,12 +143,16 @@ public class PostService {
         }
 
         if (request.getPlaces() != null && !request.getPlaces().isEmpty()) {
+            List<Place> oldPlaces = placeRepository.findAllByPost(post);
+            placeRepository.deleteAll(oldPlaces);
             List<Place> placeList = processPlaces(request.getPlaces(), post);
             placeRepository.saveAll(placeList);
         }
 
         if (request.getRoute() != null) {
-            post.setRoute(Route.fromRouteRequest(request.getRoute()));
+            routeRepository.delete(post.getRoute());
+            Route saved = routeRepository.save(Route.fromRouteRequest(request.getRoute()));
+            post.setRoute(saved);
         }
 
         if (request.getPros() != null && !request.getPros().isEmpty()) {
@@ -142,6 +161,10 @@ public class PostService {
 
         if (request.getCons() != null && !request.getCons().isEmpty()) {
             post.setCons(request.getCons().toArray(new String[0]));
+        }
+
+        if (request.getUrls() != null) {
+            post.setImages(request.getUrls());
         }
     }
 
@@ -174,6 +197,11 @@ public class PostService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new PostNotFoundException("Post not found with id: " + postId));
 
+        String[] oldUrls = post.getImages();
+        if (oldUrls == null) {
+            oldUrls = new String[0];
+        }
+
         String[] uploadedImageUrls = Optional.ofNullable(images)
                 .filter(i -> !i.isEmpty())
                 .orElse(Collections.emptyList())
@@ -182,7 +210,10 @@ public class PostService {
                 .filter(Objects::nonNull)
                 .toArray(String[]::new);
 
-        post.setImages(uploadedImageUrls);
+        String[] allImageUrls = Stream.concat(Arrays.stream(oldUrls), Arrays.stream(uploadedImageUrls))
+                .toArray(String[]::new);
+
+        post.setImages(allImageUrls);
         postRepository.save(post);
 
         log.info("Successfully uploaded {} images for postId: {}", uploadedImageUrls.length, postId);
@@ -242,6 +273,14 @@ public class PostService {
 
         post.setLikesCount(post.getLikesCount() + 1);
         postRepository.save(post);
+
+        if (!user.getId().equals(post.getUser().getId())) {
+            notificationService.sendLikeNotification(
+                    post.getUser().getId(),
+                    post.getId(),
+                    user.getId()
+            );
+        }
 
         log.info("likePost successfully liked post with id: {}", postId);
         return "Liked successfully!";
@@ -399,6 +438,8 @@ public class PostService {
                 pageRequest, new PageImpl<>(allPosts, pageRequest, allPosts.size())
         ).getContent();
 
+        response = response.stream().filter(p -> !p.getAccountInfo().getId().equals(user.getId())).toList();
+
         response = response.size() > 5 ? response.subList(0, 5) : response;
 
         response.forEach(post -> recommendedPostIds.add(post.getId()));
@@ -455,6 +496,12 @@ public class PostService {
             return "You are not allowed to delete this post!";
         }
 
+        List<Place> places = placeRepository.findAllByPost(post);
+        placeRepository.deleteAll(places);
+
+        List<Notification> notifications = notificationRepository.findAllByObjectId(post.getId());
+        notificationRepository.deleteAll(notifications);
+
         postRepository.delete(post);
         log.info("deletePost successfully deleted post with id: {}", postId);
         return "Deleted successfully!";
@@ -480,6 +527,13 @@ public class PostService {
         log.info("getPostById called with postId: {}", postId);
         Post p = postRepository.findById(postId)
                 .orElseThrow(() -> new PostNotFoundException("Post with id " + postId + " not found"));
+
+        User authenticatedUser = userService.getAuthenticatedUser();
+        BlackList blackList = p.getUser().getBlackList();
+        if ((blackList != null && blackList.userIds() != null && blackList.userIds().contains(authenticatedUser.getId())) ||
+                p.getUser().isAccountLocked()) {
+            throw new PostNotFoundException("Post with id " + postId + " not found");
+        }
 
         log.info("getPostById successfully returned post: {}", postId);
         return getPostResponseFromPost(p);

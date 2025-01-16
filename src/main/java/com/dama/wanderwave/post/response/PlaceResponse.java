@@ -15,6 +15,8 @@ public class PlaceResponse {
 
     private String description;
 
+    private String locationName;
+
     private Double rating;
 
     private CoordsResponse coords;

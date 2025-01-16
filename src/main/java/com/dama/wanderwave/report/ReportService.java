@@ -7,7 +7,6 @@ import com.dama.wanderwave.handler.report.DuplicateReportException;
 import com.dama.wanderwave.handler.report.ReportNotFoundException;
 import com.dama.wanderwave.handler.report.ReportStatusNotFoundException;
 import com.dama.wanderwave.handler.report.ReportTypeNotFoundException;
-import com.dama.wanderwave.handler.user.UserNotFoundException;
 import com.dama.wanderwave.post.PostRepository;
 import com.dama.wanderwave.report.comment.CommentReport;
 import com.dama.wanderwave.report.general.*;
@@ -15,15 +14,19 @@ import com.dama.wanderwave.report.post.PostReport;
 import com.dama.wanderwave.report.request.FilteredReportPageRequest;
 import com.dama.wanderwave.report.request.ReviewReportRequest;
 import com.dama.wanderwave.report.request.SendReportRequest;
+import com.dama.wanderwave.report.response.ReportResponse;
+import com.dama.wanderwave.user.BlackList;
 import com.dama.wanderwave.user.User;
 import com.dama.wanderwave.user.UserRepository;
 import com.dama.wanderwave.user.UserService;
+import com.dama.wanderwave.user.response.UserResponse;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.Path;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -33,6 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -53,6 +57,7 @@ public class ReportService {
     private final CommentRepository commentRepository;
     private final ReportTypeRepository typeRepository;
     private final UserService userService;
+    private final ModelMapper modelMapper;
 
     @Transactional
     public String sendReport(SendReportRequest request) {
@@ -71,11 +76,15 @@ public class ReportService {
         report.setType(typeRepository.findByName(request.getReportType()).orElseThrow(
                 () -> new ReportTypeNotFoundException("Report type not found with name: " + request.getReportType()))
         );
-        report.setDescription(request.getDescription());
+        report.setDescription(request.getDescription() == null ? "" : request.getDescription());
         report.setStatus(getDefaultStatus());
+        report.setSender(sender);
 
         if (request.getUserReportedId() != null) {
-            User reported = userService.findUserByIdOrThrow(request.getUserReportedId());
+            User reported = userService.findUserByNicknameOrThrow(request.getUserReportedId());
+            if (sender.getBlackList() == null) {
+                sender.setBlackList(new BlackList(new HashSet<>()));
+            }
             sender.getBlackList().userIds().add(reported.getId());
             userRepository.save(sender);
         }
@@ -85,7 +94,7 @@ public class ReportService {
         return "Report created successfully";
     }
 
-    public Page<UserReport> getUserReports(Pageable pageRequest, String userId) {
+    public Page<ReportResponse> getUserReports(Pageable pageRequest, String userId) {
         User authenticatedUser = userService.getAuthenticatedUser();
         userService.checkUserAccessRights(authenticatedUser, userId);
 
@@ -93,28 +102,72 @@ public class ReportService {
         isReportsEmpty(reports, "No reports found for user ID: " + userId);
 
         log.info("Successfully fetched {} reports for user ID '{}'.", reports.getNumberOfElements(), userId);
-        return reports;
+        return reports.map(this::userReportToReportResponse);
     }
 
-    public UserReport getReportById(String reportId) {
+    public ReportResponse userReportToReportResponse(UserReport report) {
+        if (report == null) {
+            return null;
+        }
+
+        ReportResponse.ReportResponseBuilder responseBuilder = ReportResponse.builder()
+                .id(report.getId())
+                .description(report.getDescription())
+                .sender(report.getSender() != null ? modelMapper.map(report.getSender(), UserResponse.class) : null)
+                .reported(report.getReported() != null ? modelMapper.map(report.getReported(), UserResponse.class) : null)
+                .reportType(report.getType() != null ? report.getType().getName() : null)
+                .reportStatus(report.getStatus() != null ? report.getStatus().getName() : null)
+                .createdAt(report.getCreatedAt())
+                .reviewedAt(report.getReviewedAt())
+                .reviewedBy(report.getReviewedBy() != null ? modelMapper.map(report.getReviewedBy(), UserResponse.class) : null)
+                .reportComment(report.getReportComment());
+
+        if (report instanceof PostReport postReport) {
+            responseBuilder.objectId(postReport.getPost().getId())
+                    .objectType("POST");
+        } else if (report instanceof CommentReport commentReport) {
+            responseBuilder.objectId(commentReport.getComment().getId())
+                    .objectType("COMMENT");
+        } else {
+            responseBuilder.objectId("USER");
+        }
+
+        return responseBuilder.build();
+    }
+
+    public ReportResponse getReportById(String reportId) {
         UserReport report = reportRepository.findById(reportId)
                 .orElseThrow(() -> new ReportNotFoundException("Report not found with ID: " + reportId));
 
         userService.checkUserAccessRights(userService.getAuthenticatedUser(), report.getSender().getId());
 
         log.info("Successfully fetched report for report ID '{}'.", reportId);
-        return report;
+        return userReportToReportResponse(report);
     }
 
-    public Page<UserReport> getAllReports(Pageable page, FilteredReportPageRequest filter) {
-        if (isFilterEmpty(filter)) {
-            var reports = reportRepository.findAll(page);
-            isReportsEmpty(reports, "No reports found");
-            return reports;
+    public Page<ReportResponse> getAllReports(Pageable page, FilteredReportPageRequest filter) {
+        log.info("Entering getAllReports method. Page: {}, Filter: {}", page, filter);
+
+        boolean isEmptyFilter = isFilterEmpty(filter);
+        log.info("Filter is empty: {}", isEmptyFilter);
+
+        Page<UserReport> reports = isEmptyFilter
+                ? reportRepository.findAll(page)
+                : filterReports(page, filter);
+
+        log.info("Retrieved {} reports.", reports.getTotalElements());
+
+        if (reports.isEmpty()) {
+            String errorMessage = isEmptyFilter
+                    ? "No reports found"
+                    : "No reports found with the provided filters: " + filter;
+            log.warn(errorMessage);
+            throw new ReportNotFoundException(errorMessage);
         }
-        Page<UserReport> reports = filterReports(page, filter);
-        isReportsEmpty(reports, "No reports found with the provided filters: " + filter);
-        return reports;
+
+        Page<ReportResponse> reportResponses = reports.map(this::userReportToReportResponse);
+        log.info("Successfully mapped {} reports to ReportResponse.", reportResponses.getTotalElements());
+        return reportResponses;
     }
 
     @Transactional

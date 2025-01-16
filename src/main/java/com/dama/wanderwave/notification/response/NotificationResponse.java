@@ -11,8 +11,6 @@ import java.time.LocalDateTime;
 @Builder
 public class NotificationResponse {
     private String id;
-    private String content;
-    private ShortUserResponse recipient;
     private boolean isRead;
     private LocalDateTime createdAt;
     private Notification.NotificationType type;
@@ -22,8 +20,6 @@ public class NotificationResponse {
     public static NotificationResponse fromEntity(Notification notification) {
         return NotificationResponse.builder()
                 .id(notification.getId())
-                .content(notification.getContent())
-                .recipient(ShortUserResponse.fromEntity(notification.getRecipient()))
                 .isRead(notification.isRead())
                 .createdAt(notification.getCreatedAt())
                 .type(notification.getType())

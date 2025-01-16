@@ -2,6 +2,9 @@ package com.dama.wanderwave.comment;
 
 import com.dama.wanderwave.handler.comment.CommentNotFoundException;
 import com.dama.wanderwave.handler.post.PostNotFoundException;
+import com.dama.wanderwave.notification.Notification;
+import com.dama.wanderwave.notification.NotificationRepository;
+import com.dama.wanderwave.notification.NotificationService;
 import com.dama.wanderwave.post.Post;
 import com.dama.wanderwave.post.PostRepository;
 import com.dama.wanderwave.post.request.CreateCommentRequest;
@@ -30,6 +33,8 @@ public class CommentService {
     private final PostRepository postRepository;
     private final UserService userService;
     private final ModelMapper modelMapper;
+    private final NotificationService notificationService;
+    private final NotificationRepository notificationRepository;
 
     @Transactional
     public String createComment(CreateCommentRequest createCommentRequest) {
@@ -60,6 +65,14 @@ public class CommentService {
 
         log.info("Comment created successfully with id: {}", savedComment.getId());
 
+        if (!post.getUser().getId().equals(savedComment.getUser().getId())) {
+            notificationService.sendCommentNotification(
+                    post.getUser().getId(),
+                    post.getId(),
+                    savedComment.getUser().getId()
+            );
+        }
+
         return savedComment.getId();
     }
 
@@ -82,7 +95,8 @@ public class CommentService {
 
         List<CommentResponse> commentResponses = commentsPage.getContent().stream()
                 .map(comment -> modelMapper.map(comment, CommentResponse.class))
-                .collect(Collectors.toList());
+                .sorted((o1, o2) -> o2.getCreationDate().compareTo(o1.getCreationDate()))
+                .toList();
 
         return new PageImpl<>(
                 commentResponses,
@@ -116,6 +130,9 @@ public class CommentService {
         Comment comment = commentRepository.findById(id)
                 .orElseThrow(() -> new CommentNotFoundException("Comment with id " + id + " not found"));
 
+        List<Notification> notifications = notificationRepository.findAllByObjectId(comment.getId());
+        notificationRepository.deleteAll(notifications);
+
         Post post = comment.getPost();
         post.setCommentsCount(post.getCommentsCount() - 1);
         postRepository.save(post);
@@ -132,5 +149,12 @@ public class CommentService {
                     log.error("Post with id {} not found", postId);
                     return new PostNotFoundException("Post with id " + postId + " not found");
                 });
+    }
+
+    public CommentResponse getCommentById(String commentId) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new CommentNotFoundException("Comment not found with id: " + commentId));
+
+        return modelMapper.map(comment, CommentResponse.class);
     }
 }

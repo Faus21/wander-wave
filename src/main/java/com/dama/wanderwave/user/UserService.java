@@ -2,15 +2,15 @@ package com.dama.wanderwave.user;
 
 import com.dama.wanderwave.handler.user.UnauthorizedActionException;
 import com.dama.wanderwave.handler.user.UserNotFoundException;
-import com.dama.wanderwave.user.request.BlockRequest;
+import com.dama.wanderwave.notification.NotificationService;
 import com.dama.wanderwave.user.request.SubscribeRequest;
+import com.dama.wanderwave.user.response.ShortUserResponse;
 import com.dama.wanderwave.user.response.UserResponse;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -26,15 +26,19 @@ import java.util.function.BiFunction;
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
 public class UserService {
 
+    private static final String DEFAULT_AVATAR_URL = "https://wanderwave.blob.core.windows.net/avatars/user.png";
+
     private final UserRepository userRepository;
 
     private final static int SUBSCRIPTIONS_PAGE = 10;
     private final ModelMapper modelMapper;
+    private final NotificationService notificationService;
 
-    @Cacheable(value = "users", key = "#id")
+
     public UserResponse getUserById(String id) {
         User user = findUserByIdOrThrow(id);
-        return userToUserResponse(user);
+
+        return isBannedOrBlacklisted(user);
     }
 
     @Transactional
@@ -43,7 +47,6 @@ public class UserService {
         var followedId = request.getFollowedId();
 
         User follower = findUserByIdOrThrow(followerId);
-
         checkUserAccessRights(follower, followerId);
 
         User followed = findUserByIdOrThrow(followedId);
@@ -52,6 +55,15 @@ public class UserService {
             updateFollowCounts(follower, followed, subscribe);
             userRepository.save(follower);
             userRepository.save(followed);
+
+            if (subscribe) {
+                notificationService.sendFollowNotification(
+                        followedId,
+                        followedId,
+                        followerId
+                );
+            }
+
             return subscribe ? "User subscribed successfully" : "User unsubscribed successfully";
         } else {
             return subscribe ? "Already subscribed" : "Not subscribed, cannot unsubscribe";
@@ -96,11 +108,13 @@ public class UserService {
         return ban ? "User banned successfully" : "User unbanned successfully";
     }
 
-    public String updateBlacklist(BlockRequest request, boolean add) {
-        String blockerId = request.getBlockerId();
-        String blockedId = request.getBlockedId();
+    public String updateBlacklist(String blockedId, boolean add) {
+        String blockerId = getAuthenticatedUser().getId();
 
         User blocker = findUserByIdOrThrow(blockerId);
+        if (blocker.getBlackList() == null) {
+            blocker.setBlackList(new BlackList(new HashSet<>()));
+        }
         checkUserAccessRights(blocker, blockerId);
         findUserByIdOrThrow(blockedId);
 
@@ -164,6 +178,9 @@ public class UserService {
     }
 
     public void checkUserAccessRights(User authenticatedUser, String userId) {
+        if (authenticatedUser.getRoles().stream().anyMatch(r -> r.getName().equals("ROLE_ADMIN"))) {
+            return;
+        }
         userRepository.findById(userId)
                 .filter(user -> user.getEmail().equals(authenticatedUser.getEmail()))
                 .orElseThrow(() -> new UnauthorizedActionException("Unauthorized action from user"));
@@ -174,14 +191,27 @@ public class UserService {
                 .orElseThrow(() -> new UserNotFoundException("User not found with id " + userId));
     }
 
+    public User findUserByNicknameOrThrow(String nickname) {
+        return userRepository.findByNickname(nickname)
+                .orElseThrow(() -> new UserNotFoundException("User not found with nickname " + nickname));
+    }
+
     private List<UserResponse> allUsersToUserResponse(List<User> users) {
         return users.stream()
                 .map(this::userToUserResponse)
                 .toList();
     }
 
-    private UserResponse userToUserResponse(User user) {
+    protected UserResponse userToUserResponse(User user) {
         return modelMapper.map(user, UserResponse.class);
+    }
+
+    private UserResponse userResponseToBannedUserResponse(UserResponse userResponse) {
+        return UserResponse.builder()
+                .nickname(userResponse.getNickname())
+                .id(userResponse.getId())
+                .avatarUrl(DEFAULT_AVATAR_URL)
+                .build();
     }
 
     @Transactional
@@ -191,13 +221,22 @@ public class UserService {
 
         log.info("Fetching friendship recommendations for user with ID: {}", user.getId());
 
-
         int subs = user.getSubscriptionsCount();
         log.debug("User has {} subscriptions", subs);
 
+        Set<String> uniqueUserIds = new HashSet<>();
+
         if (subs == 0) {
             log.info("No subscriptions found for user, returning random users.");
-            return allUsersToUserResponse(getRandomUsersFromDatabase(SUBSCRIPTIONS_PAGE));
+            List<UserResponse> randomUsers = allUsersToUserResponse(getRandomUsersFromDatabase(SUBSCRIPTIONS_PAGE));
+            randomUsers.forEach(u -> uniqueUserIds.add(u.getId()));
+            return new ArrayList<>(uniqueUserIds.stream()
+                    .map(id -> randomUsers.stream()
+                            .filter(u -> u.getId().equals(id))
+                            .findFirst()
+                            .orElse(null))
+                    .filter(Objects::nonNull)
+                    .toList());
         }
 
         int pages = Math.max(1, subs / SUBSCRIPTIONS_PAGE);
@@ -229,17 +268,26 @@ public class UserService {
         List<UserResponse> result = allUsersToUserResponse(userRepository.findAllByIdIn(nestedRandomSubscriptions));
         log.debug("Initial result size after fetching nested random subscriptions: {}", result.size());
 
-        List<UserResponse> mutableResult = new ArrayList<>(result);
+        result.forEach(u -> uniqueUserIds.add(u.getId()));
 
-        if (mutableResult.size() < SUBSCRIPTIONS_PAGE) {
-            int size = SUBSCRIPTIONS_PAGE - mutableResult.size();
+        if (uniqueUserIds.size() < SUBSCRIPTIONS_PAGE) {
+            int size = SUBSCRIPTIONS_PAGE - uniqueUserIds.size();
             log.info("Adding {} more random users to complete the required page size", size);
-            mutableResult.addAll(allUsersToUserResponse(getRandomUsersFromDatabase(size)));
+            List<UserResponse> additionalRandomUsers = allUsersToUserResponse(getRandomUsersFromDatabase(size));
+            additionalRandomUsers.forEach(u -> uniqueUserIds.add(u.getId()));
+            result.addAll(additionalRandomUsers);
         }
 
-        mutableResult.removeIf(u -> u.getId().equals(user.getId()));
-        log.info("Returning final list of friendship recommendations with size: {}", mutableResult.size());
-        return mutableResult;
+        uniqueUserIds.remove(user.getId());
+        log.info("Returning final list of friendship recommendations with size: {}", uniqueUserIds.size());
+
+        return uniqueUserIds.stream()
+                .map(id -> result.stream()
+                        .filter(u -> u.getId().equals(id))
+                        .findFirst()
+                        .orElse(null))
+                .filter(Objects::nonNull)
+                .toList();
     }
 
     private List<User> getRandomUsersFromDatabase(int count) {
@@ -271,10 +319,21 @@ public class UserService {
         userRepository.save(user);
     }
 
-    @Cacheable(value = "users", key = "#nickname")
     public UserResponse getUserByNickname(String nickname) {
         User user = userRepository.findByNickname(nickname)
                 .orElseThrow(() -> new UserNotFoundException("User not found with nickname " + nickname));
+
+        return isBannedOrBlacklisted(user);
+    }
+
+    private UserResponse isBannedOrBlacklisted(User user) {
+        User authenticatedUser = getAuthenticatedUser();
+        BlackList blackList = user.getBlackList();
+        if ((blackList != null && blackList.userIds() != null && blackList.userIds().contains(authenticatedUser.getId())) ||
+                user.isAccountLocked()) {
+            return userResponseToBannedUserResponse(userToUserResponse(user));
+        }
+
         return userToUserResponse(user);
     }
 
@@ -293,5 +352,35 @@ public class UserService {
     public boolean isSubscribed(String userId) {
         User authenticatedUser = getAuthenticatedUser();
         return userRepository.isSubscribed(authenticatedUser.getId(), userId);
+    }
+
+    public void changeUsername(String username) {
+        User user = getAuthenticatedUser();
+        user.setNickname(username);
+        userRepository.save(user);
+    }
+
+    public void changeDescription(String description) {
+        User user = getAuthenticatedUser();
+        user.setDescription(description);
+        userRepository.save(user);
+    }
+
+    public List<ShortUserResponse> getUserBlacklist() {
+        User user = getAuthenticatedUser();
+
+        if (user.getBlackList() == null ||
+                user.getBlackList().userIds() == null ||
+                user.getBlackList().userIds().isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        return user.getBlackList().userIds()
+                .stream()
+                .map(id -> {
+                    User blacklistUser = findUserByIdOrThrow(id);
+                    return ShortUserResponse.fromEntity(blacklistUser);
+                })
+                .toList();
     }
 }

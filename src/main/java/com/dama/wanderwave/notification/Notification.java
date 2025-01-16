@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 @Builder
 @AllArgsConstructor
 @Table(name = "notifications")
+@ToString
 public class Notification {
 
 	@Id
@@ -24,10 +25,6 @@ public class Notification {
 	@GenericGenerator(name = "hash_generator", type = com.dama.wanderwave.hash.HashUUIDGenerator.class)
 	@Column(name = "notification_id", nullable = false, updatable = false)
 	private String id;
-
-	@Column(nullable = false)
-	@NotBlank(message = "Notification content cannot be blank")
-	private String content;
 
 	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name = "recipient_id", nullable = false, referencedColumnName = "user_id", foreignKey = @ForeignKey(name = "fk_notification_recipient_user"))

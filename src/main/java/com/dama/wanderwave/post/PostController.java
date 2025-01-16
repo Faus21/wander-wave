@@ -26,6 +26,8 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -354,4 +356,16 @@ public class PostController {
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), response));
     }
 
+    @GetMapping("/comments/{commentId}")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Get comment by ID", description = "Get a specific comment by its ID.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Comment retrieved successfully", content = @Content()),
+            @ApiResponse(responseCode = "404", description = "Comment not found", content = @Content()),
+            @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
+    })
+    public ResponseEntity<ResponseRecord> getCommentById(@PathVariable String commentId) {
+        CommentResponse comment = commentService.getCommentById(commentId);
+        return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), comment));
+    }
 }

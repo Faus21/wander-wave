@@ -57,7 +57,8 @@ public class SecurityConfig {
                                 "/webjars/**",
                                 "/swagger-ui.html"
                         ).permitAll()
-                        .requestMatchers("/wander_wave/**").permitAll()
+                        .requestMatchers("/wander_wave/**", "/user/**",
+                                "/app/**","/topic/**", "/ws/**").permitAll()
                         .requestMatchers(
                                 "/api/reports/get",
                                 "/api/reports/review",

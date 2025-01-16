@@ -13,7 +13,6 @@ import lombok.*;
 public class SendReportRequest {
 
     @Size(max = 1024, message = "Description length must be less than or equal to 1024 characters")
-    @NotEmpty(message = "Description is mandatory")
     private String description;
 
     @Size(max = 255, message = "Reported user ID length must be less than or equal to 255 characters")
@@ -26,7 +25,7 @@ public class SendReportRequest {
     @NotNull(message = "Object type is mandatory")
     private ReportObjectType objectType;
 
-    @Size(max = 8, message = "Object ID length must be less than or equal to 8 characters")
+    @Size(max = 16, message = "Object ID length must be less than or equal to 16 characters")
     @NotEmpty(message = "Object ID is mandatory")
     private String objectId;
 

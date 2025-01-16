@@ -30,7 +30,6 @@ public class UserReport {
 	private String id;
 
 	@Size(max = 1024)
-	@NotBlank(message = "Description cannot be blank")
 	@Column(nullable = false, length = 1024)
 	private String description;
 

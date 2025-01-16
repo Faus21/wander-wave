@@ -2,11 +2,14 @@ package com.dama.wanderwave.chat;
 
 
 
+import com.dama.wanderwave.message.ChatMessage;
 import com.dama.wanderwave.user.User;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.hibernate.annotations.GenericGenerator;
+
+import java.util.List;
 
 @Getter
 @Setter
@@ -30,8 +33,11 @@ public class Chat {
 
 	@OneToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name = "recipient_id", nullable = false)
-	@NotNull(message = "Recipiet must be specified")
+	@NotNull(message = "Recipient must be specified")
 	private User recipient;
+
+	@OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL, mappedBy = "chat")
+	private List<ChatMessage> messages;
 
 	@Builder.Default
 	@Column( nullable = false)

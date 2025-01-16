@@ -36,7 +36,7 @@ public class AuthChannelInterceptor implements ChannelInterceptor {
 		if (nativeHeaders != null) {
 			List<String> authHeaders = nativeHeaders.get("Authorization");
 			if (authHeaders != null && !authHeaders.isEmpty()) {
-				String authHeader = authHeaders.get(0);
+				String authHeader = authHeaders.getFirst();
 				log.debug("Authorization header: {}", authHeader);
 
 				if (authHeader.startsWith("Bearer ")) {

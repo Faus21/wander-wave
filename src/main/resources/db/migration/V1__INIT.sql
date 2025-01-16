@@ -77,19 +77,20 @@ CREATE TABLE hashtags
 
 CREATE TABLE messages
 (
-    chat_id      VARCHAR(255)                NOT NULL,
-    content      VARCHAR(1024)               NOT NULL,
-    created_at   TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-    sender_id    VARCHAR(255)                NOT NULL,
-    recipient_id VARCHAR(255)                NOT NULL,
-    CONSTRAINT pk_messages PRIMARY KEY (sender_id, recipient_id),
-    CONSTRAINT FK_MESSAGE_CHAT FOREIGN KEY (chat_id) REFERENCES chat_rooms (chat_id)
+    id            VARCHAR(255)                NOT NULL,
+    chat_id       VARCHAR(255)                NOT NULL,
+    content       VARCHAR(1024)               NOT NULL,
+    created_at    TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    sender_id     VARCHAR(255)                NOT NULL,
+    recipient_id  VARCHAR(255)                NOT NULL,
+    CONSTRAINT pk_messages PRIMARY KEY (id),
+    CONSTRAINT fk_message_chat FOREIGN KEY (chat_id)
+        REFERENCES chat_rooms (chat_id)
 );
 
 CREATE TABLE notifications
 (
     notification_id VARCHAR(255)                NOT NULL,
-    content         VARCHAR(255)                NOT NULL,
     recipient_id    VARCHAR(255)                NOT NULL,
     is_read         BOOLEAN                     NOT NULL,
     created_at      TIMESTAMP WITHOUT TIME ZONE NOT NULL,

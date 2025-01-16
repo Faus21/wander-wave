@@ -1,9 +1,11 @@
 package com.dama.wanderwave.user;
 
 
+import com.azure.core.annotation.Get;
 import com.dama.wanderwave.azure.AzureService;
 import com.dama.wanderwave.user.request.BlockRequest;
 import com.dama.wanderwave.user.request.SubscribeRequest;
+import com.dama.wanderwave.user.response.ShortUserResponse;
 import com.dama.wanderwave.user.response.UserResponse;
 import com.dama.wanderwave.utils.ResponseRecord;
 import io.swagger.v3.oas.annotations.Operation;
@@ -102,8 +104,8 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "User not found", content = @Content()),
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
-    public ResponseEntity<ResponseRecord> blockUser(@RequestBody BlockRequest request) {
-        String res = userService.updateBlacklist(request, true);
+    public ResponseEntity<ResponseRecord> blockUser(@RequestBody String blockedId) {
+        String res = userService.updateBlacklist(blockedId, true);
         return ResponseEntity.ok(new ResponseRecord(HttpStatus.OK.value(), res));
     }
 
@@ -119,8 +121,8 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "User not found", content = @Content()),
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
-    public ResponseEntity<ResponseRecord> unblockUser(@RequestBody BlockRequest request) {
-        String res = userService.updateBlacklist(request, false);
+    public ResponseEntity<ResponseRecord> unblockUser(@RequestBody String blockedId) {
+        String res = userService.updateBlacklist(blockedId, false);
         return ResponseEntity.ok(new ResponseRecord(HttpStatus.OK.value(), res));
     }
 
@@ -206,7 +208,7 @@ public class UserController {
             @ApiResponse(responseCode = "400", description = "Invalid file format", content = @Content()),
             @ApiResponse(responseCode = "500", description = "Invalid file size/Internal server error", content = @Content()),
     })
-    public ResponseEntity<ResponseRecord> uploadImage(@RequestParam("file") MultipartFile file) throws IOException {
+    public ResponseEntity<ResponseRecord> uploadImage(@RequestPart("file") MultipartFile file) throws IOException {
         String fileName = System.currentTimeMillis() + "-" + file.getOriginalFilename();
         String url = azureService.uploadAvatar(
                 "avatars",
@@ -247,4 +249,46 @@ public class UserController {
         Page<UserResponse> usersPage = userService.getAllUsers(nickname, page, size);
         return ResponseEntity.ok(new ResponseRecord(HttpStatus.OK.value(), usersPage));
     }
+
+    @PatchMapping("/change-username")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Change username", description = "Updates the username for the authenticated user.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Username updated successfully", content = @Content()),
+            @ApiResponse(responseCode = "400", description = "Invalid username or username already taken", content = @Content()),
+            @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
+    })
+    public ResponseEntity<ResponseRecord> changeUsername(
+            @RequestParam String username) {
+        userService.changeUsername(username);
+        return ResponseEntity.ok().build();
+    }
+
+    @PatchMapping("/change-description")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Change description", description = "Updates the description for the authenticated user.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Description updated successfully", content = @Content()),
+            @ApiResponse(responseCode = "400", description = "Invalid description", content = @Content()),
+            @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
+    })
+    public ResponseEntity<ResponseRecord> changeDescription(
+            @RequestParam String description) {
+        userService.changeDescription(description);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/blacklist")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Get user blacklist", description = "Retrieves the list of users blocked by the specified user.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Blacklist retrieved successfully", content = @Content()),
+            @ApiResponse(responseCode = "404", description = "User not found", content = @Content()),
+            @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
+    })
+    public ResponseEntity<ResponseRecord> getUserBlacklist() {
+        List<ShortUserResponse> blacklist = userService.getUserBlacklist();
+        return ResponseEntity.ok(new ResponseRecord(HttpStatus.OK.value(), blacklist));
+    }
+
 }

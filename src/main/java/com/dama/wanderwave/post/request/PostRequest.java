@@ -28,4 +28,5 @@ public class PostRequest {
     private RouteRequest route;
     private List<String> pros;
     private List<String> cons;
+    private String[] urls;
 }

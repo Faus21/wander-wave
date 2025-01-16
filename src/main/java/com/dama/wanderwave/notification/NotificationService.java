@@ -1,11 +1,15 @@
 package com.dama.wanderwave.notification;
 
+import com.dama.wanderwave.handler.user.UserNotFoundException;
 import com.dama.wanderwave.notification.response.NotificationResponse;
 import com.dama.wanderwave.user.User;
-import com.dama.wanderwave.user.UserService;
+import com.dama.wanderwave.user.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -13,48 +17,59 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
-    private final UserService userService;
+    private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
-    public NotificationResponse sendLikeNotification(String recipientId, String objectId, String actionUserId) {
-        return createNotification(
+    public void sendLikeNotification(String recipientId, String objectId, String actionUserId) {
+        User recipient = findUserByIdOrThrow(recipientId);
+        User actionUser = findUserByIdOrThrow(actionUserId);
+
+        if (notificationRepository.existsByRecipientAndActionUserAndObjectId(recipient, actionUser, objectId)) {
+            return;
+        }
+
+        createNotification(
                 recipientId,
-                "You have a new like on your post!",
                 Notification.NotificationType.LIKE,
                 objectId,
                 actionUserId
         );
     }
 
-    public NotificationResponse sendCommentNotification(String recipientId, String objectId, String actionUserId) {
-        return createNotification(
+    public void sendCommentNotification(String recipientId, String objectId, String actionUserId) {
+        createNotification(
                 recipientId,
-                "You have a new comment on your post!",
                 Notification.NotificationType.COMMENT,
                 objectId,
                 actionUserId
         );
     }
 
-    public NotificationResponse sendFollowNotification(String recipientId, String objectId, String actionUserId) {
-        return createNotification(
+    public void sendFollowNotification(String recipientId, String objectId, String actionUserId) {
+        User recipient = findUserByIdOrThrow(recipientId);
+        User actionUser = findUserByIdOrThrow(actionUserId);
+
+        if (notificationRepository.existsByRecipientAndActionUserAndObjectId(recipient, actionUser, objectId)) {
+            return;
+        }
+
+        createNotification(
                 recipientId,
-                "You have a new follower!",
                 Notification.NotificationType.FOLLOW,
                 objectId,
                 actionUserId
         );
     }
 
-    private NotificationResponse createNotification(String recipientId, String content, Notification.NotificationType type, String objectId, String actionUserId) {
-        User recipient = userService.findUserByIdOrThrow(recipientId);
-        User actionUser = userService.findUserByIdOrThrow(actionUserId);
+    private NotificationResponse createNotification(String recipientId, Notification.NotificationType type, String objectId, String actionUserId) {
+        User recipient = findUserByIdOrThrow(recipientId);
+        User actionUser = findUserByIdOrThrow(actionUserId);
 
         Notification notification = Notification.builder()
-                .content(content)
                 .recipient(recipient)
                 .type(type)
                 .objectId(objectId)
@@ -76,7 +91,7 @@ public class NotificationService {
     }
 
     public List<NotificationResponse> getNotifications(int page, int size) {
-        User user = userService.getAuthenticatedUser();
+        User user = getAuthenticatedUser();
         return notificationRepository.findByRecipientIdOrderByCreatedAtDesc(user.getId(), PageRequest.of(page, size))
                 .stream()
                 .map(NotificationResponse::fromEntity)
@@ -84,7 +99,7 @@ public class NotificationService {
     }
 
     public List<NotificationResponse> getUnreadNotifications(int page, int size) {
-        User user = userService.getAuthenticatedUser();
+        User user = getAuthenticatedUser();
         return notificationRepository
                 .findByRecipientIdAndIsReadFalseOrderByCreatedAtDesc(user.getId(), PageRequest.of(page, size))
                 .stream()
@@ -98,15 +113,34 @@ public class NotificationService {
     }
 
     public Notification markNotificationAsRead(String notificationId) {
+        log.info("Attempting to mark notification with ID: {} as read", notificationId);
+
         Notification notification = getNotificationById(notificationId);
         notification.setRead(true);
-        return notificationRepository.save(notification);
+
+        log.info("Notification with ID: {} marked as read", notificationId);
+
+        Notification savedNotification = notificationRepository.save(notification);
+        log.info("Notification with ID: {} successfully marked as read and saved", notificationId);
+
+        return savedNotification;
     }
 
     public void markAllNotificationsAsRead() {
-        User user = userService.getAuthenticatedUser();
+        User user = getAuthenticatedUser();
         List<Notification> notifications = notificationRepository.findByRecipientIdAndIsReadFalse(user.getId());
         notifications.forEach(notification -> notification.setRead(true));
         notificationRepository.saveAll(notifications);
+    }
+
+    private User getAuthenticatedUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+    }
+
+    private User findUserByIdOrThrow(String userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found with id " + userId));
     }
 }
