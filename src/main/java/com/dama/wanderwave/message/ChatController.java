@@ -52,8 +52,6 @@ public class ChatController {
             @Payload ChatMessageRequest chatMessage,
             @Header("postId") String postId
     ) {
-        logActiveChannels();
-
         log.info("Processing chat message from sender: {} to recipient: {}", chatMessage.getSenderId(), chatMessage.getRecipientId());
 
         if (postId != null && postId.length() == 16) {
@@ -178,17 +176,5 @@ public class ChatController {
         log.debug("Chat cleared successfully");
 
         return ResponseEntity.ok().build();
-    }
-
-    private void logActiveChannels() {
-        log.info("Active WebSocket channels:");
-        for (SimpUser user : simpUserRegistry.getUsers()) {
-            log.info("User: {}", user.getName());
-            for (SimpSession session : user.getSessions()) {
-                for (SimpSubscription subscription : session.getSubscriptions()) {
-                    log.info("  - Channel: {}", subscription.getDestination());
-                }
-            }
-        }
     }
 }

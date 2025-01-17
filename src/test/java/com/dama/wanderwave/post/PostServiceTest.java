@@ -12,6 +12,7 @@ import com.dama.wanderwave.handler.user.save.IsSavedException;
 import com.dama.wanderwave.handler.user.save.SavedPostNotFound;
 import com.dama.wanderwave.hashtag.HashTag;
 import com.dama.wanderwave.hashtag.HashTagRepository;
+import com.dama.wanderwave.notification.NotificationRepository;
 import com.dama.wanderwave.place.Place;
 import com.dama.wanderwave.place.PlaceRepository;
 import com.dama.wanderwave.place.request.PlaceRequest;
@@ -80,6 +81,8 @@ public class PostServiceTest {
     private SavedPostRepository savedPostRepository;
     @Mock
     private PlaceRepository placeRepository;
+    @Mock
+    private NotificationRepository notificationRepository;
 
     private Authentication authentication;
 
@@ -522,6 +525,7 @@ public class PostServiceTest {
         void recommendationFlow_Success() {
             User mockUser = getMockUser();
             Post mockPost1 = getUserPosts().getFirst();
+            mockPost1.getUser().setId("mockIdPow");
             Post mockPost2 = getUserPosts().get(1);
 
             when(userService.getAuthenticatedUser()).thenReturn(mockUser);

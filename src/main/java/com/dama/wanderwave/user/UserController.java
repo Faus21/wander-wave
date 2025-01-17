@@ -1,9 +1,7 @@
 package com.dama.wanderwave.user;
 
 
-import com.azure.core.annotation.Get;
 import com.dama.wanderwave.azure.AzureService;
-import com.dama.wanderwave.user.request.BlockRequest;
 import com.dama.wanderwave.user.request.SubscribeRequest;
 import com.dama.wanderwave.user.response.ShortUserResponse;
 import com.dama.wanderwave.user.response.UserResponse;

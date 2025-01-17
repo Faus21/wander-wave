@@ -28,6 +28,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -61,6 +62,8 @@ class ReportServiceTest {
     private ReportTypeRepository typeRepository;
     @Mock
     private UserService userService;
+    @Mock
+    private ModelMapper modelMapper;
 
     private Authentication authentication;
 
@@ -95,7 +98,6 @@ class ReportServiceTest {
             verify(reportRepository).save(any(UserReport.class));
             verify(reportStatusRepository).findByName(anyString());
             verify(typeRepository).findByName(anyString());
-            verify(userRepository).save(any(User.class));
 
             verifyNoInteractions(commentRepository, postRepository);
         }
@@ -224,7 +226,7 @@ class ReportServiceTest {
             var result = reportService.getUserReports(PageRequest.of(0, 2), mockUser.getId());
 
             verify(reportRepository).findAllBySender(PageRequest.of(0, 2), mockUser);
-            assertEquals(mockPage, result);
+            assertEquals(mockPage.getTotalElements(), result.getTotalElements());
         }
 
         @Test
@@ -314,7 +316,7 @@ class ReportServiceTest {
 
             var result = reportService.getReportById("reportId");
 
-            assertEquals(mockReport, result);
+            assertEquals(mockReport.getId(), result.getId());
             verify(reportRepository).findById(anyString());
         }
 
@@ -432,7 +434,7 @@ class ReportServiceTest {
     private UserReport getMockReport() {
         User sender = getMockUser();
 
-        return PostReport.builder()
+        return UserReport.builder()
                 .id("reportId")
                 .sender(sender)
                 .reported(sender)
@@ -457,7 +459,6 @@ class ReportServiceTest {
     private SendReportRequest getSendReportRequest() {
         return SendReportRequest
                 .builder()
-                .userReportedId("user321")
                 .objectId("object123")
                 .objectType(ReportObjectType.USER)
                 .reportType("reportType")

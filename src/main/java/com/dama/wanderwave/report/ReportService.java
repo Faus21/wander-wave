@@ -129,7 +129,7 @@ public class ReportService {
             responseBuilder.objectId(commentReport.getComment().getId())
                     .objectType("COMMENT");
         } else {
-            responseBuilder.objectId("USER");
+            responseBuilder.objectId(report.getReported().getId());
         }
 
         return responseBuilder.build();
