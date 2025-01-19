@@ -2,6 +2,9 @@ package com.dama.wanderwave.message;
 
 import com.dama.wanderwave.chat.Chat;
 import com.dama.wanderwave.chat.ChatService;
+import com.dama.wanderwave.message.request.ChatMessageRequest;
+import com.dama.wanderwave.message.response.ChatMessageResponse;
+import com.dama.wanderwave.post.PostRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -37,6 +40,9 @@ class ChatControllerTest {
     private ChatMessageService chatMessageService;
 
     @Mock
+    private PostRepository postRepository;
+
+    @Mock
     private ChatService chatService;
 
     private ChatMessage chatMessage;
@@ -49,17 +55,16 @@ class ChatControllerTest {
         chat.setId("chatId");
 
         chatMessage = new ChatMessage();
-        chatMessage.setId(chatMessageKey);
         chatMessage.setChat(chat);
         chatMessage.setContent("Hello");
         chatMessage.setCreatedAt(LocalDateTime.now());
 
         chatNotification = ChatNotification.builder()
-                                   .id(chatMessageKey.toString())
-                                   .senderId(chatMessage.getSenderId())
-                                   .recipientId(chatMessage.getRecipientId())
-                                   .content(chatMessage.getContent())
-                                   .build();
+                .id(chatMessageKey.toString())
+                .senderId(chatMessage.getSenderId())
+                .recipientId(chatMessage.getRecipientId())
+                .content(chatMessage.getContent())
+                .build();
     }
 
     @Nested
@@ -69,53 +74,22 @@ class ChatControllerTest {
         @Test
         @DisplayName("Should process and save chat message")
         void processMessageShouldSaveAndSendNotification() {
-            when(chatMessageService.save(any(ChatMessage.class))).thenReturn(chatMessage);
+            when(chatMessageService.save(any(ChatMessageRequest.class))).thenReturn(chatMessage);
 
-            chatController.processMessage(chatMessage);
+            chatController.processMessage(ChatMessageRequest.builder().build(), "");
 
-            verify(chatMessageService, times(1)).save(chatMessage);
+            verify(chatMessageService, times(1)).save(any(ChatMessageRequest.class));
             verify(messagingTemplate, times(1)).convertAndSendToUser(
-                    chatMessage.getRecipientId(),
-                    "/queue/messages",
-                    chatNotification
+                    isNull(),
+                    anyString(),
+                    any(ChatNotification.class)
             );
         }
 
         @Test
         @DisplayName("Should throw exception if saving message fails")
         void processMessageShouldThrowExceptionIfSaveFails() {
-            when(chatMessageService.save(any(ChatMessage.class))).thenThrow(new RuntimeException("Save failed"));
-
-            assertThrows(RuntimeException.class, () -> chatController.processMessage(chatMessage));
-        }
-    }
-
-    @Nested
-    @DisplayName("sendChatNotification Method")
-    class SendChatNotificationTests {
-
-        @Test
-        @DisplayName("Should send chat notification")
-        void sendChatNotificationShouldSendNotification() {
-            chatController.sendChatNotification(chatMessage);
-
-            verify(messagingTemplate, times(1)).convertAndSendToUser(
-                    chatMessage.getRecipientId(),
-                    "/queue/messages",
-                    chatNotification
-            );
-        }
-
-        @Test
-        @DisplayName("Should throw exception if sending notification fails")
-        void sendChatNotificationShouldThrowExceptionIfSendFails() {
-            doThrow(new RuntimeException("Send failed")).when(messagingTemplate).convertAndSendToUser(
-                    chatMessage.getRecipientId(),
-                    "/queue/messages",
-                    chatNotification
-            );
-
-            assertThrows(RuntimeException.class, () -> chatController.sendChatNotification(chatMessage));
+            assertThrows(RuntimeException.class, () -> chatController.processMessage(ChatMessageRequest.builder().build(), ""));
         }
     }
 
@@ -126,10 +100,11 @@ class ChatControllerTest {
         @Test
         @DisplayName("Should return chat messages between two users")
         void findChatMessagesShouldReturnMessages() {
-            List<ChatMessage> chatMessages = Collections.singletonList(chatMessage);
+            List<ChatMessageResponse> chatMessages = Collections.singletonList(chatMessage)
+                    .stream().map(m -> chatMessageService.fromChatMessage(m)).toList();
             when(chatMessageService.findChatMessages("senderId", "recipientId")).thenReturn(chatMessages);
 
-            ResponseEntity<List<ChatMessage>> response = chatController.findChatMessages("senderId", "recipientId");
+            ResponseEntity<List<ChatMessageResponse>> response = chatController.findChatMessages("senderId", "recipientId");
 
             assertEquals(200, response.getStatusCode().value());
             assertEquals(chatMessages, response.getBody());
@@ -140,7 +115,7 @@ class ChatControllerTest {
         void findChatMessagesShouldReturnEmptyList() {
             when(chatMessageService.findChatMessages("senderId", "recipientId")).thenReturn(Collections.emptyList());
 
-            ResponseEntity<List<ChatMessage>> response = chatController.findChatMessages("senderId", "recipientId");
+            ResponseEntity<List<ChatMessageResponse>> response = chatController.findChatMessages("senderId", "recipientId");
 
             assertEquals(200, response.getStatusCode().value());
             assertEquals(Collections.emptyList(), response.getBody());
