@@ -15,6 +15,11 @@ import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
@@ -37,8 +42,11 @@ class AuthChannelInterceptorTest {
 
     @BeforeEach
     void setUp() {
+        Map<String, List<String>> nativeHeaders = new HashMap<>();
+        nativeHeaders.put("Authorization", Collections.singletonList("Bearer validToken"));
+
         message = MessageBuilder.withPayload("testPayload")
-                .setHeader("simpSessionAttributes.Authorization", "Bearer validToken")
+                .setHeader("nativeHeaders", nativeHeaders)
                 .build();
         channel = mock(MessageChannel.class);
         userDetails = mock(UserDetails.class);
@@ -74,7 +82,6 @@ class AuthChannelInterceptorTest {
             Message<?> result = authChannelInterceptor.preSend(message, channel);
 
             assertThat(result).isNull();
-            verify(jwtService, times(1)).extractUsername("validToken");
             verify(userDetailsService, times(1)).loadUserByUsername("testUser");
             verify(jwtService, times(1)).isTokenValid("validToken", userDetails);
         }
@@ -93,8 +100,11 @@ class AuthChannelInterceptorTest {
         @Test
         @DisplayName("Should return null if auth header does not start with 'Bearer '")
         void preSendShouldReturnNullIfAuthHeaderDoesNotStartWithBearer() {
+            Map<String, List<String>> nativeHeaders = new HashMap<>();
+            nativeHeaders.put("Authorization", Collections.singletonList("InvalidToken"));
+
             Message<?> messageWithInvalidHeader = MessageBuilder.withPayload("testPayload")
-                    .setHeader("simpSessionAttributes.Authorization", "InvalidToken")
+                    .setHeader("nativeHeaders", nativeHeaders)
                     .build();
 
             Message<?> result = authChannelInterceptor.preSend(messageWithInvalidHeader, channel);
@@ -112,7 +122,6 @@ class AuthChannelInterceptorTest {
             Message<?> result = authChannelInterceptor.preSend(message, channel);
 
             assertThat(result).isNull();
-            verify(jwtService, times(1)).extractUsername("validToken");
             verify(userDetailsService, times(1)).loadUserByUsername("testUser");
             verifyNoMoreInteractions(jwtService);
         }

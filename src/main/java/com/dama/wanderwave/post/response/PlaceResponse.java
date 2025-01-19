@@ -11,14 +11,14 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 public class PlaceResponse {
 
+    private String displayName;
+
     private String description;
+
+    private String locationName;
 
     private Double rating;
 
-    private BigDecimal longitude;
-
-    private BigDecimal latitude;
-
-    private String imgUrl;
+    private CoordsResponse coords;
 
 }

@@ -2,20 +2,27 @@ package com.dama.wanderwave.comment;
 
 import com.dama.wanderwave.handler.comment.CommentNotFoundException;
 import com.dama.wanderwave.handler.post.PostNotFoundException;
+import com.dama.wanderwave.notification.Notification;
+import com.dama.wanderwave.notification.NotificationRepository;
+import com.dama.wanderwave.notification.NotificationService;
 import com.dama.wanderwave.post.Post;
 import com.dama.wanderwave.post.PostRepository;
 import com.dama.wanderwave.post.request.CreateCommentRequest;
+import com.dama.wanderwave.post.response.CommentResponse;
 import com.dama.wanderwave.user.User;
 import com.dama.wanderwave.user.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
@@ -25,12 +32,19 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
     private final UserService userService;
+    private final ModelMapper modelMapper;
+    private final NotificationService notificationService;
+    private final NotificationRepository notificationRepository;
 
     @Transactional
     public String createComment(CreateCommentRequest createCommentRequest) {
         log.info("Creating a new comment for postId: {}", createCommentRequest.getPostId());
 
         Post post = findPostById(createCommentRequest.getPostId());
+
+        if (post.getIsDisabledComments()) {
+            throw new RuntimeException("Comments are disabled.");
+        }
 
         User user = userService.getAuthenticatedUser();
         log.debug("Authenticated user: {}", user.getId());
@@ -51,14 +65,26 @@ public class CommentService {
 
         log.info("Comment created successfully with id: {}", savedComment.getId());
 
-        return "Comment created successfully";
+        if (!post.getUser().getId().equals(savedComment.getUser().getId())) {
+            notificationService.sendCommentNotification(
+                    post.getUser().getId(),
+                    post.getId(),
+                    savedComment.getUser().getId()
+            );
+        }
+
+        return savedComment.getId();
     }
 
-    public List<Comment> getAllCommentsForPost(Pageable pageable, String postId) {
+    public Page<CommentResponse> getAllCommentsForPost(Pageable pageable, String postId) {
         log.info("Fetching all comments for post {} with page number: {}, page size: {}",
                 postId, pageable.getPageNumber(), pageable.getPageSize());
 
         Post post = findPostById(postId);
+
+        if (post.getIsDisabledComments()) {
+            throw new RuntimeException("Comments are disabled.");
+        }
 
         Page<Comment> commentsPage = commentRepository.findAllByPost(post, pageable);
 
@@ -67,7 +93,16 @@ public class CommentService {
                 commentsPage.getNumber(),
                 commentsPage.getTotalElements());
 
-        return commentsPage.getContent();
+        List<CommentResponse> commentResponses = commentsPage.getContent().stream()
+                .map(comment -> modelMapper.map(comment, CommentResponse.class))
+                .sorted((o1, o2) -> o2.getCreationDate().compareTo(o1.getCreationDate()))
+                .toList();
+
+        return new PageImpl<>(
+                commentResponses,
+                commentsPage.getPageable(),
+                commentsPage.getTotalElements()
+        );
     }
 
     @Transactional
@@ -95,6 +130,9 @@ public class CommentService {
         Comment comment = commentRepository.findById(id)
                 .orElseThrow(() -> new CommentNotFoundException("Comment with id " + id + " not found"));
 
+        List<Notification> notifications = notificationRepository.findAllByObjectId(comment.getId());
+        notificationRepository.deleteAll(notifications);
+
         Post post = comment.getPost();
         post.setCommentsCount(post.getCommentsCount() - 1);
         postRepository.save(post);
@@ -111,5 +149,12 @@ public class CommentService {
                     log.error("Post with id {} not found", postId);
                     return new PostNotFoundException("Post with id " + postId + " not found");
                 });
+    }
+
+    public CommentResponse getCommentById(String commentId) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new CommentNotFoundException("Comment not found with id: " + commentId));
+
+        return modelMapper.map(comment, CommentResponse.class);
     }
 }

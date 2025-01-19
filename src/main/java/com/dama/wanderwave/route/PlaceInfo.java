@@ -4,12 +4,11 @@ import com.dama.wanderwave.place.request.PlaceInfoRequest;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Embeddable
 @Builder
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class PlaceInfo {

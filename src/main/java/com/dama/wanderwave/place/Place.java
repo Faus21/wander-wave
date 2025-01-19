@@ -27,14 +27,14 @@ public class Place {
 	@Column(name = "place_id")
 	private String id;
 
-	@Size(max = 64)
+	@Size(max = 500)
 	@NotBlank
-	@Column(nullable = false, length = 64)
+	@Column(nullable = false, length = 500)
 	private String displayName;
 
-	@Size(max = 64)
+	@Size(max = 500)
 	@NotBlank
-	@Column(nullable = false, length = 64)
+	@Column(nullable = false, length = 500)
 	private String locationName;
 
 	@Size(max = 500, message = "Place description length must be less than or equal to 500 characters")

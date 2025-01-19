@@ -85,15 +85,13 @@ class ChatServiceTest {
 			when(userRepository.findById(sender.getId())).thenReturn(Optional.of(sender));
 			when(userRepository.findById(recipient.getId())).thenReturn(Optional.of(recipient));
 			when(hashUUIDGenerator.encodeString(sender.getId() + recipient.getId())).thenReturn("chatId");
-			when(hashUUIDGenerator.encodeString(recipient.getId() + sender.getId())).thenReturn("reversedChatId");
 			when(chatRepository.save(any(Chat.class))).thenReturn(expectedChat);
 
 			Optional<Chat> actualChat = chatService.findOrCreateChatRoom(sender.getId(), recipient.getId(), true);
 
 			assertThat(actualChat).isPresent().contains(expectedChat);
-			verify(chatRepository, times(2)).save(any(Chat.class));
+			verify(chatRepository).save(any(Chat.class));
 			verify(hashUUIDGenerator).encodeString(sender.getId() + recipient.getId());
-			verify(hashUUIDGenerator).encodeString(recipient.getId() + sender.getId());
 		}
 
 		@Test
@@ -140,7 +138,6 @@ class ChatServiceTest {
 			when(userRepository.findById(sender.getId())).thenReturn(Optional.of(sender));
 			when(userRepository.findById(recipient.getId())).thenReturn(Optional.of(recipient));
 			when(hashUUIDGenerator.encodeString(sender.getId() + recipient.getId())).thenReturn("chatId");
-			when(hashUUIDGenerator.encodeString(recipient.getId() + sender.getId())).thenReturn("reversedChatId");
 			when(chatRepository.save(any(Chat.class))).thenReturn(expectedChat);
 
 			Chat actualChat = chatService.createNewChatRoom(sender.getId(), recipient.getId());
@@ -150,11 +147,10 @@ class ChatServiceTest {
 					.extracting(Chat::getId, Chat::getSender, Chat::getRecipient)
 					.containsExactly("chatId", sender, recipient);
 
-			verify(chatRepository, times(2)).save(any(Chat.class));
+			verify(chatRepository).save(any(Chat.class));
 			verify(userRepository).findById(sender.getId());
 			verify(userRepository).findById(recipient.getId());
 			verify(hashUUIDGenerator).encodeString(sender.getId() + recipient.getId());
-			verify(hashUUIDGenerator).encodeString(recipient.getId() + sender.getId());
 		}
 	}
 

@@ -4,7 +4,6 @@ import com.dama.wanderwave.azure.AzureService;
 import com.dama.wanderwave.handler.GlobalExceptionHandler;
 import com.dama.wanderwave.handler.azure.FileTypeException;
 import com.dama.wanderwave.handler.user.UserNotFoundException;
-import com.dama.wanderwave.user.request.BlockRequest;
 import com.dama.wanderwave.user.request.SubscribeRequest;
 import com.dama.wanderwave.user.response.UserResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -377,103 +376,109 @@ class UserControllerTest {
         @Test
         @DisplayName("Should block user successfully")
         void testBlockUser_Success() throws Exception {
-            BlockRequest blockRequest = new BlockRequest("blockerId", "blockedId");
+            String blockedId = "blockedId";
 
-            when(userService.updateBlacklist(blockRequest, true)).thenReturn("User blocked successfully");
+            when(userService.updateBlacklist(blockedId, true))
+                    .thenReturn("User blocked successfully");
 
             mockMvc.perform(post(ApiUrl.BLOCK.getUrl())
                             .contentType(CONTENT_TYPE)
                             .accept(ACCEPT_TYPE)
-                            .content(objectMapper.writeValueAsString(blockRequest)))
+                            .content(blockedId))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.message").value("User blocked successfully"));
 
-            verify(userService, times(1)).updateBlacklist(blockRequest, true);
+            verify(userService, times(1)).updateBlacklist(blockedId, true);
         }
 
         @Test
         @DisplayName("Should return 404 if user not found when blocking")
         void testBlockUser_NotFound() throws Exception {
-            BlockRequest blockRequest = new BlockRequest("blockerId", "blockedId");
+            String blockedId = "blockedId";
 
-            when(userService.updateBlacklist(blockRequest, true)).thenThrow(new UserNotFoundException("User not found"));
+            when(userService.updateBlacklist(blockedId, true))
+                    .thenThrow(new UserNotFoundException("User not found"));
 
             mockMvc.perform(post(ApiUrl.BLOCK.getUrl())
                             .contentType(CONTENT_TYPE)
                             .accept(ACCEPT_TYPE)
-                            .content(objectMapper.writeValueAsString(blockRequest)))
+                            .content(blockedId))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.message").value("User not found"));
 
-            verify(userService, times(1)).updateBlacklist(blockRequest, true);
+            verify(userService, times(1)).updateBlacklist(blockedId, true);
         }
 
         @Test
         @DisplayName("Should return 500 if internal server error occurs during blocking")
         void testBlockUser_InternalServerError() throws Exception {
-            BlockRequest blockRequest = new BlockRequest("blockerId", "blockedId");
+            String blockedId = "blockedId";
 
-            when(userService.updateBlacklist(blockRequest, true)).thenThrow(new RuntimeException("Internal server error"));
+            when(userService.updateBlacklist(blockedId, true))
+                    .thenThrow(new RuntimeException("Internal server error"));
 
             mockMvc.perform(post(ApiUrl.BLOCK.getUrl())
                             .contentType(CONTENT_TYPE)
                             .accept(ACCEPT_TYPE)
-                            .content(objectMapper.writeValueAsString(blockRequest)))
+                            .content(blockedId))
                     .andExpect(status().isInternalServerError())
                     .andExpect(jsonPath("$.message").value("Internal server error"));
 
-            verify(userService, times(1)).updateBlacklist(blockRequest, true);
+            verify(userService, times(1)).updateBlacklist(blockedId, true);
         }
 
         @Test
         @DisplayName("Should unblock user successfully")
         void testUnblockUser_Success() throws Exception {
-            BlockRequest blockRequest = new BlockRequest("blockerId", "blockedId");
+            String blockedId = "blockedId";
 
-            when(userService.updateBlacklist(blockRequest, false)).thenReturn("User unblocked successfully");
+            when(userService.updateBlacklist(blockedId, false))
+                    .thenReturn("User unblocked successfully");
 
             mockMvc.perform(post(ApiUrl.UNBLOCK.getUrl())
                             .contentType(CONTENT_TYPE)
                             .accept(ACCEPT_TYPE)
-                            .content(objectMapper.writeValueAsString(blockRequest)))
+                            .content(blockedId))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.message").value("User unblocked successfully"));
 
-            verify(userService, times(1)).updateBlacklist(blockRequest, false);
+            verify(userService, times(1)).updateBlacklist(blockedId, false);
         }
 
         @Test
         @DisplayName("Should return 404 if user not found when unblocking")
         void testUnblockUser_NotFound() throws Exception {
-            BlockRequest blockRequest = new BlockRequest("blockerId", "blockedId");
+            String blockedId = "blockedId";
 
-            when(userService.updateBlacklist(blockRequest, false)).thenThrow(new UserNotFoundException("User not found"));
+            when(userService.updateBlacklist(blockedId, false))
+                    .thenThrow(new UserNotFoundException("User not found"));
 
             mockMvc.perform(post(ApiUrl.UNBLOCK.getUrl())
                             .contentType(CONTENT_TYPE)
                             .accept(ACCEPT_TYPE)
-                            .content(objectMapper.writeValueAsString(blockRequest)))
+                            .content(blockedId))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.message").value("User not found"));
 
-            verify(userService, times(1)).updateBlacklist(blockRequest, false);
+            verify(userService, times(1)).updateBlacklist(blockedId, false);
         }
 
         @Test
         @DisplayName("Should return 500 if internal server error occurs during unblocking")
         void testUnblockUser_InternalServerError() throws Exception {
-            BlockRequest blockRequest = new BlockRequest("blockerId", "blockedId");
+            String blockedId = "blockedId";
 
-            when(userService.updateBlacklist(blockRequest, false)).thenThrow(new RuntimeException("Internal server error"));
+            when(userService.updateBlacklist(blockedId, false))
+                    .thenThrow(new RuntimeException("Internal server error"));
 
             mockMvc.perform(post(ApiUrl.UNBLOCK.getUrl())
                             .contentType(CONTENT_TYPE)
                             .accept(ACCEPT_TYPE)
-                            .content(objectMapper.writeValueAsString(blockRequest)))
+                            .content(blockedId)) // Pass the blockedId directly
                     .andExpect(status().isInternalServerError())
                     .andExpect(jsonPath("$.message").value("Internal server error"));
 
-            verify(userService, times(1)).updateBlacklist(blockRequest, false);
+            verify(userService, times(1)).updateBlacklist(blockedId, false);
         }
     }
 

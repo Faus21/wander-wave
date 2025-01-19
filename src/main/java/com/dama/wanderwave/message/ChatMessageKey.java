@@ -3,6 +3,7 @@ package com.dama.wanderwave.message;
 import jakarta.persistence.Embeddable;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -12,6 +13,7 @@ import java.util.Objects;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @Embeddable
 public class ChatMessageKey implements Serializable {
     @NotNull(message = "Sender ID must be specified")

@@ -4,6 +4,7 @@ import com.dama.wanderwave.comment.Comment;
 import com.dama.wanderwave.comment.CommentService;
 import com.dama.wanderwave.post.request.CreateCommentRequest;
 import com.dama.wanderwave.post.request.PostRequest;
+import com.dama.wanderwave.post.response.CommentResponse;
 import com.dama.wanderwave.post.response.PostResponse;
 import com.dama.wanderwave.post.response.ShortPostResponse;
 import com.dama.wanderwave.utils.ResponseRecord;
@@ -25,6 +26,8 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -64,7 +67,7 @@ public class PostController {
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
     public ResponseEntity<ResponseRecord> createPost(
-            @RequestPart PostRequest request
+            @RequestBody PostRequest request
     ) {
         String response = postService.createPost(request);
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), response));
@@ -79,7 +82,7 @@ public class PostController {
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
     public ResponseEntity<ResponseRecord> modifyPost(
-            @RequestPart PostRequest request
+            @RequestBody PostRequest request
     ) {
         String response = postService.modifyPost(request);
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), response));
@@ -336,8 +339,33 @@ public class PostController {
             @RequestParam @Max(MAX_PAGE_SIZE) Integer pageSize
     ) {
         Pageable pageable = PageRequest.of(pageNumber, pageSize);
-        List<Comment> comments = commentService.getAllCommentsForPost(pageable, postId);
+        Page<CommentResponse> comments = commentService.getAllCommentsForPost(pageable, postId);
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), comments));
     }
 
+    @PutMapping("/{postId}/toggleComments")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Toggle comments for a post", description = "Enable or disable comments for a specific post.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Comments toggled successfully", content = @Content()),
+            @ApiResponse(responseCode = "404", description = "Post not found", content = @Content()),
+            @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
+    })
+    public ResponseEntity<ResponseRecord> toggleComments(@PathVariable String postId) {
+        String response = postService.toggleComments(postId);
+        return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), response));
+    }
+
+    @GetMapping("/comments/{commentId}")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Get comment by ID", description = "Get a specific comment by its ID.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Comment retrieved successfully", content = @Content()),
+            @ApiResponse(responseCode = "404", description = "Comment not found", content = @Content()),
+            @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
+    })
+    public ResponseEntity<ResponseRecord> getCommentById(@PathVariable String commentId) {
+        CommentResponse comment = commentService.getCommentById(commentId);
+        return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), comment));
+    }
 }

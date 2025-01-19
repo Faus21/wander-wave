@@ -15,6 +15,9 @@ import com.dama.wanderwave.handler.user.save.IsSavedException;
 import com.dama.wanderwave.handler.user.save.SavedPostNotFound;
 import com.dama.wanderwave.hashtag.HashTag;
 import com.dama.wanderwave.hashtag.HashTagRepository;
+import com.dama.wanderwave.notification.Notification;
+import com.dama.wanderwave.notification.NotificationRepository;
+import com.dama.wanderwave.notification.NotificationService;
 import com.dama.wanderwave.place.Place;
 import com.dama.wanderwave.place.PlaceRepository;
 import com.dama.wanderwave.place.request.PlaceRequest;
@@ -22,6 +25,7 @@ import com.dama.wanderwave.post.request.PostRequest;
 import com.dama.wanderwave.post.response.*;
 import com.dama.wanderwave.route.Route;
 import com.dama.wanderwave.route.RouteRepository;
+import com.dama.wanderwave.user.BlackList;
 import com.dama.wanderwave.user.User;
 import com.dama.wanderwave.user.UserRepository;
 import com.dama.wanderwave.user.UserService;
@@ -69,13 +73,24 @@ public class PostService {
     private final CommentRepository commentRepository;
     private final AzureService azureService;
     private final RouteRepository routeRepository;
+    private final NotificationRepository notificationRepository;
+    private final NotificationService notificationService;
 
     private final Cache<String, Set<String>> userRecommendedPostsCache;
 
     public Page<ShortPostResponse> getUserPosts(Pageable pageRequest, String nickname) {
         log.info("getUserPosts called with nickname: {}", nickname);
+        User authenticatedUser = userService.getAuthenticatedUser();
+
         User user = userRepository.findByNickname(nickname)
                 .orElseThrow(() -> new UserNotFoundException(nickname));
+
+        BlackList blackList = user.getBlackList();
+        if ((blackList != null && blackList.userIds() != null &&
+                blackList.userIds().contains(authenticatedUser.getId())) ||
+                user.isAccountLocked()) {
+            return Page.empty();
+        }
 
         Page<Post> result = postRepository.findByUserWithHashtags(user, pageRequest);
         Page<ShortPostResponse> postResponses = getShortPostResponseListFromPostList(pageRequest, result);
@@ -128,12 +143,16 @@ public class PostService {
         }
 
         if (request.getPlaces() != null && !request.getPlaces().isEmpty()) {
+            List<Place> oldPlaces = placeRepository.findAllByPost(post);
+            placeRepository.deleteAll(oldPlaces);
             List<Place> placeList = processPlaces(request.getPlaces(), post);
             placeRepository.saveAll(placeList);
         }
 
         if (request.getRoute() != null) {
-            post.setRoute(Route.fromRouteRequest(request.getRoute()));
+            routeRepository.delete(post.getRoute());
+            Route saved = routeRepository.save(Route.fromRouteRequest(request.getRoute()));
+            post.setRoute(saved);
         }
 
         if (request.getPros() != null && !request.getPros().isEmpty()) {
@@ -142,6 +161,10 @@ public class PostService {
 
         if (request.getCons() != null && !request.getCons().isEmpty()) {
             post.setCons(request.getCons().toArray(new String[0]));
+        }
+
+        if (request.getUrls() != null) {
+            post.setImages(request.getUrls());
         }
     }
 
@@ -174,6 +197,11 @@ public class PostService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new PostNotFoundException("Post not found with id: " + postId));
 
+        String[] oldUrls = post.getImages();
+        if (oldUrls == null) {
+            oldUrls = new String[0];
+        }
+
         String[] uploadedImageUrls = Optional.ofNullable(images)
                 .filter(i -> !i.isEmpty())
                 .orElse(Collections.emptyList())
@@ -182,7 +210,11 @@ public class PostService {
                 .filter(Objects::nonNull)
                 .toArray(String[]::new);
 
-        post.setImages(uploadedImageUrls);
+        String[] allImageUrls = Stream.concat(Arrays.stream(oldUrls), Arrays.stream(uploadedImageUrls))
+                .toArray(String[]::new);
+
+        post.setImages(allImageUrls);
+        postRepository.save(post);
 
         log.info("Successfully uploaded {} images for postId: {}", uploadedImageUrls.length, postId);
         return uploadedImageUrls;
@@ -207,14 +239,14 @@ public class PostService {
 
         Post post = mapToPost(createPostRequest, user, route);
 
-        postRepository.save(post);
+        Post saved = postRepository.save(post);
 
         createPostRequest.getPlaces().stream()
                 .map(placeRequest -> Place.fromPlaceRequest(placeRequest, post))
                 .forEach(placeRepository::save);
 
         log.info("createPost successfully created post with title: {}", createPostRequest.getTitle());
-        return "Post is created successfully!";
+        return saved.getId();
     }
 
     private Set<HashTag> createHashTags(Set<String> hashtags) {
@@ -241,6 +273,14 @@ public class PostService {
 
         post.setLikesCount(post.getLikesCount() + 1);
         postRepository.save(post);
+
+        if (!user.getId().equals(post.getUser().getId())) {
+            notificationService.sendLikeNotification(
+                    post.getUser().getId(),
+                    post.getId(),
+                    user.getId()
+            );
+        }
 
         log.info("likePost successfully liked post with id: {}", postId);
         return "Liked successfully!";
@@ -398,6 +438,8 @@ public class PostService {
                 pageRequest, new PageImpl<>(allPosts, pageRequest, allPosts.size())
         ).getContent();
 
+        response = response.stream().filter(p -> !p.getAccountInfo().getId().equals(user.getId())).toList();
+
         response = response.size() > 5 ? response.subList(0, 5) : response;
 
         response.forEach(post -> recommendedPostIds.add(post.getId()));
@@ -454,15 +496,44 @@ public class PostService {
             return "You are not allowed to delete this post!";
         }
 
+        List<Place> places = placeRepository.findAllByPost(post);
+        placeRepository.deleteAll(places);
+
+        List<Notification> notifications = notificationRepository.findAllByObjectId(post.getId());
+        notificationRepository.deleteAll(notifications);
+
         postRepository.delete(post);
         log.info("deletePost successfully deleted post with id: {}", postId);
         return "Deleted successfully!";
     }
 
+    @Transactional
+    public String toggleComments(String postId) {
+        log.info("toggleComments called for postId: {}", postId);
+
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new PostNotFoundException("Post not found with id: " + postId));
+
+        boolean isCommentsEnabled = !post.getIsDisabledComments();
+        post.setIsDisabledComments(isCommentsEnabled);
+
+        postRepository.save(post);
+
+        log.info("toggleComments toggled comments for postId: {}. Comments are now {}", postId, isCommentsEnabled ? "enabled" : "disabled");
+        return isCommentsEnabled ? "Comments enabled for post." : "Comments disabled for post.";
+    }
+
     public PostResponse getPostById(String postId) {
         log.info("getPostById called with postId: {}", postId);
-        Post p = postRepository.findByIdAndFetchHashtags(postId)
+        Post p = postRepository.findById(postId)
                 .orElseThrow(() -> new PostNotFoundException("Post with id " + postId + " not found"));
+
+        User authenticatedUser = userService.getAuthenticatedUser();
+        BlackList blackList = p.getUser().getBlackList();
+        if ((blackList != null && blackList.userIds() != null && blackList.userIds().contains(authenticatedUser.getId())) ||
+                p.getUser().isAccountLocked()) {
+            throw new PostNotFoundException("Post with id " + postId + " not found");
+        }
 
         log.info("getPostById successfully returned post: {}", postId);
         return getPostResponseFromPost(p);
@@ -499,12 +570,15 @@ public class PostService {
                 .hashtags(p.getHashtags().stream().map(HashTag::getTitle).collect(Collectors.toSet()))
                 .accountInfo(accountInfo)
                 .places(places)
+                .route(p.getRoute())
                 .isLiked(isPostLikedByUser(p, user))
                 .isSaved(isPostSavedByUser(p, user))
+                .images(p.getImages())
                 .comments(p.getCommentsCount())
                 .likes(p.getLikesCount())
                 .cons(p.getCons())
                 .pros(p.getPros())
+                .isDisableComments(p.getIsDisabledComments())
                 .category(category)
                 .build();
     }
@@ -516,32 +590,45 @@ public class PostService {
         AccountInfoResponse accountInfo = buildAccountInfo(p.getUser());
         CategoryResponse category = buildCategoryResponse(p.getCategoryType());
 
-        List<PlaceResponse> places = fetchAndMapPlaces(p);
+        List<Place> places = fetchPlaces(p);
 
-        PlaceResponse first = !places.isEmpty() ? places.getFirst() : null;
+        Place first = !places.isEmpty() ? places.getFirst() : null;
+        ShortPlaceResponse shortPlaceResponse = new ShortPlaceResponse();
+        if (first != null) {
+            shortPlaceResponse = ShortPlaceResponse
+                    .builder()
+                    .displayName(first.getDisplayName())
+                    .rating(first.getRating())
+                    .build();
+        }
+        String image = "";
+        if (p.getImages() != null) {
+            image = p.getImages().length > 0 ? p.getImages()[0] : null;
+        }
 
         return ShortPostResponse.builder()
                 .id(p.getId())
                 .creationDate(p.getCreatedAt())
                 .category(category)
                 .title(p.getTitle())
-                .place(first)
+                .place(shortPlaceResponse)
                 .rating(calculateRating(places))
                 .accountInfo(accountInfo)
                 .likes(p.getLikesCount())
+                .previewImage(image)
                 .commentsCount(p.getCommentsCount())
                 .isLiked(isPostLikedByUser(p, user))
                 .isSaved(isPostSavedByUser(p, user))
                 .build();
     }
 
-    private Double calculateRating(List<PlaceResponse> places) {
+    private Double calculateRating(List<Place> places) {
         if (places == null || places.isEmpty()) {
             return 0.0;
         }
 
         double totalRating = places.stream()
-                .mapToDouble(PlaceResponse::getRating)
+                .mapToDouble(Place::getRating)
                 .sum();
 
         return totalRating / places.size();
@@ -570,6 +657,13 @@ public class PostService {
                 .toList();
     }
 
+    private List<Place> fetchPlaces(Post p) {
+        return Optional.ofNullable(placeRepository.findAllByPost(p))
+                .orElse(Collections.emptyList())
+                .stream()
+                .toList();
+    }
+
     private List<CommentResponse> fetchAndMapComments(Post p) {
         Page<Comment> commentsPage = Optional.ofNullable(commentRepository.findAllByPost(p, PageRequest.of(0, 10)))
                 .orElse(Page.empty());
@@ -584,6 +678,7 @@ public class PostService {
     private CommentResponse mapCommentToCommentResponse(Comment comment) {
         AccountInfoResponse accountInfo = buildAccountInfo(comment.getUser());
         return CommentResponse.builder()
+                .id(comment.getId())
                 .accountInfo(accountInfo)
                 .text(comment.getContent())
                 .creationDate(comment.getCreatedAt())

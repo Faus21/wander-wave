@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.lang.NonNull;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,4 +27,22 @@ public interface UserReportRepository extends JpaRepository<UserReport, String>,
     Optional<UserReport> findUserReportByObjectAndSender(@Param("objectId") String objectId,
                                                          @Param("senderId") String senderId);
 
+    @Query("SELECT r FROM UserReport r " +
+            "WHERE (:from IS NULL OR r.sender.id IN :from) " +
+            "AND (:on IS NULL OR r.reported.id IN :on) " +
+            "AND (:admins IS NULL OR r.reviewedBy.id IN :admins) " +
+            "AND (:category IS NULL OR r.type.name = :category) " +
+            "AND (:status IS NULL OR r.status.name = :status) " +
+            "AND (:startDate IS NULL OR r.createdAt >= :startDate) " +
+            "AND (:endDate IS NULL OR r.createdAt <= :endDate)")
+    Page<UserReport> filterReports(
+            @Param("from") List<String> from,
+            @Param("on") List<String> on,
+            @Param("admins") List<String> admins,
+            @Param("category") String category,
+            @Param("status") String status,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate,
+            Pageable pageable
+    );
 }

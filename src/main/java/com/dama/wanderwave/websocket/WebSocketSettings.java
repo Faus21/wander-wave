@@ -4,7 +4,7 @@ import lombok.Getter;
 
 @Getter
 public enum WebSocketSettings {
-    CHAT_ENDPOINT("/chat"),
+    APPLICATION_ENDPOINT("/wander_wave"),
     ALLOWED_ORIGINS("*"),
     HEARTBEAT_TIME(25000),
     STREAM_BYTES_LIMIT(512 * 1024),

@@ -2,6 +2,7 @@ package com.dama.wanderwave.post.request;
 
 import com.dama.wanderwave.place.request.PlaceRequest;
 import com.dama.wanderwave.place.request.RouteRequest;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -22,8 +23,10 @@ public class PostRequest {
     private Boolean isDisabledComments = false;
     private Set<String> hashtags;
     private String category;
+    @NotEmpty
     private List<PlaceRequest> places;
     private RouteRequest route;
     private List<String> pros;
     private List<String> cons;
+    private String[] urls;
 }

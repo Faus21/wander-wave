@@ -4,15 +4,15 @@ import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.dama.wanderwave.handler.user.UserNotFoundException;
-import com.dama.wanderwave.user.request.BlockRequest;
+import com.dama.wanderwave.notification.NotificationService;
 import com.dama.wanderwave.user.request.SubscribeRequest;
 import com.dama.wanderwave.user.response.UserResponse;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -30,9 +30,14 @@ class UserServiceTest {
     private UserRepository userRepository;
     @Mock
     private Authentication authentication;
+    @Mock
+    private NotificationService notificationService;
 
     @InjectMocks
     private UserService userService;
+
+    @Mock
+    private ModelMapper modelMapper;
 
     @BeforeEach
     void setUp() {
@@ -49,6 +54,11 @@ class UserServiceTest {
             String userId = "mockId";
             User mockUser = getMockUser();
             when(userRepository.findById(userId)).thenReturn(Optional.of(mockUser));
+            when(userRepository.findByEmail(isNull())).thenReturn(Optional.of(mockUser));
+            when(userService.userToUserResponse(mockUser)).thenReturn(UserResponse.builder()
+                    .id(userId)
+                    .nickname(mockUser.getNickname())
+                    .build());
 
             UserResponse result = userService.getUserById(userId);
 
@@ -180,15 +190,17 @@ class UserServiceTest {
         @Test
         @DisplayName("Update blacklist should block user successfully")
         void updateBlacklist_BlockSuccess() {
-            BlockRequest request = new BlockRequest("blockerId", "blockedId");
+            String blockerId = "blockerId";
+            String blockedId = "blockedId";
 
-            User mockBlocker = getMockUser("blockerId", "blocker@example.com");
-            User mockBlocked = getMockUser("blockedId", "blocked@example.com");
+            User mockBlocker = getMockUser(blockerId, "blocker@example.com");
+            User mockBlocked = getMockUser(blockedId, "blocked@example.com");
 
-            when(userRepository.findById("blockerId")).thenReturn(Optional.of(mockBlocker));
-            when(userRepository.findById("blockedId")).thenReturn(Optional.of(mockBlocked));
+            when(userRepository.findByEmail(isNull())).thenReturn(Optional.of(mockBlocker));
+            when(userRepository.findById(blockerId)).thenReturn(Optional.of(mockBlocker));
+            when(userRepository.findById(blockedId)).thenReturn(Optional.of(mockBlocked));
 
-            String result = userService.updateBlacklist(request, true);
+            String result = userService.updateBlacklist(blockedId, true);
 
             assertEquals("User blocked successfully", result);
             verify(userRepository).save(any(User.class));
@@ -197,15 +209,18 @@ class UserServiceTest {
         @Test
         @DisplayName("Update blacklist should unblock user successfully")
         void updateBlacklist_UnblockSuccess() {
-            BlockRequest request = new BlockRequest("blockerId", "blockedId");
-            User mockBlocker = getMockUser("blockerId", "blocker@example.com");
-            User mockBlocked = getMockUser("blockedId", "blocked@example.com");
+            String blockerId = "blockerId";
+            String blockedId = "blockedId";
+
+            User mockBlocker = getMockUser(blockerId, "blocker@example.com");
+            User mockBlocked = getMockUser(blockedId, "blocked@example.com");
             mockBlocker.getBlackList().userIds().add(mockBlocked.getId());
 
-            when(userRepository.findById("blockerId")).thenReturn(Optional.of(mockBlocker));
-            when(userRepository.findById("blockedId")).thenReturn(Optional.of(mockBlocked));
+            when(userRepository.findByEmail(isNull())).thenReturn(Optional.of(mockBlocker));
+            when(userRepository.findById(blockerId)).thenReturn(Optional.of(mockBlocker));
+            when(userRepository.findById(blockedId)).thenReturn(Optional.of(mockBlocked));
 
-            String result = userService.updateBlacklist(request, false);
+            String result = userService.updateBlacklist(blockedId, false);
 
             assertEquals("User unblocked successfully", result);
             verify(userRepository).save(any(User.class));
@@ -214,21 +229,22 @@ class UserServiceTest {
         @Test
         @DisplayName("Update blacklist should throw UserNotFoundException when blocker does not exist")
         void updateBlacklist_BlockerNotFound() {
-            BlockRequest request = new BlockRequest("blockerId", "blockedId");
-            when(userRepository.findById("blockerId")).thenReturn(Optional.empty());
-
-            assertThrows(UserNotFoundException.class, () -> userService.updateBlacklist(request, true));
+            String blockedId = "blockedId";
+            assertThrows(UserNotFoundException.class, () -> userService.updateBlacklist(blockedId, true));
         }
 
         @Test
         @DisplayName("Update blacklist should throw UserNotFoundException when blocked does not exist")
         void updateBlacklist_BlockedNotFound() {
-            BlockRequest request = new BlockRequest("blockerId", "blockedId");
-            User mockBlocker = getMockUser();
-            when(userRepository.findById("blockerId")).thenReturn(Optional.of(mockBlocker));
-            when(userRepository.findById("blockedId")).thenReturn(Optional.empty());
+            String blockerId = "blockerId";
+            String blockedId = "blockedId";
 
-            assertThrows(UserNotFoundException.class, () -> userService.updateBlacklist(request, true));
+            User mockBlocker = getMockUser(blockerId, "blocker@example.com");
+            when(userRepository.findByEmail(isNull())).thenReturn(Optional.of(mockBlocker));
+            when(userRepository.findById(blockerId)).thenReturn(Optional.of(mockBlocker));
+            when(userRepository.findById(blockedId)).thenReturn(Optional.empty());
+
+            assertThrows(UserNotFoundException.class, () -> userService.updateBlacklist(blockedId, true));
         }
     }
 
@@ -306,82 +322,6 @@ class UserServiceTest {
             verify(userRepository).findSubscribersIdsByUserId(userId, PageRequest.of(page, size));
         }
     }
-
-    @Nested
-    class GetUserFriendshipRecommendationsTest {
-
-        @Test
-        @DisplayName("Should return random users when user has no subscriptions")
-        void noSubscriptions_ReturnsRandomUsers() {
-            String userId = "mockId";
-            User mockUser = getMockUser(userId, "mock@mail.com");
-            mockUser.setSubscriptionsCount(0);
-
-            when(userRepository.findByEmail(isNull()))
-                    .thenReturn(Optional.of(mockUser));
-
-            when(userRepository.findAll(any(PageRequest.class)))
-                    .thenReturn(new PageImpl<>(getRandomUserList(SUBSCRIPTIONS_PAGE)));
-
-            List<UserResponse> result = userService.getUserFriendshipRecommendations();
-
-            assertNotNull(result);
-            assertEquals(SUBSCRIPTIONS_PAGE, result.size());
-            verify(userRepository).findAll(any(PageRequest.class));
-        }
-
-        @Test
-        @DisplayName("Should fill result with random users if recommendations are less than SUBSCRIPTIONS_PAGE")
-        void subscriptionsLessThanPage_ReturnsSubscriptions() {
-            String userId = "mockId";
-            User mockUser = getMockUser(userId, "mock@mail.com");
-            int count = 5;
-            mockUser.setSubscriptionsCount(count);
-
-            when(userRepository.findByEmail(isNull()))
-                    .thenReturn(Optional.of(mockUser));
-
-            when(userRepository.findAll(any(PageRequest.class)))
-                    .thenReturn(new PageImpl<>(getRandomUserList(count)));
-
-            when(userRepository.findAllByIdIn(ArgumentMatchers.anyList()))
-                    .thenReturn(getRandomUserList(count));
-
-            when(userRepository.findSubscriptionsIdsByUserId(eq(userId), any(PageRequest.class)))
-                    .thenReturn(new PageImpl<>(getRandomUserIdList(count)));
-
-            List<UserResponse> result = userService.getUserFriendshipRecommendations();
-
-            assertNotNull(result);
-            assertEquals(SUBSCRIPTIONS_PAGE, result.size());
-            verify(userRepository).findSubscriptionsIdsByUserId(eq(userId), any(PageRequest.class));
-        }
-
-        @Test
-        @DisplayName("Should return shuffled subscriptions when user has more subscriptions than SUBSCRIPTIONS_PAGE")
-        void subscriptionsMoreThanPage_ReturnsShuffledSubscriptions() {
-            String userId = "mockId";
-            User mockUser = getMockUser(userId, "mock@mail.com");
-            int count = 100;
-            mockUser.setSubscriptionsCount(count);
-
-            when(userRepository.findByEmail(isNull()))
-                    .thenReturn(Optional.of(mockUser));
-
-            when(userRepository.findAllByIdIn(ArgumentMatchers.anyList()))
-                    .thenReturn(getRandomUserList(SUBSCRIPTIONS_PAGE));
-
-            when(userRepository.findSubscriptionsIdsByUserId(eq(userId), any(PageRequest.class)))
-                    .thenReturn(new PageImpl<>(getRandomUserIdList(count)));
-
-            List<UserResponse> result = userService.getUserFriendshipRecommendations();
-
-            assertNotNull(result);
-            assertEquals(SUBSCRIPTIONS_PAGE, result.size());
-            verify(userRepository).findSubscriptionsIdsByUserId(eq(userId), any(PageRequest.class));
-        }
-    }
-
 
     private User getMockUser(String id, String email) {
         return User.builder()

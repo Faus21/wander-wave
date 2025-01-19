@@ -5,10 +5,14 @@ import com.dama.wanderwave.handler.report.ReportNotFoundException;
 import com.dama.wanderwave.handler.report.ReportTypeNotFoundException;
 import com.dama.wanderwave.handler.user.UnauthorizedActionException;
 import com.dama.wanderwave.handler.user.UserNotFoundException;
+import com.dama.wanderwave.report.comment.CommentReport;
 import com.dama.wanderwave.report.general.UserReport;
+import com.dama.wanderwave.report.post.PostReport;
 import com.dama.wanderwave.report.request.ReportObjectType;
 import com.dama.wanderwave.report.request.ReviewReportRequest;
 import com.dama.wanderwave.report.request.SendReportRequest;
+import com.dama.wanderwave.report.response.ReportResponse;
+import com.dama.wanderwave.user.response.UserResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.Getter;
@@ -23,6 +27,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -38,6 +43,7 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static com.dama.wanderwave.report.ApiUrls.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -63,9 +69,13 @@ class ReportControllerTest {
     @Mock
     private ReportService reportService;
 
-    public record ErrorResponse(int errorCode, String message) { }
+    private ModelMapper modelMapper;
 
-    public record ResponseRecord(int code, String message) { }
+    public record ErrorResponse(int errorCode, String message) {
+    }
+
+    public record ResponseRecord(int code, String message) {
+    }
 
     private static final String CONTENT_TYPE = MediaType.APPLICATION_JSON_VALUE;
     private static final MediaType ACCEPT_TYPE = MediaType.APPLICATION_JSON;
@@ -79,6 +89,7 @@ class ReportControllerTest {
         mockMvc = MockMvcBuilders.standaloneSetup(reportController).setControllerAdvice(new GlobalExceptionHandler()).build();
         objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
+        modelMapper = new ModelMapper();
     }
 
     @Nested
@@ -158,9 +169,8 @@ class ReportControllerTest {
         @Test
         @DisplayName("Get all reports should return OK (200)")
         void getAllReports_Success() throws Exception {
-            when(reportService.getAllReports(any(Pageable.class), any())).thenReturn(
-                    getMockPage()
-            );
+            Page<ReportResponse> page = getMockPage();
+            when(reportService.getAllReports(any(Pageable.class), any())).thenReturn(page);
 
             mockMvc.perform(get(ALL_REPORTS.getUrl())
                             .param("pageNumber", "0")
@@ -222,9 +232,8 @@ class ReportControllerTest {
         @Test
         @DisplayName("Get user reports should return OK (200)")
         void getUserReports_Success() throws Exception {
-            when(reportService.getUserReports(any(Pageable.class), any(String.class))).thenReturn(
-                    getMockPage()
-            );
+            Page<ReportResponse> page = getMockPage();
+            when(reportService.getUserReports(any(Pageable.class), any(String.class))).thenReturn(page);
 
             mockMvc.perform(get(USER_REPORTS.getUrl(), "mockUserId")
                             .param("pageNumber", "0")
@@ -366,16 +375,17 @@ class ReportControllerTest {
         @Test
         @DisplayName("Get report by id return OK (200)")
         void getReportById_Success() throws Exception {
-            when(reportService.getReportById(anyString())).thenReturn(getMockReport());
+            ReportResponse report = getMockReport();
+            when(reportService.getReportById(anyString())).thenReturn(report);
 
             mockMvc.perform(get(GET_REPORT.getUrl(), "mockReportId")
                             .contentType(CONTENT_TYPE)
                             .accept(ACCEPT_TYPE))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.message.id").value("abc"));
-
             verify(reportService).getReportById(any(String.class));
         }
+
         @Test
         @DisplayName("Get user reports should return Not Found (404)")
         void getReportById_NotFound() throws Exception {
@@ -429,7 +439,6 @@ class ReportControllerTest {
     private SendReportRequest getSendReportRequest() {
         return SendReportRequest.builder()
                 .description("This is a sample report description.")
-                .userSenderId("user123")
                 .userReportedId("user456")
                 .reportType("Abuse")
                 .objectType(ReportObjectType.COMMENT)
@@ -446,20 +455,50 @@ class ReportControllerTest {
                 .build();
     }
 
-    private UserReport getMockReport() {
-        return UserReport.builder().id("abc").build();
+    private ReportResponse getMockReport() {
+        return userReportToReportResponse(UserReport.builder().id("abc").build());
     }
 
-    private Page<UserReport> getMockPage() {
+    private Page<ReportResponse> getMockPage() {
         List<UserReport> mockReports = List.of(
                 UserReport.builder().id("abc").build(),
                 UserReport.builder().id("qwe").build()
         );
 
-        return new PageImpl<>(mockReports);
+        return new PageImpl<>(mockReports).map(this::userReportToReportResponse);
     }
 
     private String mapToJson(Object request) throws Exception {
         return objectMapper.writeValueAsString(request);
+    }
+
+    public ReportResponse userReportToReportResponse(UserReport report) {
+        if (report == null) {
+            return null;
+        }
+
+        ReportResponse.ReportResponseBuilder responseBuilder = ReportResponse.builder()
+                .id(report.getId())
+                .description(report.getDescription())
+                .sender(report.getSender() != null ? modelMapper.map(report.getSender(), UserResponse.class) : null)
+                .reported(report.getReported() != null ? modelMapper.map(report.getReported(), UserResponse.class) : null)
+                .reportType(report.getType() != null ? report.getType().getName() : null)
+                .reportStatus(report.getStatus() != null ? report.getStatus().getName() : null)
+                .createdAt(report.getCreatedAt())
+                .reviewedAt(report.getReviewedAt())
+                .reviewedBy(report.getReviewedBy() != null ? modelMapper.map(report.getReviewedBy(), UserResponse.class) : null)
+                .reportComment(report.getReportComment());
+
+        if (report instanceof PostReport postReport) {
+            responseBuilder.objectId(postReport.getPost().getId())
+                    .objectType("POST");
+        } else if (report instanceof CommentReport commentReport) {
+            responseBuilder.objectId(commentReport.getComment().getId())
+                    .objectType("COMMENT");
+        } else {
+            responseBuilder.objectId("USER");
+        }
+
+        return responseBuilder.build();
     }
 }

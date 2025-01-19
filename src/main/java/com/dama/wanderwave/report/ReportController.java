@@ -4,6 +4,7 @@ import com.dama.wanderwave.auth.*;
 import com.dama.wanderwave.report.request.FilteredReportPageRequest;
 import com.dama.wanderwave.report.request.ReviewReportRequest;
 import com.dama.wanderwave.report.request.SendReportRequest;
+import com.dama.wanderwave.report.response.ReportResponse;
 import com.dama.wanderwave.utils.ResponseRecord;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -14,12 +15,17 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/reports")
@@ -56,9 +62,26 @@ public class ReportController {
     public ResponseEntity<ResponseRecord> getAllReports(
             @RequestParam int pageNumber,
             @RequestParam @Max(MAX_PAGE_SIZE) Integer pageSize,
-            @RequestBody(required = false) @Valid FilteredReportPageRequest request) {
+            @RequestParam(required = false) List<String> from,
+            @RequestParam(required = false) List<String> on,
+            @RequestParam(required = false) List<String> admins,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) LocalDateTime startDate,
+            @RequestParam(required = false) LocalDateTime endDate
+    ) {
+        FilteredReportPageRequest request = FilteredReportPageRequest.builder()
+                .from(from)
+                .on(on)
+                .admins(admins)
+                .category(category)
+                .status(status)
+                .startDate(startDate)
+                .endDate(endDate)
+                .build();
+
         Pageable page = PageRequest.of(pageNumber, pageSize);
-        var reports = service.getAllReports(page, request);
+        Page<ReportResponse> reports = service.getAllReports(page, request);
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), reports));
     }
 
@@ -99,7 +122,7 @@ public class ReportController {
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content())
     })
     public ResponseEntity<ResponseRecord> getReportById(@PathVariable String reportId) {
-        var message = service.getReportById(reportId);
+        ReportResponse message = service.getReportById(reportId);
         return ResponseEntity.ok().body(new ResponseRecord(HttpStatus.OK.value(), message));
     }
 

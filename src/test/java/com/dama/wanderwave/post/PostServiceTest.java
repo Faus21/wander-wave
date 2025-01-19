@@ -12,6 +12,7 @@ import com.dama.wanderwave.handler.user.save.IsSavedException;
 import com.dama.wanderwave.handler.user.save.SavedPostNotFound;
 import com.dama.wanderwave.hashtag.HashTag;
 import com.dama.wanderwave.hashtag.HashTagRepository;
+import com.dama.wanderwave.notification.NotificationRepository;
 import com.dama.wanderwave.place.Place;
 import com.dama.wanderwave.place.PlaceRepository;
 import com.dama.wanderwave.place.request.PlaceRequest;
@@ -80,6 +81,8 @@ public class PostServiceTest {
     private SavedPostRepository savedPostRepository;
     @Mock
     private PlaceRepository placeRepository;
+    @Mock
+    private NotificationRepository notificationRepository;
 
     private Authentication authentication;
 
@@ -167,7 +170,7 @@ public class PostServiceTest {
                 var response = postService.createPost(getMockPostCreateRequest());
 
                 assertNotNull(response);
-                assertEquals("Post is created successfully!", response);
+                assertEquals("mockPost1", response);
 
                 verify(userService).getAuthenticatedUser();
                 verify(hashTagRepository).findByTitle(any(String.class));
@@ -522,6 +525,7 @@ public class PostServiceTest {
         void recommendationFlow_Success() {
             User mockUser = getMockUser();
             Post mockPost1 = getUserPosts().getFirst();
+            mockPost1.getUser().setId("mockIdPow");
             Post mockPost2 = getUserPosts().get(1);
 
             when(userService.getAuthenticatedUser()).thenReturn(mockUser);
@@ -606,25 +610,25 @@ public class PostServiceTest {
         void getPostById_Success() {
             var postId = "12345";
             var mockPost = getMockPost(postId);
-            when(postRepository.findByIdAndFetchHashtags(postId)).thenReturn(Optional.of(mockPost));
+            when(postRepository.findById(postId)).thenReturn(Optional.of(mockPost));
             PostResponse result = postService.getPostById(postId);
 
             assertNotNull(result);
             assertEquals(mockPost.getId(), result.getId());
             assertEquals(mockPost.getTitle(), result.getTitle());
 
-            verify(postRepository).findByIdAndFetchHashtags(postId);
+            verify(postRepository).findById(postId);
         }
 
         @Test
         @DisplayName("Get post by ID should throw exception when post is not found")
         void getPostById_PostNotFound() {
             var postId = "12345";
-            when(postRepository.findByIdAndFetchHashtags(postId)).thenReturn(Optional.empty());
+            when(postRepository.findById(postId)).thenReturn(Optional.empty());
 
             assertThrows(PostNotFoundException.class, () -> postService.getPostById(postId));
 
-            verify(postRepository).findByIdAndFetchHashtags(postId);
+            verify(postRepository).findById(postId);
         }
 
     }
