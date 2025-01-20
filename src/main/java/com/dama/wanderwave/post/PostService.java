@@ -449,7 +449,6 @@ public class PostService {
         LinkedHashSet<ShortPostResponse> finalResult = new LinkedHashSet<>(response);
 
         log.info("recommendationFlow returned {} posts", finalResult.size());
-
         return finalResult;
     }
 

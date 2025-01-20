@@ -265,7 +265,8 @@ public class UserService {
                 .toList();
         log.debug("Nested random subscriptions fetched: {}", nestedRandomSubscriptions.size());
 
-        List<UserResponse> result = allUsersToUserResponse(userRepository.findAllByIdIn(nestedRandomSubscriptions));
+        List<UserResponse> unmutableResult = allUsersToUserResponse(userRepository.findAllByIdIn(nestedRandomSubscriptions));
+        List<UserResponse> result = new ArrayList<>(unmutableResult);
         log.debug("Initial result size after fetching nested random subscriptions: {}", result.size());
 
         result.forEach(u -> uniqueUserIds.add(u.getId()));

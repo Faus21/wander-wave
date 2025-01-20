@@ -22,10 +22,10 @@ public interface PostRepository extends JpaRepository<Post, String> {
     @Query("SELECT p FROM Post p LEFT JOIN FETCH p.hashtags WHERE p.user = :user")
     Page<Post> findByUserWithHashtags(@Param("user") User user, Pageable pageable);
 
-    @Query("SELECT p FROM Post p LEFT JOIN FETCH p.likes l LEFT JOIN FETCH p.hashtags h WHERE l.user = :user ORDER BY l.createdAt")
+    @Query("SELECT p FROM Post p JOIN p.likes l WHERE l.user = :user ORDER BY l.createdAt DESC")
     Page<Post> findByUserWithLikes(@Param("user") User user, Pageable pageable);
 
-    @Query("SELECT p FROM Post p LEFT JOIN FETCH p.savedPosts s LEFT JOIN FETCH p.hashtags h WHERE s.user = :user ORDER BY s.createdAt")
+    @Query("SELECT p FROM Post p JOIN p.savedPosts s WHERE s.user = :user ORDER BY s.createdAt DESC")
     Page<Post> findByUserSaved(@Param("user") User user, Pageable pageable);
 
     Page<Post> findByHashtagsContaining(HashTag hashtag, Pageable pageable);
