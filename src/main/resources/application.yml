@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: wanderwave
+  profiles:
+    active: dev
+
+server:
+  port: 80
+
+
+

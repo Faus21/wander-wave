@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Recovery</title>
+    <style>
+        /* Reset styles */
+        body, table, td, a {
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        img {
+            border: 0;
+            outline: none;
+            display: block;
+            max-width: 100%;
+            height: auto;
+        }
+
+        h1, h2, h3 {
+            font-weight: bold;
+            margin: 0;
+        }
+
+        /* Container styles */
+        .email-container {
+            max-width: 600px;
+            width: 100%;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #dddddd;
+            overflow: hidden;
+        }
+
+        /* Header styles */
+        .email-header {
+            background-color: #1e90ff;
+            color: #ffffff;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .email-header h1 {
+            font-size: 24px;
+            margin: 0;
+        }
+
+        /* Content styles */
+        .email-content {
+            padding: 20px;
+            text-align: center;
+        }
+
+        .email-content p {
+            font-size: 16px;
+            color: #555555;
+            margin-bottom: 20px;
+        }
+
+        /* Button styles */
+        .email-button {
+            display: inline-block;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #ffffff;
+            background-color: #1e90ff;
+            border-radius: 5px;
+            text-decoration: none;
+            border: 1px solid #1e90ff;
+            transition: background-color 0.3s ease;
+        }
+
+        .email-button:hover {
+            background-color: #0077cc;
+        }
+
+        /* Footer styles */
+        .email-footer {
+            background-color: #f9f9f9;
+            border-top: 1px solid #eeeeee;
+            padding: 20px;
+            text-align: center;
+            font-size: 14px;
+            color: #777777;
+        }
+
+        .email-footer p {
+            margin: 0;
+        }
+
+        .email-footer small {
+            font-size: 12px;
+            color: #aaaaaa;
+        }
+
+        /* Responsive styles */
+        @media only screen and (max-width: 600px) {
+            .email-container {
+                width: 100% !important;
+                border-radius: 0;
+            }
+
+            .email-header h1 {
+                font-size: 20px;
+            }
+
+            .email-content p {
+                font-size: 14px;
+            }
+
+            .email-button {
+                font-size: 14px;
+                padding: 10px 20px;
+            }
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f5f7fa;">
+
+<!-- Wrapper Table -->
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f5f7fa;">
+    <tr>
+        <td align="center" style="padding: 20px 0;">
+            <!-- Container Table -->
+            <table class="email-container" width="600" cellpadding="0" cellspacing="0" border="0">
+                <!-- Header -->
+                <tr>
+                    <td class="email-header">
+                        <h1>Account Activation</h1>
+                    </td>
+                </tr>
+                <!-- Content -->
+                <tr>
+                    <td class="email-content">
+                        <p>Hi there,</p>
+                        <p>We received a request to activate this email for your account. Click the button below to start the process.</p>
+                        <!-- Button -->
+                        <a href="https://wanderwave.azurewebsites.net/activate-account?emailToken=${activationToken}"
+                           class="email-button"
+                           target="_blank"
+                           rel="noopener noreferrer">Activate Account</a>
+                        <p style="font-size: 12px; color: darkgray; margin-top: 20px;">If you didn't request this, please ignore this email.</p>
+                    </td>
+                </tr>
+                <!-- Footer -->
+                <tr>
+                    <td class="email-footer">
+                        <p>WanderWave</p>
+                        <small>© 2024-2025 WanderWave. All rights reserved.</small>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+
+</body>
+</html>

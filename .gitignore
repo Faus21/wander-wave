@@ -1,0 +1,45 @@
+# Ignore IntelliJ IDEA project files
+.idea/
+*.iml
+*.ipr
+*.iws
+/.idea
+
+# Ignore Redis database dumps
+*.rdb
+
+# Ignore logs and compiled class files
+*.log
+*.class
+
+# Ignore package files
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Ignore virtual machine crash logs
+hs_err_pid*
+
+# Maven and build directories
+/target/
+/build/
+
+# Ignore environment variable files
+.env
+
+# Ignore dependency resolution directories
+/.mvn/
+/.mtj.tmp/
+
+# Ignore node modules if any frontend code is present
+node_modules/
+
+# Ignore temporary OS and IDE files
+*.swp
+*.DS_Store
+Thumbs.db
+application-dev.yml
